@@ -17,3 +17,7 @@ $routes->get('/logout', 'Auth::logout');
 $routes->get('/register', 'Auth::register');
 $routes->post('/register', 'Auth::registerProcess');
 $routes->get('/dashboard', 'Dashboard::index');
+
+// Settings routes
+$routes->get('/settings', 'Settings::index');
+$routes->post('/settings/update', 'Settings::update');
