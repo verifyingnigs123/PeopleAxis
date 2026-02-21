@@ -198,6 +198,7 @@
     }
 </style>
 
+<?php if (session()->get('logged_in')): ?>
 <!-- Top Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
     <div class="container-fluid">
@@ -455,3 +456,4 @@ function reinitializeScripts() {
     });
 }
 </script>
+<?php endif; ?>

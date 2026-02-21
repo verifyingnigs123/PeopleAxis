@@ -179,6 +179,27 @@
     .back-link:hover {
         color: #2980b9;
     }
+
+    .password-wrapper .password-toggle {
+        z-index: 9999 !important;
+        pointer-events: auto !important;
+        background: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: calc(100% - 0.4rem);
+        right: .5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        position: absolute;
+        cursor: pointer;
+    }
+    .password-wrapper .password-toggle i {
+        pointer-events: auto;
+        display: inline-block;
+    }
 </style>
 
 <div class="login-container">
@@ -237,14 +258,23 @@
                     <label for="password">
                         <i class="fas fa-lock"></i> Password
                     </label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        class="form-control" 
-                        placeholder="Enter your password"
-                        required
-                    >
+
+                    <div class="password-wrapper" style="position:relative;">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-control" 
+                            placeholder="Enter your password"
+                            required
+                            style="padding-right:3.5rem;"
+                        >
+
+                        <button type="button" id="togglePassword" class="password-toggle" aria-pressed="false" aria-label="Show password" tabindex="0" onclick="togglePasswordVisibility(event)">
+                            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+                            <span class="visually-hidden">Show password</span>
+                        </button>
+                    </div>
                     <?php if ($errors = session('validation')) : ?>
                         <?php if (is_array($errors) && isset($errors['password'])): ?>
                             <small class="text-danger d-block mt-2">
@@ -289,4 +319,73 @@
     </div>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+// Robust password toggle: simple, works even if DOMContentLoaded timing differs
+function togglePasswordVisibility(e) {
+    try {
+        var toggle = document.getElementById('togglePassword');
+        var pwd = document.getElementById('password');
+        if (!toggle || !pwd) return;
+        if (e && e.preventDefault) e.preventDefault();
+        var isHidden = pwd.getAttribute('type') === 'password';
+        pwd.setAttribute('type', isHidden ? 'text' : 'password');
+
+        // update UI
+        toggle.setAttribute('aria-pressed', String(isHidden));
+        toggle.setAttribute('title', isHidden ? 'Hide password' : 'Show password');
+        var sr = toggle.querySelector('.visually-hidden');
+        if (sr) sr.textContent = isHidden ? 'Hide password' : 'Show password';
+        var icon = toggle.querySelector('i');
+        if (icon) {
+            icon.classList.remove(isHidden ? 'fa-eye-slash' : 'fa-eye');
+            icon.classList.add(isHidden ? 'fa-eye' : 'fa-eye-slash');
+        }
+        pwd.focus();
+        console.log('togglePasswordVisibility: set type to', pwd.getAttribute('type'));
+    } catch (err) {
+        console.error('togglePasswordVisibility error:', err);
+    }
+}
+
+// Attach event listeners if possible
+(function attachToggle() {
+    var toggle = document.getElementById('togglePassword');
+    var pwd = document.getElementById('password');
+    if (!toggle || !pwd) return;
+    toggle.addEventListener('click', togglePasswordVisibility);
+    toggle.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            togglePasswordVisibility(e);
+        }
+    });
+})();
+// Delegated listeners as a robust fallback (works with AJAX-loaded content and CSP)
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('#togglePassword');
+    if (btn) {
+        togglePasswordVisibility(e);
+    }
+});
+document.addEventListener('keydown', function (e) {
+    var active = document.activeElement;
+    if (!active) return;
+    if ((e.key === ' ' || e.key === 'Enter') && active.id === 'togglePassword') {
+        e.preventDefault();
+        togglePasswordVisibility(e);
+    }
+});
+
+// Also attach directly to the inner icon as a fallback
+var loginEyeIcon = document.querySelector('#togglePassword i');
+if (loginEyeIcon) {
+    loginEyeIcon.addEventListener('click', function (e) {
+        e.stopPropagation();
+        togglePasswordVisibility(e);
+    });
+}
+</script>
 <?= $this->endSection() ?>

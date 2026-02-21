@@ -152,11 +152,32 @@ class Users extends BaseController
     public function delete($id)
     {
         $user = $this->userModel->find($id);
+
+        // If user not found, return JSON for AJAX/DELETE or redirect back for normal GET
         if (!$user) {
-            return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
+            if ($this->request->isAJAX() || strtolower($this->request->getMethod()) === 'delete') {
+                return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
+            }
+
+            return redirect()->to('/users')->with('error', 'User not found');
         }
 
-        $this->userModel->delete($id);
-        return $this->response->setJSON(['success' => true, 'message' => 'User deleted successfully']);
+        try {
+            $this->userModel->delete($id);
+
+            if ($this->request->isAJAX() || strtolower($this->request->getMethod()) === 'delete') {
+                return $this->response->setJSON(['success' => true, 'message' => 'User deleted successfully']);
+            }
+
+            return redirect()->to('/users')->with('success', 'User deleted successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Delete user error: ' . $e->getMessage());
+
+            if ($this->request->isAJAX() || strtolower($this->request->getMethod()) === 'delete') {
+                return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'Failed to delete user']);
+            }
+
+            return redirect()->to('/users')->with('error', 'Failed to delete user');
+        }
     }
 }

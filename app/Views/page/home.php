@@ -109,9 +109,6 @@
             <a href="<?= base_url('login') ?>" class="btn-primary-alt">
                 <i class="fas fa-sign-in-alt"></i> Login to Dashboard
             </a>
-            <a href="<?= base_url('register') ?>" class="btn-secondary-alt">
-                <i class="fas fa-user-plus"></i> Create Account
-            </a>
         </div>
     </div>
 
@@ -129,14 +126,6 @@
                                 <i class="fas fa-users-cog" style="font-size: 2.5rem; color: #3498db; margin-bottom: 1rem; display: block;"></i>
                                 <h5 style="color: #2c3e50; font-weight: 600; margin-bottom: 0.5rem;">Employee Management</h5>
                                 <p style="color: #7f8c8d; margin: 0; font-size: 0.95rem;">Manage employee information, profiles, and organizational structure efficiently</p>
-                            </div>
-                        </div>
-
-                        <div class="col-md-4 mb-4">
-                            <div style="text-align: center;">
-                                <i class="fas fa-money-bill-wave" style="font-size: 2.5rem; color: #3498db; margin-bottom: 1rem; display: block;"></i>
-                                <h5 style="color: #2c3e50; font-weight: 600; margin-bottom: 0.5rem;">Payroll Management</h5>
-                                <p style="color: #7f8c8d; margin: 0; font-size: 0.95rem;">Handle salaries, deductions, allowances, and generate payslips automatically</p>
                             </div>
                         </div>
 

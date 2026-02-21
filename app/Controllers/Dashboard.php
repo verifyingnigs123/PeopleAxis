@@ -6,7 +6,7 @@ use App\Models\UserModel;
 
 class Dashboard extends BaseController
 {
-    public function index(): string
+    public function index()
     {
         // Check if user is logged in
         if (!session()->get('logged_in')) {

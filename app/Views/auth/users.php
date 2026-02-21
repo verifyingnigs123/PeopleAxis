@@ -231,6 +231,29 @@
 
     .fw-600 { font-weight: 600; }
 
+    /* Password toggle styles */
+    .password-wrapper { position: relative; }
+    .password-wrapper .password-toggle {
+        position: absolute;
+        right: .5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 9999;
+        background: transparent;
+        border: none;
+        width: 2.2rem;
+        height: 2.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #3498db;
+        cursor: pointer;
+    }
+    .password-wrapper .password-toggle i {
+        pointer-events: auto;
+        display: inline-block;
+    }
+
     /* ===== Action Buttons ===== */
     .action-buttons {
         display: flex;
@@ -413,8 +436,13 @@
 
                     <div class="mb-3">
                         <label for="password" class="form-label fw-600">Password <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="password" name="password"
-                               placeholder="Enter password (min 6 characters)" required minlength="6">
+                        <div class="password-wrapper">
+                           <input type="password" class="form-control" id="password" name="password"
+                               placeholder="Enter password (min 6 characters)" required minlength="6" value="HRmanage" style="padding-right:2.8rem;">
+                           <button type="button" id="toggleAddPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddPasswordVisibility(event)">
+                               <i class="fas fa-eye-slash" aria-hidden="true"></i>
+                           </button>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -476,8 +504,13 @@
 
                     <div class="mb-3">
                         <label for="editPassword" class="form-label fw-600">Password <span style="color:#999;font-size:0.85rem;">(Leave blank to keep current)</span></label>
-                        <input type="password" class="form-control" id="editPassword" name="password"
-                               placeholder="Leave blank to keep current password" minlength="6">
+                        <div class="password-wrapper">
+                            <input type="password" class="form-control" id="editPassword" name="password"
+                                   placeholder="Leave blank to keep current password" minlength="6" style="padding-right:2.8rem;">
+                            <button type="button" id="toggleEditPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleEditPasswordVisibility(event)">
+                                <i class="fas fa-eye-slash" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -631,6 +664,62 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         alert('Error: ' + error.message);
     });
 });
+</script>
+
+<script>
+// Toggle for Add User password
+function toggleAddPasswordVisibility(e) {
+    try {
+        if (e && e.preventDefault) e.preventDefault();
+        var pwd = document.getElementById('password');
+        var btn = document.getElementById('toggleAddPassword');
+        if (!pwd || !btn) return;
+        var show = pwd.getAttribute('type') === 'password';
+        pwd.setAttribute('type', show ? 'text' : 'password');
+        btn.setAttribute('aria-pressed', String(show));
+        var icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('fa-eye', show);
+            icon.classList.toggle('fa-eye-slash', !show);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// Toggle for Edit User password
+function toggleEditPasswordVisibility(e) {
+    try {
+        if (e && e.preventDefault) e.preventDefault();
+        var pwd = document.getElementById('editPassword');
+        var btn = document.getElementById('toggleEditPassword');
+        if (!pwd || !btn) return;
+        var show = pwd.getAttribute('type') === 'password';
+        pwd.setAttribute('type', show ? 'text' : 'password');
+        btn.setAttribute('aria-pressed', String(show));
+        var icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('fa-eye', show);
+            icon.classList.toggle('fa-eye-slash', !show);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// Delegated listeners (fallback)
+document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('#toggleAddPassword');
+    if (a) return toggleAddPasswordVisibility(e);
+    var b = e.target.closest && e.target.closest('#toggleEditPassword');
+    if (b) return toggleEditPasswordVisibility(e);
+});
+
+// Also attach directly to inner icons for reliability
+var addEye = document.querySelector('#toggleAddPassword i');
+if (addEye) addEye.addEventListener('click', function (e) { e.stopPropagation(); toggleAddPasswordVisibility(e); });
+var editEye = document.querySelector('#toggleEditPassword i');
+if (editEye) editEye.addEventListener('click', function (e) { e.stopPropagation(); toggleEditPasswordVisibility(e); });
 </script>
 
 <?= $this->endSection() ?>
