@@ -23,7 +23,7 @@ class UserModel extends Model
     // Validation
     protected $validationRules      = [
         'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
-        'password' => 'required|min_length[6]',
+        'password' => 'permit_empty|min_length[6]',
         'name'     => 'required|min_length[3]',
         'role'     => 'required|in_list[admin,user]',
     ];
@@ -91,8 +91,13 @@ class UserModel extends Model
      */
     protected function hashPassword(array $data)
     {
-        if (isset($data['data']['password'])) {
-            $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_BCRYPT);
+        if (isset($data['data']['password']) && is_string($data['data']['password']) && strlen(trim($data['data']['password'])) > 0) {
+            $data['data']['password'] = password_hash(trim($data['data']['password']), PASSWORD_BCRYPT);
+        } else {
+            // If password is present but empty, remove it so it won't overwrite existing value
+            if (isset($data['data']['password'])) {
+                unset($data['data']['password']);
+            }
         }
 
         return $data;

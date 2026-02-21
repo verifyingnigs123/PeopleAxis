@@ -18,6 +18,13 @@ $routes->get('/register', 'Auth::register');
 $routes->post('/register', 'Auth::registerProcess');
 $routes->get('/dashboard', 'Dashboard::index');
 
+// Users routes
+$routes->get('/users', 'Users::index');
+$routes->post('/users/store', 'Users::store');
+$routes->get('/users/edit/(:num)', 'Users::edit/$1');
+$routes->post('/users/update/(:num)', 'Users::update/$1');
+$routes->delete('/users/delete/(:num)', 'Users::delete/$1');
+
 // Settings routes
 $routes->get('/settings', 'Settings::index');
 $routes->post('/settings/update', 'Settings::update');

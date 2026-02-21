@@ -3,100 +3,6 @@
 <?= $this->section('content') ?>
 
 <style>
-    /* ===== Navbar Styles ===== */
-    .navbar-custom {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 1rem 0;
-    }
-
-    .navbar-custom .navbar-brand {
-        color: white;
-        font-weight: bold;
-        font-size: 1.5rem;
-    }
-
-    .navbar-custom .nav-link {
-        color: rgba(255, 255, 255, 0.9) !important;
-        margin-left: 1rem;
-    }
-
-    .navbar-custom .nav-link:hover {
-        color: white !important;
-    }
-
-    .navbar-custom .user-menu-dropdown {
-        color: white !important;
-    }
-
-    /* ===== Main Container ===== */
-    .main-container {
-        display: flex;
-        min-height: calc(100vh - 70px);
-        background: #f8f9fa;
-    }
-
-    /* ===== Sidebar Styles ===== */
-    .sidebar {
-        width: 260px;
-        background: white;
-        padding: 20px 0;
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-        position: fixed;
-        height: calc(100vh - 70px);
-        overflow-y: auto;
-        z-index: 100;
-    }
-
-    .sidebar nav {
-        padding: 0;
-    }
-
-    .sidebar-title {
-        padding: 15px 20px 10px;
-        font-weight: 700;
-        color: #667eea;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .sidebar .nav-link {
-        display: block;
-        padding: 12px 20px;
-        color: #495057;
-        text-decoration: none;
-        border-left: 3px solid transparent;
-        transition: all 0.3s ease;
-    }
-
-    .sidebar .nav-link:hover {
-        background: #f1f3ff;
-        border-left-color: #667eea;
-        color: #667eea;
-    }
-
-    .sidebar .nav-link.active {
-        background: #f1f3ff;
-        border-left-color: #667eea;
-        color: #667eea;
-        font-weight: 600;
-    }
-
-    .sidebar .nav-link i {
-        margin-right: 10px;
-        width: 20px;
-        text-align: center;
-    }
-
-    /* ===== Content Area ===== */
-    .content-area {
-        margin-left: 260px;
-        padding: 30px;
-        flex: 1;
-        overflow-y: auto;
-    }
-
     /* ===== Page Header ===== */
     .page-header {
         display: flex;
@@ -756,92 +662,10 @@
 
 <!-- Admin Dashboard -->
 <?php if ($role === 'admin'): ?>
-
-    <!-- Admin Top Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom admin-navbar sticky-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="<?= base_url() ?>">
-                <i class="fas fa-shield-alt"></i> PeopleAxis Admin
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="adminNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('dashboard') ?>">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle user-menu-dropdown" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle"></i> <?= session()->get('name') ?? 'Admin' ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
-                            <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="fas fa-user"></i> My Profile</a></li>
-                            <li><a class="dropdown-item" href="<?= base_url('settings') ?>"><i class="fas fa-cog"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="<?= base_url('logout') ?>"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Admin Container with Sidebar -->
-    <div class="admin-container">
-        <!-- Admin Sidebar -->
-        <aside class="admin-sidebar">
-            <nav>
-                <div class="sidebar-title">Main</div>
-                <a href="<?= base_url('dashboard') ?>" class="nav-link">
-                    <i class="fas fa-home"></i> Dashboard
-                </a>
-
-                <div class="sidebar-title">User Management</div>
-                <a href="<?= base_url('users') ?>" class="nav-link">
-                    <i class="fas fa-users"></i> All Users
-                </a>
-                <a href="<?= base_url('users/create') ?>" class="nav-link">
-                    <i class="fas fa-user-plus"></i> Add User
-                </a>
-                <a href="<?= base_url('roles') ?>" class="nav-link">
-                    <i class="fas fa-lock"></i> Roles & Permissions
-                </a>
-
-                <div class="sidebar-title">System</div>
-                <a href="<?= base_url('activity-logs') ?>" class="nav-link">
-                    <i class="fas fa-history"></i> Activity Logs
-                </a>
-                <a href="<?= base_url('settings') ?>" class="nav-link">
-                    <i class="fas fa-cog"></i> Settings
-                </a>
-                <a href="<?= base_url('backups') ?>" class="nav-link">
-                    <i class="fas fa-database"></i> Backups
-                </a>
-
-                <div class="sidebar-title">Reports</div>
-                <a href="<?= base_url('reports') ?>" class="nav-link">
-                    <i class="fas fa-file-pdf"></i> Reports
-                </a>
-                <a href="<?= base_url('analytics') ?>" class="nav-link">
-                    <i class="fas fa-chart-bar"></i> Analytics
-                </a>
-            </nav>
-        </aside>
-
-        <!-- Admin Dashboard Content -->
-        <div class="admin-content">
         <div class="admin-header">
             <div>
                 <h1><i class="fas fa-shield-alt"></i> Administration Panel</h1>
                 <p>System Management & User Control</p>
-            </div>
-            <div>
-                <a href="<?= base_url('users/create') ?>" class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i> Add New User
-                </a>
             </div>
         </div>
 
@@ -851,60 +675,28 @@
                 <i class="fas fa-users"></i>
                 <div class="stat-info">
                     <h5>Total Users</h5>
-                    <h3 id="totalUsers">0</h3>
+                    <h3><?= $totalUsers ?? 0 ?></h3>
                 </div>
             </div>
             <div class="stat-box">
                 <i class="fas fa-user-shield"></i>
                 <div class="stat-info">
                     <h5>Admins</h5>
-                    <h3 id="adminCount">0</h3>
+                    <h3><?= $adminCount ?? 0 ?></h3>
                 </div>
             </div>
             <div class="stat-box">
                 <i class="fas fa-user-check"></i>
                 <div class="stat-info">
                     <h5>Active Users</h5>
-                    <h3 id="activeUsers">0</h3>
+                    <h3><?= $activeUsers ?? 0 ?></h3>
                 </div>
             </div>
             <div class="stat-box">
                 <i class="fas fa-user-slash"></i>
                 <div class="stat-info">
                     <h5>Inactive Users</h5>
-                    <h3 id="inactiveUsers">0</h3>
-                </div>
-            </div>
-        </div>
-
-        <!-- User Management Table -->
-        <div class="admin-panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-list"></i> User Management</h2>
-                <div class="search-box">
-                    <input type="text" id="userSearch" placeholder="Search users..." class="form-control">
-                </div>
-            </div>
-            <div class="panel-body">
-                <div class="table-responsive">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Created Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-3">Loading users...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <h3><?= $inactiveUsers ?? 0 ?></h3>
                 </div>
             </div>
         </div>
@@ -936,145 +728,8 @@
                 <a href="<?= base_url('backups') ?>" class="btn btn-outline-primary">Backup</a>
             </div>
         </div>
-    </div>
-    </div>
 
-<!-- User Dashboard -->
-<!-- Displayed for 'user' role -->
 <?php elseif ($role === 'user'): ?>
-
-<!-- Top Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-custom sticky-top">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="<?= base_url() ?>">
-            <i class="fas fa-users"></i>
-            PeopleAxis
-        </a>
-
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('dashboard') ?>">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle user-menu-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle"></i> 
-                        <?= session()->get('name') ?? 'User' ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="fas fa-user"></i> My Profile</a></li>
-                        <li><a class="dropdown-item" href="<?= base_url('settings') ?>"><i class="fas fa-cog"></i> Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="<?= base_url('logout') ?>"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-<!-- Main Container -->
-<div class="main-container">
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-        <nav>
-            <!-- Main Menu -->
-            <div class="sidebar-title">Main</div>
-            <a href="<?= base_url('dashboard') ?>" class="nav-link">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </a>
-
-            <!-- Employee Management -->
-            <div class="sidebar-title">Employee Management</div>
-            <a href="<?= base_url('employees') ?>" class="nav-link">
-                <i class="fas fa-users"></i> Employees
-            </a>
-            <a href="<?= base_url('departments') ?>" class="nav-link">
-                <i class="fas fa-building"></i> Departments
-            </a>
-            <a href="<?= base_url('positions') ?>" class="nav-link">
-                <i class="fas fa-briefcase"></i> Positions
-            </a>
-            <a href="<?= base_url('designations') ?>" class="nav-link">
-                <i class="fas fa-certificate"></i> Designations
-            </a>
-
-            <!-- Payroll & Compensation -->
-            <div class="sidebar-title">Payroll & Compensation</div>
-            <a href="<?= base_url('salaries') ?>" class="nav-link">
-                <i class="fas fa-money-bill-wave"></i> Salaries
-            </a>
-            <a href="<?= base_url('payroll') ?>" class="nav-link">
-                <i class="fas fa-calculator"></i> Payroll
-            </a>
-            <a href="<?= base_url('allowances') ?>" class="nav-link">
-                <i class="fas fa-coins"></i> Allowances
-            </a>
-            <a href="<?= base_url('deductions') ?>" class="nav-link">
-                <i class="fas fa-minus-circle"></i> Deductions
-            </a>
-
-            <!-- Leave Management -->
-            <div class="sidebar-title">Leave Management</div>
-            <a href="<?= base_url('leaves') ?>" class="nav-link">
-                <i class="fas fa-calendar-check"></i> Leaves
-            </a>
-            <a href="<?= base_url('leave-types') ?>" class="nav-link">
-                <i class="fas fa-list"></i> Leave Types
-            </a>
-            <a href="<?= base_url('attendance') ?>" class="nav-link">
-                <i class="fas fa-clock"></i> Attendance
-            </a>
-
-            <!-- Recruitment -->
-            <div class="sidebar-title">Recruitment</div>
-            <a href="<?= base_url('jobs') ?>" class="nav-link">
-                <i class="fas fa-file-alt"></i> Job Postings
-            </a>
-            <a href="<?= base_url('candidates') ?>" class="nav-link">
-                <i class="fas fa-user-tie"></i> Candidates
-            </a>
-            <a href="<?= base_url('interviews') ?>" class="nav-link">
-                <i class="fas fa-handshake"></i> Interviews
-            </a>
-
-            <!-- Performance & Training -->
-            <div class="sidebar-title">Performance & Training</div>
-            <a href="<?= base_url('performance') ?>" class="nav-link">
-                <i class="fas fa-star"></i> Performance
-            </a>
-            <a href="<?= base_url('training') ?>" class="nav-link">
-                <i class="fas fa-book"></i> Training
-            </a>
-
-            <!-- Reports -->
-            <div class="sidebar-title">Reports</div>
-            <a href="<?= base_url('reports') ?>" class="nav-link">
-                <i class="fas fa-file-pdf"></i> Reports
-            </a>
-
-            <!-- Administration -->
-            <div class="sidebar-title">Administration</div>
-            <a href="<?= base_url('users') ?>" class="nav-link">
-                <i class="fas fa-user-shield"></i> Users
-            </a>
-            <a href="<?= base_url('roles') ?>" class="nav-link">
-                <i class="fas fa-key"></i> Roles & Permissions
-            </a>
-            <a href="<?= base_url('settings') ?>" class="nav-link">
-                <i class="fas fa-sliders-h"></i> Settings
-            </a>
-        </nav>
-    </aside>
-
-    <!-- Main Content Area -->
-    <div class="content-area">
         <!-- Alert Messages -->
         <?php if (session()->has('success')): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -1319,8 +974,6 @@
 </div>
 
         </main>
-    </div>
-</div>
 
 <!-- Footer -->
 <footer class="footer">
