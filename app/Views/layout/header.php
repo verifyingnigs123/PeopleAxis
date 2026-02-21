@@ -235,98 +235,45 @@
     </div>
 </nav>
 
-<!-- User Dashboard Sidebar -->
+    <!-- User Dashboard Sidebar -->
 <?php if ($role === 'user'): ?>
 <div class="main-container">
-    <!-- Sidebar Navigation -->
+    <!-- Sidebar Navigation (top-level only) -->
     <aside class="sidebar">
         <nav>
-            <!-- Main Menu -->
             <div class="sidebar-title">Main</div>
             <a href="<?= base_url('dashboard') ?>" class="nav-link">
-                <i class="fas fa-chart-line"></i> Dashboard
+                <i class="fas fa-tachometer-alt"></i> Dashboard
             </a>
 
-            <!-- Employee Management -->
-            <div class="sidebar-title">Employee Management</div>
+            <div class="sidebar-title">Employees</div>
             <a href="<?= base_url('employees') ?>" class="nav-link">
                 <i class="fas fa-users"></i> Employees
             </a>
-            <a href="<?= base_url('departments') ?>" class="nav-link">
-                <i class="fas fa-building"></i> Departments
-            </a>
-            <a href="<?= base_url('positions') ?>" class="nav-link">
-                <i class="fas fa-briefcase"></i> Positions
-            </a>
-            <a href="<?= base_url('designations') ?>" class="nav-link">
-                <i class="fas fa-certificate"></i> Designations
-            </a>
 
-            <!-- Payroll & Compensation -->
-            <div class="sidebar-title">Payroll & Compensation</div>
-            <a href="<?= base_url('salaries') ?>" class="nav-link">
-                <i class="fas fa-money-bill-wave"></i> Salaries
-            </a>
-            <a href="<?= base_url('payroll') ?>" class="nav-link">
-                <i class="fas fa-calculator"></i> Payroll
-            </a>
-            <a href="<?= base_url('allowances') ?>" class="nav-link">
-                <i class="fas fa-coins"></i> Allowances
-            </a>
-            <a href="<?= base_url('deductions') ?>" class="nav-link">
-                <i class="fas fa-minus-circle"></i> Deductions
-            </a>
-
-            <!-- Leave Management -->
-            <div class="sidebar-title">Leave Management</div>
-            <a href="<?= base_url('leaves') ?>" class="nav-link">
-                <i class="fas fa-calendar-check"></i> Leaves
-            </a>
-            <a href="<?= base_url('leave-types') ?>" class="nav-link">
-                <i class="fas fa-list"></i> Leave Types
-            </a>
+            <div class="sidebar-title">Attendance</div>
             <a href="<?= base_url('attendance') ?>" class="nav-link">
                 <i class="fas fa-clock"></i> Attendance
             </a>
 
-            <!-- Recruitment -->
-            <div class="sidebar-title">Recruitment</div>
-            <a href="<?= base_url('jobs') ?>" class="nav-link">
-                <i class="fas fa-file-alt"></i> Job Postings
-            </a>
-            <a href="<?= base_url('candidates') ?>" class="nav-link">
-                <i class="fas fa-user-tie"></i> Candidates
-            </a>
-            <a href="<?= base_url('interviews') ?>" class="nav-link">
-                <i class="fas fa-handshake"></i> Interviews
+            <div class="sidebar-title">Leave</div>
+            <a href="<?= base_url('leaves') ?>" class="nav-link">
+                <i class="fas fa-calendar-alt"></i> Leave
             </a>
 
-            <!-- Performance & Training -->
-            <div class="sidebar-title">Performance & Training</div>
+            <div class="sidebar-title">Performance</div>
             <a href="<?= base_url('performance') ?>" class="nav-link">
                 <i class="fas fa-star"></i> Performance
             </a>
-            <a href="<?= base_url('training') ?>" class="nav-link">
-                <i class="fas fa-book"></i> Training
-            </a>
 
-            <!-- Reports -->
             <div class="sidebar-title">Reports</div>
             <a href="<?= base_url('reports') ?>" class="nav-link">
-                <i class="fas fa-file-pdf"></i> Reports
+                <i class="fas fa-file-alt"></i> Reports
             </a>
 
-            <!-- Administration -->
-            <div class="sidebar-title">Administration</div>
-            <a href="<?= base_url('users') ?>" class="nav-link">
-                <i class="fas fa-user-shield"></i> Users
-            </a>
-            <a href="<?= base_url('roles') ?>" class="nav-link">
-                <i class="fas fa-key"></i> Roles & Permissions
-            </a>
-            <a href="<?= base_url('settings') ?>" class="nav-link">
-                <i class="fas fa-cog"></i> Settings
-            </a>
+            <!-- Profile moved to top-nav; sidebar profile removed -->
+
+            <!-- Session links handled in top nav dropdown; sidebar logout removed -->
         </nav>
     </aside>
 
@@ -389,7 +336,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const url = this.getAttribute('href');
-            const contentArea = document.getElementById('mainContent');
+            // Support admin (`#mainContent`) and user (`.content-area`) containers
+            const contentArea = document.getElementById('mainContent') || document.querySelector('.content-area') || document.querySelector('.admin-content');
             
             if (!contentArea) return;
             
