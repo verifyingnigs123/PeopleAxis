@@ -16,6 +16,8 @@ $routes->post('/login', 'Auth::loginProcess');
 $routes->get('/logout', 'Auth::logout');
 $routes->get('/register', 'Auth::register');
 $routes->post('/register', 'Auth::registerProcess');
+$routes->get('/verify-email', 'Auth::verifyEmail');
+$routes->post('/verify-email', 'Auth::verifyEmailProcess');
 $routes->get('/dashboard', 'Dashboard::index');
 
 // Users routes
