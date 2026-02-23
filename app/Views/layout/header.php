@@ -213,11 +213,6 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('dashboard') ?>">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
-                </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle user-menu-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle"></i> 
