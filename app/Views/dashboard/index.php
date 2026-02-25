@@ -801,38 +801,6 @@
             </div>
         </div>
 
-        <!-- User Management Table -->
-        <div class="admin-panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-list"></i> User Management</h2>
-                <div class="search-box">
-                    <input type="text" id="userSearch" placeholder="Search users..." class="form-control">
-                </div>
-            </div>
-            <div class="panel-body">
-                <div class="table-responsive">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Created Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-3">Loading users...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
         <!-- Quick Actions -->
         <div class="admin-actions">
             <div class="action-card">
@@ -1240,90 +1208,7 @@
         }
     });
 
-    // Admin Dashboard - Load Users
-    <?php if (session()->get('role') === 'admin'): ?>
-    function loadAdminDashboard() {
-        // Sample user data - In production, fetch from your API
-        const users = [
-            {
-                id: 1,
-                name: 'Admin User',
-                email: 'admin@gmail.com',
-                role: 'admin',
-                status: 'active',
-                created_at: '2026-02-12'
-            },
-            {
-                id: 2,
-                name: 'Test User',
-                email: 'user@gmail.com',
-                role: 'user',
-                status: 'active',
-                created_at: '2026-02-12'
-            }
-        ];
-
-        // Update statistics
-        document.getElementById('totalUsers').textContent = users.length;
-        document.getElementById('adminCount').textContent = users.filter(u => u.role === 'admin').length;
-        document.getElementById('activeUsers').textContent = users.filter(u => u.status === 'active').length;
-        document.getElementById('inactiveUsers').textContent = users.filter(u => u.status === 'inactive').length;
-
-        // Populate table
-        const tableBody = document.getElementById('usersTableBody');
-        if (tableBody) {
-            tableBody.innerHTML = '';
-            users.forEach(user => {
-                const roleClass = user.role === 'admin' ? 'badge-danger' : 'badge-info';
-                const statusClass = user.status === 'active' ? 'badge-success' : 'badge-secondary';
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${user.id}</td>
-                    <td><strong>${user.name}</strong></td>
-                    <td>${user.email}</td>
-                    <td><span class="badge ${roleClass}">${user.role}</span></td>
-                    <td><span class="badge ${statusClass}">${user.status}</span></td>
-                    <td>${user.created_at}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-sm btn-edit" onclick="editUser(${user.id})"><i class="fas fa-edit"></i> Edit</button>
-                            <button class="btn-sm btn-delete" onclick="deleteUser(${user.id})"><i class="fas fa-trash"></i> Delete</button>
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-
-        // Search functionality
-        const searchInput = document.getElementById('userSearch');
-        if (searchInput) {
-            searchInput.addEventListener('keyup', function() {
-                const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#usersTableBody tr');
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(searchTerm) ? '' : 'none';
-                });
-            });
-        }
-    }
-
-    function editUser(userId) {
-        window.location.href = `<?= base_url('users/edit/') ?>${userId}`;
-    }
-
-    function deleteUser(userId) {
-        if (confirm('Are you sure you want to delete this user?')) {
-            window.location.href = `<?= base_url('users/delete/') ?>${userId}`;
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
-        if (document.getElementById('usersTableBody')) {
-            loadAdminDashboard();
-        }
-
         // Set active admin sidebar link based on current URL
         const currentUrl = window.location.pathname;
         document.querySelectorAll('.admin-sidebar .nav-link').forEach(link => {
@@ -1333,7 +1218,6 @@
             }
         });
     });
-    <?php endif; ?>
 </script>
 
 <?= $this->endSection() ?>

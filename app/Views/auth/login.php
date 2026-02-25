@@ -304,12 +304,7 @@
             <div class="divider">
                 <span>OR</span>
             </div>
-
-            <p style="text-align: center; color: #7f8c8d; font-size: 0.9rem; margin: 1.5rem 0 0 0;">
-                Don't have an account? <a href="<?= base_url('register') ?>" style="color: #3498db; font-weight: 600; text-decoration: none;">Sign Up</a>
-            </p>
         </div>
-    </div>
 
     <div class="login-footer">
         <p>
