@@ -339,7 +339,6 @@
         <!-- Navigation Items -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
-<<<<<<< HEAD
                 <!-- Dashboard Link -->
                 <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('dashboard') ?>">
@@ -379,8 +378,6 @@
                 <?php endif; ?>
 
                 <!-- User Dropdown -->
-=======
->>>>>>> 24834a9814a10c33e3830d5531979d46ce3245e3
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle user-menu-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle"></i> 

@@ -26,11 +26,7 @@ class Auth extends BaseController
             return redirect()->to('/login')->with('error', 'Email and password are required');
         }
 
-<<<<<<< HEAD
-        // Find user by email or username
-=======
-        // Find user by email (only active users can login)
->>>>>>> 24834a9814a10c33e3830d5531979d46ce3245e3
+        // Find user by email
         $user = $this->userModel->getUserByEmail($email);
 
         if (!$user) {
@@ -87,7 +83,6 @@ class Auth extends BaseController
         return redirect()->to('/')->with('success', 'You have been logged out');
     }
 
-<<<<<<< HEAD
     public function register()
     {
         return view('auth/register');
@@ -119,8 +114,6 @@ class Auth extends BaseController
         }
     }
 
-=======
->>>>>>> 24834a9814a10c33e3830d5531979d46ce3245e3
     public function forgotPassword()
     {
         return view('auth/forgot-password');

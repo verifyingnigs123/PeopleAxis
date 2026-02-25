@@ -23,7 +23,8 @@ class LinkUsersToEmployees extends Seeder
                 // Try to find matching employee by email
                 $employee = $db->table('employees')
                     ->where('email', $user->email)
-                    ->first();
+                    ->get()
+                    ->getRow();
                 
                 if ($employee) {
                     // Link the employee to the user
