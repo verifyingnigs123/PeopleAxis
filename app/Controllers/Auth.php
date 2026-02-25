@@ -26,10 +26,19 @@ class Auth extends BaseController
             return redirect()->to('/login')->with('error', 'Email and password are required');
         }
 
+<<<<<<< HEAD
         // Find user by email or username
+=======
+        // Find user by email (only active users can login)
+>>>>>>> 24834a9814a10c33e3830d5531979d46ce3245e3
         $user = $this->userModel->getUserByEmail($email);
 
         if (!$user) {
+            // Check if user exists but is inactive
+            $inactiveUser = $this->userModel->where('email', $email)->first();
+            if ($inactiveUser && $inactiveUser->is_active == 0) {
+                return redirect()->to('/login')->with('error', 'Your account is deactivated. Please contact an administrator.');
+            }
             return redirect()->to('/login')->with('error', 'Email not found');
         }
 
@@ -78,6 +87,7 @@ class Auth extends BaseController
         return redirect()->to('/')->with('success', 'You have been logged out');
     }
 
+<<<<<<< HEAD
     public function register()
     {
         return view('auth/register');
@@ -109,6 +119,8 @@ class Auth extends BaseController
         }
     }
 
+=======
+>>>>>>> 24834a9814a10c33e3830d5531979d46ce3245e3
     public function forgotPassword()
     {
         return view('auth/forgot-password');

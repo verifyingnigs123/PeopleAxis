@@ -141,4 +141,56 @@ class UserModel extends Model
     {
         return password_verify($password, $hashedPassword);
     }
+
+    /**
+     * Soft delete user (deactivate)
+     */
+    public function deactivateUser($id)
+    {
+        return $this->update($id, ['is_active' => 0]);
+    }
+
+    /**
+     * Activate user
+     */
+    public function activateUser($id)
+    {
+        return $this->update($id, ['is_active' => 1]);
+    }
+
+    /**
+     * Get all users (including inactive) for admin
+     */
+    public function getAllUsers()
+    {
+        return $this->orderBy('created_at', 'DESC')->findAll();
+    }
+
+    /**
+     * Get user status text
+     */
+    public function getStatusText($isActive)
+    {
+        return $isActive ? 'ACTIVE' : 'INACTIVE';
+    }
+
+    /**
+     * Get users by status
+     */
+    public function getUsersByStatus($status)
+    {
+        $isActive = ($status === 'ACTIVE') ? 1 : 0;
+        return $this->where('is_active', $isActive)
+                    ->orderBy('created_at', 'DESC')
+                    ->findAll();
+    }
+
+    /**
+     * Count users by status
+     */
+    public function countUsersByStatus($status)
+    {
+        $isActive = ($status === 'ACTIVE') ? 1 : 0;
+        return $this->where('is_active', $isActive)->countAllResults();
+    }
 }

@@ -15,12 +15,42 @@ class Users extends BaseController
 
     public function index()
     {
-        $data['users'] = $this->userModel->orderBy('created_at', 'DESC')->findAll();
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        }
+        
+        $data['users'] = $this->userModel->getAllUsers();
+        $currentUserId = session()->get('user_id');
+        
+        // Separate current admin from other users
+        $adminUser = null;
+        $otherUsers = [];
+        foreach ($data['users'] as $user) {
+            if ($user->id == $currentUserId) {
+                $adminUser = $user;
+            } else {
+                $otherUsers[] = $user;
+            }
+        }
+
+        // If admin user found, put them at the beginning of the list
+        if ($adminUser) {
+            array_unshift($otherUsers, $adminUser);
+        }
+
+        $data['users'] = $otherUsers;
+        $data['currentUserId'] = $currentUserId;
         return view('auth/users', $data);
     }
 
     public function store()
     {
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        }
+        
         $rules = [
             'name'     => 'required|min_length[3]|max_length[100]',
             'email'    => 'required|valid_email|is_unique[users.email]',
@@ -47,6 +77,11 @@ class Users extends BaseController
 
     public function edit($id)
     {
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        }
+        
         $user = $this->userModel->find($id);
         if (!$user) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException("User not found");
@@ -57,6 +92,11 @@ class Users extends BaseController
 
     public function update($id)
     {
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        }
+        
         try {
             // Find user
             $user = $this->userModel->find($id);
@@ -149,35 +189,97 @@ class Users extends BaseController
         }
     }
 
-    public function delete($id)
+    /**
+     * Activate user
+     */
+    public function activate($id)
     {
-        $user = $this->userModel->find($id);
-
-        // If user not found, return JSON for AJAX/DELETE or redirect back for normal GET
-        if (!$user) {
-            if ($this->request->isAJAX() || strtolower($this->request->getMethod()) === 'delete') {
-                return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
-            }
-
-            return redirect()->to('/users')->with('error', 'User not found');
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Admin only.'
+            ]);
         }
 
         try {
-            $this->userModel->delete($id);
-
-            if ($this->request->isAJAX() || strtolower($this->request->getMethod()) === 'delete') {
-                return $this->response->setJSON(['success' => true, 'message' => 'User deleted successfully']);
+            $user = $this->userModel->find($id);
+            if (!$user) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
             }
 
-            return redirect()->to('/users')->with('success', 'User deleted successfully');
+            if ($this->userModel->activateUser($id)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'User activated successfully',
+                    'status' => 'ACTIVE'
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to activate user'
+                ]);
+            }
         } catch (\Exception $e) {
-            log_message('error', 'Delete user error: ' . $e->getMessage());
+            log_message('error', 'Activate user error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
 
-            if ($this->request->isAJAX() || strtolower($this->request->getMethod()) === 'delete') {
-                return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'Failed to delete user']);
+    /**
+     * Deactivate user (soft delete)
+     */
+    public function deactivate($id)
+    {
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Admin only.'
+            ]);
+        }
+
+        try {
+            $user = $this->userModel->find($id);
+            if (!$user) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
             }
 
-            return redirect()->to('/users')->with('error', 'Failed to delete user');
+            // Prevent admin from deactivating themselves
+            if ($user->id == session()->get('user_id')) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'You cannot deactivate your own account'
+                ]);
+            }
+
+            if ($this->userModel->deactivateUser($id)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'User deactivated successfully',
+                    'status' => 'INACTIVE'
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to deactivate user'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Deactivate user error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
         }
     }
 }

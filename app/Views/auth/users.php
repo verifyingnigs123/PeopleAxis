@@ -262,7 +262,9 @@
     }
 
     .btn-edit,
-    .btn-delete {
+    .btn-delete,
+    .btn-activate,
+    .btn-deactivate {
         padding: 6px 12px;
         font-size: 0.85rem;
         border-radius: 4px;
@@ -271,8 +273,7 @@
         transition: all 0.3s ease;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        text-decoration: none;
+        gap: 5px;
         text-align: center;
     }
 
@@ -296,6 +297,41 @@
         background: #c0392b;
         transform: translateY(-2px);
         box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    }
+
+    .btn-activate {
+        background: #27ae60;
+        color: white;
+    }
+
+    .btn-activate:hover {
+        background: #229954;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    }
+
+    .btn-deactivate {
+        background: #f39c12;
+        color: white;
+    }
+
+    .btn-deactivate:hover {
+        background: #e67e22;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+    }
+
+    .btn-disabled {
+        background: #95a5a6;
+        color: white;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .btn-disabled:hover {
+        background: #95a5a6;
+        transform: none;
+        box-shadow: none;
     }
 </style>
 
@@ -380,8 +416,8 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>">
-                                    <?= $u->is_active ? 'Active' : 'Inactive' ?>
+                                <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
+                                    <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
                                 </span>
                             </td>
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
@@ -390,9 +426,21 @@
                                     <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', '<?= $u->role ?>', <?= $u->is_active ?>)" title="Edit User">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-delete" onclick="deleteUser(<?= $u->id ?>)" title="Delete User">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
+                                    <?php if ($u->is_active): ?>
+                                        <?php if ($u->id != $currentUserId): ?>
+                                            <button type="button" class="btn btn-sm btn-deactivate" onclick="toggleUserStatus(<?= $u->id ?>, 'deactivate')" title="Deactivate User">
+                                                <i class="fas fa-user-slash"></i> Deactivate
+                                            </button>
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-disabled" disabled title="You cannot deactivate your own account">
+                                                <i class="fas fa-shield-alt"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-sm btn-activate" onclick="toggleUserStatus(<?= $u->id ?>, 'activate')" title="Activate User">
+                                            <i class="fas fa-user-check"></i> Activate
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -551,30 +599,127 @@ function searchUsers(query) {
     });
 }
 
-function deleteUser(userId) {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        fetch(`<?= base_url('users/delete') ?>/${userId}`, {
-            method: 'DELETE',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                '<?= csrf_header() ?>': '<?= csrf_token() ?>'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('User deleted successfully!');
-                location.reload();
-            } else {
-                alert('Error deleting user: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the user.');
-        });
+function toggleUserStatus(userId, action) {
+    const confirmMessage = action === 'activate' 
+        ? 'Are you sure you want to activate this user?' 
+        : 'Are you sure you want to deactivate this user? The user will not be able to log in.';
+    
+    if (!confirm(confirmMessage)) {
+        return;
     }
+
+    // Show loading state on button
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    const url = `<?= base_url('users/') ?>${action}/${userId}`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            '<?= csrf_header() ?>': '<?= csrf_token() ?>'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update status badge in real-time
+            const statusBadge = document.getElementById(`status-${userId}`);
+            const actionCell = button.closest('td');
+            
+            if (data.status === 'ACTIVE') {
+                statusBadge.className = 'badge badge-active';
+                statusBadge.textContent = 'ACTIVE';
+                
+                // Replace button with deactivate button
+                actionCell.innerHTML = `
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-sm btn-edit" onclick="editUser(${userId}, '${button.getAttribute('data-name')}', '${button.getAttribute('data-email')}', '${button.getAttribute('data-role')}', 1)" title="Edit User">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-deactivate" onclick="toggleUserStatus(${userId}, 'deactivate')" title="Deactivate User">
+                            <i class="fas fa-user-slash"></i> Deactivate
+                        </button>
+                    </div>
+                `;
+            } else {
+                statusBadge.className = 'badge badge-inactive';
+                statusBadge.textContent = 'INACTIVE';
+                
+                // Replace button with activate button
+                actionCell.innerHTML = `
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-sm btn-edit" onclick="editUser(${userId}, '${button.getAttribute('data-name')}', '${button.getAttribute('data-email')}', '${button.getAttribute('data-role')}', 0)" title="Edit User">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-activate" onclick="toggleUserStatus(${userId}, 'activate')" title="Activate User">
+                            <i class="fas fa-user-check"></i> Activate
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Show success message
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Operation failed', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An unexpected error occurred', 'error');
+        
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
 }
+
+// Notification system for real-time feedback
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        padding: 15px 20px;
+        border-radius: 6px;
+        border: none;
+        margin-bottom: 0;
+        animation: slideInRight 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS animations for notifications
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
 
 function editUser(userId, name, email, role, isActive) {
     // Populate modal fields with user data
