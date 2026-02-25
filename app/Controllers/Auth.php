@@ -26,7 +26,7 @@ class Auth extends BaseController
             return redirect()->to('/login')->with('error', 'Email and password are required');
         }
 
-        // Find user by email
+        // Find user by email or username
         $user = $this->userModel->getUserByEmail($email);
 
         if (!$user) {
@@ -38,12 +38,34 @@ class Auth extends BaseController
             return redirect()->to('/login')->with('error', 'Incorrect password');
         }
 
+        // Determine role name
+        $roleName = $this->userModel->getRoleName($user->id) ?? ($user->role ?? '');
+
+        // Map human role to short slug for existing views
+        $roleSlug = 'user';
+        switch ($roleName) {
+            case 'Super Admin':
+                $roleSlug = 'admin';
+                break;
+            case 'HR Admin':
+                $roleSlug = 'hr';
+                break;
+            case 'Manager':
+                $roleSlug = 'manager';
+                break;
+            default:
+                $roleSlug = 'user';
+        }
+
         // Create session
         session()->set([
             'user_id'   => $user->id,
             'email'     => $user->email,
+            'username'  => $user->username ?? null,
             'name'      => $user->name,
-            'role'      => $user->role,
+            'role_id'   => $user->role_id ?? null,
+            'role_name' => $roleName,
+            'role'      => $roleSlug,
             'logged_in' => true,
         ]);
 
@@ -63,11 +85,21 @@ class Auth extends BaseController
 
     public function registerProcess()
     {
+        $email = $this->request->getPost('email');
+        $username = $this->request->getPost('username') ?: null;
+        $password = $this->request->getPost('password');
+        $name = $this->request->getPost('name');
+
+        // Default to Employee role
+        $db = \Config\Database::connect();
+        $role = $db->table('roles')->where('name', 'Employee')->get()->getRow();
+
         $data = [
-            'email'    => $this->request->getPost('email'),
-            'password' => $this->request->getPost('password'),
-            'name'     => $this->request->getPost('name'),
-            'role'     => 'user', // Default role is user
+            'email'    => $email,
+            'username' => $username,
+            'password' => $password,
+            'name'     => $name,
+            'role_id'  => $role->id ?? null,
         ];
 
         if ($this->userModel->save($data)) {

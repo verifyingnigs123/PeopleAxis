@@ -12,7 +12,6 @@ class UserModel extends Model
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['email', 'password', 'name', 'role', 'is_active'];
 
     // Dates
     protected $useTimestamps = true;
@@ -21,11 +20,13 @@ class UserModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Validation
+    protected $allowedFields    = ['username','email', 'password', 'name', 'role_id', 'is_active'];
+
     protected $validationRules      = [
         'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
+        'username' => 'permit_empty|alpha_numeric_punct|min_length[3]|is_unique[users.username,id,{id}]',
         'password' => 'permit_empty|min_length[6]',
         'name'     => 'required|min_length[3]',
-        'role'     => 'required|in_list[admin,user]',
     ];
 
     protected $validationMessages   = [
@@ -53,8 +54,25 @@ class UserModel extends Model
     public function getUserByEmail($email)
     {
         return $this->where('email', $email)
+                    ->orWhere('username', $email)
                     ->where('is_active', 1)
                     ->first();
+    }
+
+    /**
+     * Get role name for a user
+     */
+    public function getRoleName($userId)
+    {
+        $db = \Config\Database::connect();
+        $row = $db->table('users')
+                  ->select('roles.name as role_name')
+                  ->join('roles', 'roles.id = users.role_id', 'left')
+                  ->where('users.id', $userId)
+                  ->get()
+                  ->getRow();
+
+        return $row->role_name ?? null;
     }
 
     /**
@@ -71,9 +89,14 @@ class UserModel extends Model
      */
     public function getAdmins()
     {
-        return $this->where('role', 'admin')
-                    ->where('is_active', 1)
-                    ->findAll();
+        $db = \Config\Database::connect();
+        return $db->table('users')
+                  ->select('users.*')
+                  ->join('roles', 'roles.id = users.role_id', 'left')
+                  ->where('roles.name', 'Super Admin')
+                  ->where('users.is_active', 1)
+                  ->get()
+                  ->getResult();
     }
 
     /**
@@ -81,9 +104,14 @@ class UserModel extends Model
      */
     public function getUsers()
     {
-        return $this->where('role', 'user')
-                    ->where('is_active', 1)
-                    ->findAll();
+        $db = \Config\Database::connect();
+        return $db->table('users')
+                  ->select('users.*')
+                  ->join('roles', 'roles.id = users.role_id', 'left')
+                  ->where('roles.name', 'Employee')
+                  ->where('users.is_active', 1)
+                  ->get()
+                  ->getResult();
     }
 
     /**

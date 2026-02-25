@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class AttendanceModel extends Model
 {
-    protected $table            = 'attendance';
+    protected $table            = 'attendance_logs';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['employee_id', 'attendance_date', 'check_in', 'check_out', 'status', 'remarks'];
+    protected $allowedFields    = ['employee_id', 'date', 'time_in', 'time_out', 'status'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -28,16 +28,38 @@ class AttendanceModel extends Model
     public function getEmployeeAttendance($employeeId, $month = null)
     {
         $query = $this->where('employee_id', $employeeId);
-        
+
         if ($month) {
-            $query->like('attendance_date', $month, 'after');
+            $query->like('date', $month, 'after');
         }
-        
-        return $query->orderBy('attendance_date', 'DESC')->findAll();
+
+        return $query->orderBy('date', 'DESC')->findAll();
     }
 
     public function getDailyAttendance($date)
     {
-        return $this->where('attendance_date', $date)->findAll();
+        return $this->where('date', $date)->findAll();
+    }
+
+    public function getSummary()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('attendance_logs');
+        $totalPresent = $builder->where('status', 'Present')->countAllResults(false);
+        $totalLate = $builder->where('status', 'Late')->countAllResults(false);
+        $totalAbsent = $builder->where('status', 'Absent')->countAllResults(false);
+
+        return [
+            'present' => $totalPresent,
+            'late' => $totalLate,
+            'absent' => $totalAbsent,
+        ];
+    }
+
+    public function getTeamAttendance($teamEmployees)
+    {
+        $ids = array_column($teamEmployees, 'id');
+        if (empty($ids)) return [];
+        return $this->whereIn('employee_id', $ids)->findAll();
     }
 }

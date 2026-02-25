@@ -372,9 +372,10 @@
 </head>
 <body>
     <?= $this->include('layout/header') ?>
-    <div data-ajax-content>
-        <?= $this->renderSection('content') ?>
-    </div>
+    
+    <!-- Content renders directly inside content-area opened by header -->
+    <?= $this->renderSection('content') ?>
+    
     <?= $this->include('layout/footer') ?>
     
     <!-- Bootstrap JS Bundle -->

@@ -18,6 +18,15 @@ $routes->get('/register', 'Auth::register');
 $routes->post('/register', 'Auth::registerProcess');
 $routes->get('/dashboard', 'Dashboard::index');
 
+// Leaves
+$routes->post('/leaves/submit', 'Leaves::submit');
+$routes->post('/leaves/approve-manager/(:num)', 'Leaves::approveByManager/$1');
+$routes->post('/leaves/approve-hr/(:num)', 'Leaves::approveByHR/$1');
+$routes->post('/leaves/reject/(:num)', 'Leaves::reject/$1');
+
+// Biometric
+$routes->post('/biometric/manual-sync', 'Biometric::manualSync');
+
 // Users routes
 $routes->get('/users', 'Users::index');
 $routes->post('/users/store', 'Users::store');

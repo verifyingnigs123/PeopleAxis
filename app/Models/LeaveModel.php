@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class LeaveModel extends Model
 {
-    protected $table            = 'leaves';
+    protected $table            = 'leave_requests';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['employee_id', 'leave_type', 'start_date', 'end_date', 'number_of_days', 'reason', 'status', 'approved_by'];
+    protected $allowedFields    = ['employee_id', 'leave_type', 'start_date', 'end_date', 'number_of_days', 'reason', 'status', 'approved_by_manager', 'approved_by_hr'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';

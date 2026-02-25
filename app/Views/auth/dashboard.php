@@ -658,10 +658,10 @@
     }
 </style>
 
-<?php $role = session()->get('role'); ?>
+<?php $roleName = session()->get('role_name') ?? session()->get('role'); ?>
 
-<!-- Admin Dashboard -->
-<?php if ($role === 'admin'): ?>
+<!-- Super Admin Dashboard -->
+<?php if ($roleName === 'Super Admin'): ?>
         <div class="admin-header">
             <div>
                 <h1><i class="fas fa-shield-alt"></i> Administration Panel</h1>
@@ -729,8 +729,139 @@
             </div>
         </div>
 
-<?php elseif ($role === 'user'): ?>
-        <!-- Alert Messages -->
+<?php elseif ($roleName === 'HR Admin'): ?>
+        <!-- HR Admin Dashboard -->
+        <div class="admin-header">
+            <div>
+                <h1><i class="fas fa-user-md"></i> HR Dashboard</h1>
+                <p>Manage employees, attendance and leaves</p>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-box">
+                <i class="fas fa-users"></i>
+                <div class="stat-info">
+                    <h5>Total Employees</h5>
+                    <h3><?= $totalEmployees ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-calendar-check"></i>
+                <div class="stat-info">
+                    <h5>Pending Leaves</h5>
+                    <h3><?= $pendingLeaves ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-file-alt"></i>
+                <div class="stat-info">
+                    <h5>Attendance Reports</h5>
+                    <h3>Generate</h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-download"></i>
+                <div class="stat-info">
+                    <h5>Biometric Sync</h5>
+                    <h3>Available</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <div class="action-card">
+                <i class="fas fa-user-cog"></i>
+                <h3>Manage Employees</h3>
+                <p>Create, update, and manage employee records</p>
+                <a href="<?= base_url('employees') ?>" class="btn btn-outline-primary">Employees</a>
+            </div>
+            <div class="action-card">
+                <i class="fas fa-clock"></i>
+                <h3>Attendance Logs</h3>
+                <p>View biometric attendance logs</p>
+                <a href="<?= base_url('attendance/logs') ?>" class="btn btn-outline-primary">View Logs</a>
+            </div>
+            <div class="action-card">
+                <i class="fas fa-check-circle"></i>
+                <h3>Approve Leaves</h3>
+                <p>Approve or reject leave requests</p>
+                <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary">Leaves</a>
+            </div>
+            <div class="action-card">
+                <i class="fas fa-sync"></i>
+                <h3>Sync Biometric</h3>
+                <p>Manually sync biometric device logs</p>
+                <form action="<?= base_url('biometric/manual-sync') ?>" method="post" style="display:inline-block">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-outline-primary">Sync</button>
+                </form>
+            </div>
+        </div>
+
+<?php elseif ($roleName === 'Manager'): ?>
+        <!-- Manager Dashboard -->
+        <div class="admin-header">
+            <div>
+                <h1><i class="fas fa-users-cog"></i> Manager Dashboard</h1>
+                <p>Team attendance and approvals</p>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-box">
+                <i class="fas fa-user-friends"></i>
+                <div class="stat-info">
+                    <h5>Team Members</h5>
+                    <h3><?= $teamCount ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-clock"></i>
+                <div class="stat-info">
+                    <h5>Team Attendance</h5>
+                    <h3><?= is_array($teamAttendance) ? count($teamAttendance) : 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-chart-line"></i>
+                <div class="stat-info">
+                    <h5>Performance</h5>
+                    <h3>View</h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-user-secret"></i>
+                <div class="stat-info">
+                    <h5>Salary Rate</h5>
+                    <h3>Hidden</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <div class="action-card">
+                <i class="fas fa-eye"></i>
+                <h3>View Team Attendance</h3>
+                <p>Only team-level attendance data</p>
+                <a href="<?= base_url('attendance/team') ?>" class="btn btn-outline-primary">Team Attendance</a>
+            </div>
+            <div class="action-card">
+                <i class="fas fa-check"></i>
+                <h3>Approve Team Leaves</h3>
+                <p>Approve team leave requests</p>
+                <a href="<?= base_url('leaves/team') ?>" class="btn btn-outline-primary">Approve</a>
+            </div>
+            <div class="action-card">
+                <i class="fas fa-chart-pie"></i>
+                <h3>Team Performance</h3>
+                <p>View performance metrics</p>
+                <a href="<?= base_url('reports/team') ?>" class="btn btn-outline-primary">Performance</a>
+            </div>
+        </div>
+
+<?php elseif ($roleName === 'Employee'): ?>
+        <!-- Employee Dashboard -->
         <?php if (session()->has('success')): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle"></i> <?= session()->get('success') ?>
@@ -738,283 +869,83 @@
         </div>
         <?php endif; ?>
 
-        <?php if (session()->has('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle"></i> <?= session()->get('error') ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <?php endif; ?>
-
-        <?php if (session()->has('warning')): ?>
+        <?php if (isset($warning)): ?>
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i> <?= session()->get('warning') ?>
+            <i class="fas fa-exclamation-circle"></i> <?= $warning ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         <?php endif; ?>
 
-        <!-- Page Content -->
+        <?php if (isset($error)): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-times-circle"></i> <?= $error ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php endif; ?>
+
         <main>
 
-<div class="page-header">
-    <div>
-        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
-        <p>Welcome to PeopleAxis HR Management System</p>
-    </div>
-    <div>
-        <a href="<?= base_url('employees/create') ?>" class="btn btn-primary">
-            <i class="fas fa-user-plus"></i> Add Employee
-        </a>
-    </div>
-</div>
-
-<!-- Statistics Row -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="stat-card">
-            <i class="fas fa-users"></i>
-            <div class="stat-value" id="totalEmployees">0</div>
-            <div class="stat-label">Total Employees</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <i class="fas fa-building"></i>
-            <div class="stat-value" id="totalDepartments">0</div>
-            <div class="stat-label">Departments</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <i class="fas fa-user-tie"></i>
-            <div class="stat-value" id="activeRecruitment">0</div>
-            <div class="stat-label">Active Recruitments</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <i class="fas fa-calendar-times"></i>
-            <div class="stat-value" id="pendingLeaves">0</div>
-            <div class="stat-label">Pending Leaves</div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Quick Actions Card -->
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-lightning-bolt"></i> Quick Actions
+        <div class="page-header">
+            <div>
+                <h1><i class="fas fa-tachometer-alt"></i> My Dashboard</h1>
+                <p>Welcome, <?= session()->get('name') ?></p>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <a href="<?= base_url('employees') ?>" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-list"></i> View Employees
-                        </a>
+            <div>
+                <a href="<?= base_url('profile') ?>" class="btn btn-primary">
+                    <i class="fas fa-user"></i> My Profile
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-value"><?= isset($attendance) ? count($attendance) : 0 ?></div>
+                    <div class="stat-label">My Attendance Records</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div class="stat-value"><?= isset($leaves) ? count($leaves) : 0 ?></div>
+                    <div class="stat-label">My Leave Requests</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <i class="fas fa-id-card"></i>
+                    <div class="stat-value">Profile</div>
+                    <div class="stat-label">View & Edit</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-clock"></i> Attendance
                     </div>
-                    <div class="col-6">
-                        <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-calendar"></i> Manage Leaves
-                        </a>
+                    <div class="card-body">
+                        <a href="<?= base_url('attendance') ?>" class="btn btn-outline-primary">View My Attendance</a>
                     </div>
-                    <div class="col-6">
-                        <a href="<?= base_url('payroll') ?>" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-money-bill"></i> Payroll
-                        </a>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-calendar"></i> Leave Requests
                     </div>
-                    <div class="col-6">
-                        <a href="<?= base_url('attendance') ?>" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-clock"></i> Attendance
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="<?= base_url('candidates') ?>" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-user-tie"></i> Candidates
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="<?= base_url('reports') ?>" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-file-pdf"></i> Reports
-                        </a>
+                    <div class="card-body">
+                        <a href="<?= base_url('leaves/create') ?>" class="btn btn-outline-primary">Submit Leave</a>
+                        <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary">My Leaves</a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Recent Activities Card -->
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-history"></i> Recent Activities
-            </div>
-            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                <div class="activity-item mb-3">
-                    <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="badge bg-success me-2">New</span>
-                        <small class="text-muted">2 hours ago</small>
-                    </div>
-                    <p class="mb-0"><strong>Employee Added</strong> - John Doe has been added to the system</p>
-                </div>
-                <hr>
-                <div class="activity-item mb-3">
-                    <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="badge bg-info me-2">Update</span>
-                        <small class="text-muted">5 hours ago</small>
-                    </div>
-                    <p class="mb-0"><strong>Leave Approved</strong> - Sarah Johnson's leave request has been approved</p>
-                </div>
-                <hr>
-                <div class="activity-item mb-3">
-                    <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="badge bg-warning me-2">Pending</span>
-                        <small class="text-muted">1 day ago</small>
-                    </div>
-                    <p class="mb-0"><strong>Leave Request</strong> - Mike Smith requested 3 days of leave</p>
-                </div>
-                <hr>
-                <div class="activity-item mb-3">
-                    <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="badge bg-primary me-2">Job</span>
-                        <small class="text-muted">2 days ago</small>
-                    </div>
-                    <p class="mb-0"><strong>Job Posted</strong> - Senior Developer position has been posted</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Employee Status Overview -->
-<div class="row mb-4">
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-pie"></i> Employee Status Overview
-            </div>
-            <div class="card-body">
-                <canvas id="employeeStatusChart" height="80"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Department Distribution -->
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-bar"></i> Department Distribution
-            </div>
-            <div class="card-body">
-                <canvas id="departmentChart" height="80"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Upcoming Birthdays -->
-<div class="row mb-4">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-birthday-cake"></i> Upcoming Birthdays This Month
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Employee Name</th>
-                                <th>Department</th>
-                                <th>Birthday Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="birthdayTable">
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-3">No upcoming birthdays</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Leave Status Summary -->
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-calendar-alt"></i> Leave Status Summary
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-3">
-                        <h5>Approved Leaves</h5>
-                        <h3 class="text-success">0</h3>
-                    </div>
-                    <div class="col-md-3">
-                        <h5>Pending Leaves</h5>
-                        <h3 class="text-warning">0</h3>
-                    </div>
-                    <div class="col-md-3">
-                        <h5>Rejected Leaves</h5>
-                        <h3 class="text-danger">0</h3>
-                    </div>
-                    <div class="col-md-3">
-                        <h5>Available Days</h5>
-                        <h3 class="text-info">0</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
         </main>
-
-<!-- Footer -->
-<footer class="footer">
-    <p>&copy; <?= date('Y') ?> <strong>PeopleAxis HR Management System</strong>. All rights reserved.</p>
-    <p style="margin-top: 0.5rem; font-size: 0.85rem;">
-        <a href="<?= base_url('about') ?>">About</a> | 
-        <a href="<?= base_url('privacy') ?>">Privacy Policy</a> | 
-        <a href="<?= base_url('terms') ?>">Terms of Service</a> | 
-        <a href="<?= base_url('contact') ?>">Contact Us</a>
-    </p>
-</footer>
-
-<!-- Loading Spinner -->
-<div class="loading-spinner" id="loadingSpinner">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</div>
-
-<!-- Custom Script -->
-<script>
-    // Show loading spinner on form submission
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', function() {
-            document.getElementById('loadingSpinner').classList.add('active');
-        });
-    });
-
-    // Hide loading spinner when page loads
-    window.addEventListener('load', function() {
-        document.getElementById('loadingSpinner').classList.remove('active');
-    });
-
-    // Set active nav link based on current URL
-    const currentUrl = window.location.pathname;
-    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-        if (link.href.includes(currentUrl.split('/').pop())) {
-            link.classList.add('active');
-        }
-    });
-</script>
 
 <?php else: ?>
 
@@ -1144,7 +1075,7 @@
     });
 
     // Admin Dashboard - Load Users
-    <?php if (session()->get('role') === 'admin'): ?>
+    <?php if (session()->get('role_name') === 'Super Admin'): ?>
     function loadAdminDashboard() {
         // Sample user data - In production, fetch from your API
         const users = [
