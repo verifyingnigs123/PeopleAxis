@@ -36,3 +36,11 @@ $routes->post('/users/deactivate/(:num)', 'Users::deactivate/$1');
 // Settings routes
 $routes->get('/settings', 'Settings::index');
 $routes->post('/settings/update', 'Settings::update');
+
+// Forgot Password routes
+$routes->get('/forgot-password', 'Auth::forgotPassword');
+$routes->post('/forgot-password', 'Auth::forgotPasswordProcess');
+$routes->get('/verify-otp', 'Auth::verifyOtp');
+$routes->post('/verify-otp', 'Auth::verifyOtpProcess');
+$routes->get('/reset-password', 'Auth::resetPassword');
+$routes->post('/reset-password', 'Auth::resetPasswordProcess');
