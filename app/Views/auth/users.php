@@ -411,8 +411,8 @@
                             </td>
                             <td><?= esc($u->email) ?></td>
                             <td>
-                                <span class="badge <?= $u->role === 'admin' ? 'badge-admin' : 'badge-user' ?>">
-                                    <?= esc($u->role) ?>
+                                <span class="badge <?= ($roleMap[$u->role_id] ?? 'User') === 'Super Admin' ? 'badge-admin' : 'badge-user' ?>">
+                                    <?= esc($roleMap[$u->role_id] ?? 'User') ?>
                                 </span>
                             </td>
                             <td>
@@ -423,7 +423,7 @@
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', '<?= $u->role ?>', <?= $u->is_active ?>)" title="Edit User">
+                                    <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', '<?= $u->role_id ?>', <?= $u->is_active ?>)" title="Edit User">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                     <?php if ($u->is_active): ?>
@@ -496,10 +496,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="role" class="form-label fw-600">Role <span class="text-danger">*</span></label>
-                            <select class="form-select" id="role" name="role" required>
+                            <select class="form-select" id="role" name="role_id" required>
                                 <option value="" disabled selected>Select role</option>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
+                                <option value="1">Super Admin</option>
+                                <option value="2">HR Admin</option>
+                                <option value="3">Manager</option>
+                                <option value="4">Employee</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -564,9 +566,11 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="editRole" class="form-label fw-600">Role <span class="text-danger">*</span></label>
-                            <select class="form-select" id="editRole" name="role" required>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
+                            <select class="form-select" id="editRole" name="role_id" required>
+                                <option value="1">Super Admin</option>
+                                <option value="2">HR Admin</option>
+                                <option value="3">Manager</option>
+                                <option value="4">Employee</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -721,12 +725,12 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-function editUser(userId, name, email, role, isActive) {
+function editUser(userId, name, email, roleId, isActive) {
     // Populate modal fields with user data
     document.getElementById('editUserId').value = userId;
     document.getElementById('editName').value = name;
     document.getElementById('editEmail').value = email;
-    document.getElementById('editRole').value = role;
+    document.getElementById('editRole').value = roleId;
     document.getElementById('editIsActive').value = isActive;
     
     // Clear password field
@@ -745,13 +749,13 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     const name = document.getElementById('editName').value;
     const email = document.getElementById('editEmail').value;
     const password = document.getElementById('editPassword').value;
-    const role = document.getElementById('editRole').value;
+    const roleId = document.getElementById('editRole').value;
     const isActive = document.getElementById('editIsActive').value;
     
-    console.log('Submitting form with:', {userId, name, email, role, isActive});
+    console.log('Submitting form with:', {userId, name, email, roleId, isActive});
     
     // Validate form
-    if (!name || !email || !role) {
+    if (!name || !email || !roleId) {
         alert('Please fill in all required fields');
         return;
     }
@@ -767,7 +771,7 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     formData.append('name', name);
     formData.append('email', email);
     formData.append('password', password);
-    formData.append('role', role);
+    formData.append('role_id', roleId);
     formData.append('is_active', isActive);
     
     const url = `<?= base_url('users/update') ?>/${userId}`;

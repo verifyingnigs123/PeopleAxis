@@ -25,13 +25,15 @@ $routes->post('/leaves/reject/(:num)', 'Leaves::reject/$1');
 // Biometric
 $routes->post('/biometric/manual-sync', 'Biometric::manualSync');
 
-// Users routes
-$routes->get('/users', 'Users::index');
-$routes->post('/users/store', 'Users::store');
-$routes->get('/users/edit/(:num)', 'Users::edit/$1');
-$routes->post('/users/update/(:num)', 'Users::update/$1');
-$routes->post('/users/activate/(:num)', 'Users::activate/$1');
-$routes->post('/users/deactivate/(:num)', 'Users::deactivate/$1');
+// Users routes - CRUD Operations
+$routes->get('/users', 'Users::index');                  // READ - View all users
+$routes->get('/users/create', 'Users::create');          // CREATE - Show create form
+$routes->post('/users/store', 'Users::store');          // CREATE - Store new user
+$routes->get('/users/edit/(:num)', 'Users::edit/$1');   // UPDATE - Show edit form
+$routes->post('/users/update/(:num)', 'Users::update/$1'); // UPDATE - Update user
+$routes->post('/users/activate/(:num)', 'Users::activate/$1');   // UPDATE - Activate user
+$routes->post('/users/deactivate/(:num)', 'Users::deactivate/$1'); // DELETE - Deactivate user (soft delete)
+$routes->delete('/users/delete/(:num)', 'Users::delete/$1'); // DELETE - Hard delete user
 
 // Settings routes
 $routes->get('/settings', 'Settings::index');

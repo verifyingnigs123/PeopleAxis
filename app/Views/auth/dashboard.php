@@ -800,6 +800,85 @@
         </div>
     </div>
 
+    <!-- User Management Section -->
+    <div class="admin-panel" style="margin-bottom: 30px;">
+        <div class="panel-header">
+            <h2><i class="fas fa-users-cog"></i> User Management</h2>
+            <a href="<?= base_url('users') ?>" class="btn btn-primary" style="background: white; color: #2a5298; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 600;">
+                <i class="fas fa-arrow-right"></i> View All Users
+            </a>
+        </div>
+        <div class="panel-body" style="padding: 25px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <!-- Create Operations -->
+                <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #2a5298;">
+                    <h4 style="color: #2a5298; margin: 0 0 15px 0; font-size: 1.1rem;">
+                        <i class="fas fa-plus-circle"></i> Create Operations
+                    </h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
+                        <li style="margin-bottom: 8px;"><strong>Add New Users</strong> - Create new user accounts with roles and permissions</li>
+                        <li style="margin-bottom: 8px;"><strong>Submit Leave Requests</strong> - Create leave requests on behalf of users</li>
+                    </ul>
+                    <div style="margin-top: 15px;">
+                        <a href="<?= base_url('users/create') ?>" class="btn btn-sm" style="background: #2a5298; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
+                            <i class="fas fa-user-plus"></i> Add User
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Read Operations -->
+                <div style="background: #f0f8f0; padding: 20px; border-radius: 8px; border-left: 4px solid #27ae60;">
+                    <h4 style="color: #27ae60; margin: 0 0 15px 0; font-size: 1.1rem;">
+                        <i class="fas fa-eye"></i> Read Operations
+                    </h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
+                        <li style="margin-bottom: 8px;"><strong>View User Lists</strong> - Browse all system users with details</li>
+                        <li style="margin-bottom: 8px;"><strong>Leave History</strong> - Access complete leave records and patterns</li>
+                        <li style="margin-bottom: 8px;"><strong>Dashboard Analytics</strong> - Monitor system metrics and statistics</li>
+                    </ul>
+                    <div style="margin-top: 15px;">
+                        <a href="<?= base_url('users') ?>" class="btn btn-sm" style="background: #27ae60; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
+                            <i class="fas fa-list"></i> View Users
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Update Operations -->
+                <div style="background: #fff8e1; padding: 20px; border-radius: 8px; border-left: 4px solid #f39c12;">
+                    <h4 style="color: #f39c12; margin: 0 0 15px 0; font-size: 1.1rem;">
+                        <i class="fas fa-edit"></i> Update Operations
+                    </h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
+                        <li style="margin-bottom: 8px;"><strong>Edit User Details</strong> - Modify user information and roles</li>
+                        <li style="margin-bottom: 8px;"><strong>Approve/Reject Leaves</strong> - Process leave requests efficiently</li>
+                        <li style="margin-bottom: 8px;"><strong>Activate/Deactivate Accounts</strong> - Control user access status</li>
+                    </ul>
+                    <div style="margin-top: 15px;">
+                        <a href="<?= base_url('leaves') ?>" class="btn btn-sm" style="background: #f39c12; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
+                            <i class="fas fa-check-circle"></i> Manage Leaves
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Delete Operations -->
+                <div style="background: #ffeaea; padding: 20px; border-radius: 8px; border-left: 4px solid #e74c3c;">
+                    <h4 style="color: #e74c3c; margin: 0 0 15px 0; font-size: 1.1rem;">
+                        <i class="fas fa-trash-alt"></i> Delete Operations
+                    </h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
+                        <li style="margin-bottom: 8px;"><strong>Deactivate Users</strong> - Soft delete preserves data for audit trails</li>
+                        <li style="margin-bottom: 8px;"><strong>Maintain Data Integrity</strong> - Keep historical records while restricting access</li>
+                    </ul>
+                    <div style="margin-top: 15px;">
+                        <a href="<?= base_url('users') ?>" class="btn btn-sm" style="background: #e74c3c; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
+                            <i class="fas fa-user-slash"></i> Manage Access
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Actions -->
     <div class="admin-actions">
         <div class="action-card">

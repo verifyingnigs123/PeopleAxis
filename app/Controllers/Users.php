@@ -13,15 +13,42 @@ class Users extends BaseController
         $this->userModel = new UserModel();
     }
 
+    /**
+     * Show create user form
+     */
+    public function create()
+    {
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        }
+        
+        return view('auth/create_user');
+    }
+
+    /**
+     * Show all users - READ operation
+     */
     public function index()
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         $data['users'] = $this->userModel->getAllUsers();
         $currentUserId = session()->get('user_id');
+        
+        // Get role names for display
+        $db = \Config\Database::connect();
+        $roles = $db->table('roles')->get()->getResultArray();
+        $roleMap = [];
+        foreach ($roles as $role) {
+            $roleMap[$role['id']] = $role['name'];
+        }
+        $data['roleMap'] = $roleMap;
         
         // Separate current admin from other users
         $adminUser = null;
@@ -46,16 +73,19 @@ class Users extends BaseController
 
     public function store()
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         $rules = [
-            'name'     => 'required|min_length[3]|max_length[100]',
-            'email'    => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[6]|max_length[255]',
-            'role'     => 'required|in_list[admin,user]',
+            'name'           => 'required|min_length[3]|max_length[100]',
+            'email'          => 'required|valid_email|is_unique[users.email]',
+            'password'       => 'required|min_length[6]|max_length[255]',
+            'confirm_password' => 'required|matches[password]',
+            'role_id'        => 'required|in_list[1,2,3,4]',
+            'is_active'      => 'required|in_list[0,1]',
         ];
 
         if (!$this->validate($rules)) {
@@ -66,8 +96,8 @@ class Users extends BaseController
             'name'       => $this->request->getPost('name'),
             'email'      => $this->request->getPost('email'),
             'password'   => $this->request->getPost('password'),
-            'role'       => $this->request->getPost('role'),
-            'is_active'  => $this->request->getPost('is_active') ?? 1,
+            'role_id'    => $this->request->getPost('role_id'),
+            'is_active'  => $this->request->getPost('is_active'),
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
@@ -77,9 +107,10 @@ class Users extends BaseController
 
     public function edit($id)
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         $user = $this->userModel->find($id);
@@ -92,9 +123,10 @@ class Users extends BaseController
 
     public function update($id)
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Admin only.');
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         try {
@@ -107,12 +139,12 @@ class Users extends BaseController
             // Get form data
             $name = $this->request->getPost('name');
             $email = $this->request->getPost('email');
-            $role = $this->request->getPost('role');
+            $roleId = $this->request->getPost('role_id');
             $isActive = $this->request->getPost('is_active');
             $password = $this->request->getPost('password');
 
             // Basic validation
-            if (!$name || !$email || !$role) {
+            if (!$name || !$email || !$roleId) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
                     'message' => 'Name, email, and role are required'
@@ -133,7 +165,7 @@ class Users extends BaseController
                 ]);
             }
 
-            if ($role !== 'admin' && $role !== 'user') {
+            if (!in_array($roleId, ['1', '2', '3', '4'])) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
                     'message' => 'Invalid role'
@@ -159,7 +191,7 @@ class Users extends BaseController
             $updateData = [
                 'name' => $name,
                 'email' => $email,
-                'role' => $role,
+                'role_id' => $roleId,
                 'is_active' => (int)$isActive,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
@@ -194,11 +226,12 @@ class Users extends BaseController
      */
     public function activate($id)
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Admin only.'
+                'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
@@ -237,11 +270,12 @@ class Users extends BaseController
      */
     public function deactivate($id)
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Admin only.'
+                'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
