@@ -51,6 +51,13 @@ $routes->get('/roles/getRole/(:num)', 'Roles::getRole/$1');
 
 // Employees
 $routes->get('/employees', 'Employees::index');
+$routes->get('/employee', 'Employees::index');
+$routes->get('/employee/create', 'Employees::create');
+$routes->post('/employee/store', 'Employees::store');
+$routes->get('/employee/show/(:num)', 'Employees::show/$1');
+$routes->get('/employee/edit/(:num)', 'Employees::edit/$1');
+$routes->post('/employee/update/(:num)', 'Employees::update/$1');
+$routes->post('/employee/delete/(:num)', 'Employees::delete/$1');
 $routes->get('/employees/salary', 'Employees::salary');
 $routes->post('/employees/salary/update', 'Employees::updateSalary');
 
@@ -75,6 +82,13 @@ $routes->get('/audit', 'Audit::index');
 $routes->get('/reports', 'Reports::index');
 $routes->get('/reports/(:any)', 'Reports::view/$1');
 $routes->post('/reports/generate', 'Reports::generate');
+
+// Notification routes (API)
+$routes->get('/api/notifications', 'Notification::getNotifications');
+$routes->get('/api/notifications/unread-count', 'Notification::getUnreadCount');
+$routes->post('/api/notifications/(:num)/read', 'Notification::markAsRead/$1');
+$routes->post('/api/notifications/mark-all-read', 'Notification::markAllAsRead');
+$routes->delete('/api/notifications/(:num)', 'Notification::delete/$1');
 
 // Forgot Password routes
 $routes->get('/forgot-password', 'Auth::forgotPassword');
