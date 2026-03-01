@@ -264,7 +264,8 @@
     .btn-edit,
     .btn-delete,
     .btn-activate,
-    .btn-deactivate {
+    .btn-deactivate,
+    .btn-restore {
         padding: 6px 12px;
         font-size: 0.85rem;
         border-radius: 4px;
@@ -319,6 +320,17 @@
         background: #e67e22;
         transform: translateY(-2px);
         box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+    }
+
+    .btn-restore {
+        background: #27ae60;
+        color: white;
+    }
+
+    .btn-restore:hover {
+        background: #229954;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
     }
 
     .btn-disabled {
@@ -406,7 +418,7 @@
                 </thead>
                 <tbody>
                     <?php foreach ($users as $i => $u): ?>
-                        <tr>
+                        <tr data-user-id="<?= $u->id ?>">
                             <td><?= $i + 1 ?></td>
                             <td>
                                 <div class="user-cell">
@@ -432,7 +444,7 @@
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
+                                    <button type="button" class="btn btn-sm btn-edit" style="<?= !$u->is_active ? 'display: none;' : '' ?>" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                     <?php if ($u->is_active): ?>
@@ -446,8 +458,8 @@
                                             </button>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-sm btn-activate" onclick="toggleUserStatus(<?= $u->id ?>, 'activate')" title="Activate User">
-                                            <i class="fas fa-user-check"></i> Activate
+                                        <button type="button" class="btn btn-sm btn-restore" data-user-id="<?= $u->id ?>" onclick="showRestoreModal(<?= $u->id ?>, '<?= esc($u->name) ?>')" title="Restore User">
+                                            <i class="fas fa-undo"></i> Restore
                                         </button>
                                     <?php endif; ?>
                                 </div>
@@ -465,20 +477,55 @@
     </div>
 </div>
 
-<!-- Delete/Restore Modal -->
+<!-- Delete User Modal -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
-                <h5 class="modal-title" id="deleteUserModalLabel"><i class="fas fa-exclamation-triangle me-2"></i> Confirm Action</h5>
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;border:none;">
+                <h5 class="modal-title" id="deleteUserModalLabel">
+                    <i class="fas fa-trash me-2"></i> Delete User
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" style="padding:20px;">
-                <p id="deleteUserMessage">Are you sure you want to delete this user? This action can be undone by restoring them.</p>
+            <div class="modal-body" style="padding:30px;">
+                <div style="text-align:center;">
+                    <i class="fas fa-exclamation-circle" style="font-size:3rem;color:#e74c3c;margin-bottom:15px;display:block;"></i>
+                    <h4 style="color:#2c3e50;margin-bottom:10px;">Delete User?</h4>
+                    <p id="deleteUserMessage" style="color:#7f8c8d;margin-bottom:0;"></p>
+                </div>
             </div>
-            <div class="modal-footer" style="border:none;">
+            <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger" style="background:#e74c3c;border:none;padding:8px 24px;">
+                    <i class="fas fa-trash me-1"></i> Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Restore User Modal -->
+<div class="modal fade" id="restoreUserModal" tabindex="-1" aria-labelledby="restoreUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#27ae60 0%,#229954 100%);color:white;border:none;">
+                <h5 class="modal-title" id="restoreUserModalLabel">
+                    <i class="fas fa-undo me-2"></i> Restore User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:30px;">
+                <div style="text-align:center;">
+                    <i class="fas fa-check-circle" style="font-size:3rem;color:#27ae60;margin-bottom:15px;display:block;"></i>
+                    <h4 style="color:#2c3e50;margin-bottom:10px;">Restore User?</h4>
+                    <p id="restoreUserMessage" style="color:#7f8c8d;margin-bottom:0;"></p>
+                </div>
+            </div>
+            <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmRestoreBtn" class="btn btn-success" style="background:#27ae60;border:none;padding:8px 24px;">
+                    <i class="fas fa-undo me-1"></i> Restore User
+                </button>
             </div>
         </div>
     </div>
@@ -494,7 +541,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= base_url('users/store') ?>" method="POST">
+            <form id="addUserForm" action="<?= base_url('users/store') ?>" method="POST">
                 <?= csrf_field() ?>
                 <div class="modal-body" style="padding:30px;">
 
@@ -502,6 +549,7 @@
                         <label for="name" class="form-label fw-600">Full Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="name" name="name"
                                placeholder="Enter full name" required>
+                        <small id="nameError" class="text-danger" style="display:none;"></small>
                     </div>
 
                     <div class="mb-3">
@@ -571,6 +619,7 @@
                         <label for="editName" class="form-label fw-600">Full Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="editName" name="name"
                                placeholder="Enter full name" required>
+                        <small id="editNameError" class="text-danger" style="display:none;"></small>
                     </div>
 
                     <div class="mb-3">
@@ -623,11 +672,80 @@
 <script>
 function searchUsers(query) {
     const rows = document.querySelectorAll('#usersTable tbody tr');
-    query = query.toLowerCase();
+    query = query.toLowerCase().trim();
+    
+    if (!query) {
+        // If search is empty, show all rows
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+    
     rows.forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+        const cells = row.querySelectorAll('td');
+        // Search in Name (index 1), Email (index 2), and Role (index 3)
+        const name = cells[1]?.textContent.toLowerCase() || '';
+        const email = cells[2]?.textContent.toLowerCase() || '';
+        const role = cells[3]?.textContent.toLowerCase() || '';
+        
+        const matches = name.includes(query) || email.includes(query) || role.includes(query);
+        row.style.display = matches ? '' : 'none';
     });
 }
+
+// Validation function to check for special characters
+// Only allow letters (a-z, A-Z), numbers (0-9), and spaces
+const ALLOWED_NAME_PATTERN = /^[a-zA-Z0-9\s]*$/;
+
+function hasInvalidCharacters(str) {
+    return !ALLOWED_NAME_PATTERN.test(str);
+}
+
+function validateNameField(value) {
+    if (hasInvalidCharacters(value)) {
+        return 'Name can only contain letters, numbers, and spaces. Special characters are not allowed.';
+    }
+    return null;
+}
+
+// Real-time validation for name fields
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('name');
+    const nameErrorDiv = document.getElementById('nameError');
+    const editNameInput = document.getElementById('editName');
+    const editNameErrorDiv = document.getElementById('editNameError');
+    
+    // Add User name field validation
+    if (nameInput && nameErrorDiv) {
+        nameInput.addEventListener('input', function() {
+            const error = validateNameField(this.value);
+            if (error) {
+                nameErrorDiv.textContent = error;
+                nameErrorDiv.style.display = 'block';
+                this.classList.add('is-invalid');
+            } else {
+                nameErrorDiv.style.display = 'none';
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+    
+    // Edit User name field validation
+    if (editNameInput && editNameErrorDiv) {
+        editNameInput.addEventListener('input', function() {
+            const error = validateNameField(this.value);
+            if (error) {
+                editNameErrorDiv.textContent = error;
+                editNameErrorDiv.style.display = 'block';
+                this.classList.add('is-invalid');
+            } else {
+                editNameErrorDiv.style.display = 'none';
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+});
 
 function toggleUserStatus(userId, action) {
     let confirmMessage = '';
@@ -763,13 +881,10 @@ function showDeleteModal(button, userId, name) {
     const modalEl = document.getElementById('deleteUserModal');
     const msg = document.getElementById('deleteUserMessage');
     const confirmBtn = document.getElementById('confirmDeleteBtn');
-    msg.textContent = `Are you sure you want to delete ${name}? You can restore this user later.`;
+    msg.innerHTML = `Are you sure you want to delete <strong>${name}</strong>?<br><small>This action is irreversible but can be restored later.</small>`;
     confirmBtn.dataset.userId = userId;
     // keep reference to source button to update UI after response
     confirmBtn._sourceButton = button;
-    // set button label
-    confirmBtn.innerHTML = 'Delete';
-    confirmBtn.className = 'btn btn-danger';
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 }
@@ -808,21 +923,34 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function(e
                 statusBadge.className = 'badge badge-inactive';
                 statusBadge.textContent = 'DELETED';
             }
-            const sourceBtn = btn._sourceButton || btn._sourceButton;
-            // find action-buttons container
-            const actionCell = (sourceBtn && sourceBtn.closest('td')) ? sourceBtn.closest('td') : null;
-            if (actionCell) {
-                // remove existing delete button(s)
-                actionCell.querySelectorAll('.btn-delete').forEach(n => n.remove());
-                // add restore button
-                const restoreBtn = document.createElement('button');
-                restoreBtn.type = 'button';
-                restoreBtn.className = 'btn btn-sm btn-restore';
-                restoreBtn.setAttribute('data-user-id', userId);
-                restoreBtn.innerHTML = '<i class="fas fa-undo"></i> Restore';
-                restoreBtn.addEventListener('click', function(e){ performRestore(userId); });
-                const container = actionCell.querySelector('.action-buttons') || actionCell;
-                container.appendChild(restoreBtn);
+            
+            // Find the row by user ID
+            const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+            
+            if (userRow) {
+                const actionCell = userRow.querySelector('.action-buttons');
+                if (actionCell) {
+                    // Hide edit button when deleted
+                    const editBtn = actionCell.querySelector('.btn-edit');
+                    if (editBtn) {
+                        editBtn.style.display = 'none';
+                    }
+                    
+                    // remove existing delete button(s)
+                    actionCell.querySelectorAll('.btn-delete').forEach(n => n.remove());
+                    
+                    // add restore button
+                    const restoreBtn = document.createElement('button');
+                    restoreBtn.type = 'button';
+                    restoreBtn.className = 'btn btn-sm btn-restore';
+                    restoreBtn.setAttribute('data-user-id', userId);
+                    restoreBtn.innerHTML = '<i class="fas fa-undo"></i> Restore';
+                    restoreBtn.addEventListener('click', function(e){ 
+                        const userName = userRow.querySelector('.user-cell')?.innerText.trim() || '';
+                        showRestoreModal(userId, userName); 
+                    });
+                    actionCell.appendChild(restoreBtn);
+                }
             }
 
             if (data.csrf_hash) {
@@ -842,9 +970,29 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function(e
     });
 });
 
-function performRestore(userId) {
-    const btn = document.querySelector(`.btn-restore[data-user-id="${userId}"]`);
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...'; }
+let pendingRestoreUserId = null;
+let pendingRestoreUserName = null;
+
+function showRestoreModal(userId, name) {
+    pendingRestoreUserId = userId;
+    pendingRestoreUserName = name;
+    const modalEl = document.getElementById('restoreUserModal');
+    const msg = document.getElementById('restoreUserMessage');
+    msg.innerHTML = `Are you sure you want to restore <strong>${name}</strong>?`;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+// Perform restore
+document.getElementById('confirmRestoreBtn').addEventListener('click', function(e){
+    const btn = e.currentTarget;
+    const userId = pendingRestoreUserId;
+    if (!userId) return;
+    
+    // show loading
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...';
 
     const csrfHeaderRestore = document.querySelector('meta[name="<?= csrf_header() ?>"]').getAttribute('content');
     const headersRestore = {'X-Requested-With': 'XMLHttpRequest'};
@@ -857,32 +1005,49 @@ function performRestore(userId) {
     })
     .then(r => r.json())
     .then(data => {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> Restore'; }
+        btn.disabled = false;
+        btn.innerHTML = original;
+        const modalEl = document.getElementById('restoreUserModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
         if (data.success) {
+            // Update status badge
             const statusBadge = document.getElementById(`status-${userId}`);
             if (statusBadge) {
                 statusBadge.className = 'badge badge-active';
                 statusBadge.textContent = 'ACTIVE';
             }
 
-            // replace restore with delete
-            const restoreBtn = document.querySelector(`.btn-restore[data-user-id="${userId}"]`);
-            if (restoreBtn) {
-                const actionCell = restoreBtn.closest('td');
-                restoreBtn.remove();
-                const delBtn = document.createElement('button');
-                delBtn.type = 'button';
-                delBtn.className = 'btn btn-sm btn-delete';
-                delBtn.setAttribute('data-user-id', userId);
-                const name = actionCell ? actionCell.closest('tr').querySelector('.user-cell').innerText.trim() : '';
-                delBtn.setAttribute('data-user-name', name);
-                delBtn.title = 'Delete User';
-                delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-                delBtn.addEventListener('click', function(e){ showDeleteModal(this, userId, name); });
-                const container = actionCell.querySelector('.action-buttons') || actionCell;
-                container.appendChild(delBtn);
+            // Find the row by user ID
+            const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+            
+            if (userRow) {
+                const actionCell = userRow.querySelector('.action-buttons');
+                if (actionCell) {
+                    // Show edit button when restored
+                    const editBtn = actionCell.querySelector('.btn-edit');
+                    if (editBtn) {
+                        editBtn.style.display = 'inline-flex';
+                    }
+                    
+                    // remove existing restore button(s)
+                    actionCell.querySelectorAll('.btn-restore').forEach(n => n.remove());
+                    
+                    // add delete button
+                    const userName = userRow.querySelector('.user-cell')?.innerText.trim() || pendingRestoreUserName;
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'btn btn-sm btn-delete';
+                    delBtn.setAttribute('data-user-id', userId);
+                    delBtn.setAttribute('data-user-name', userName);
+                    delBtn.title = 'Delete User';
+                    delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                    delBtn.addEventListener('click', function(e){ showDeleteModal(this, userId, userName); });
+                    actionCell.appendChild(delBtn);
+                }
             }
-
+            
             if (data.csrf_hash) {
                 const meta = document.querySelector('meta[name="<?= csrf_header() ?>"]');
                 if (meta) meta.setAttribute('content', data.csrf_hash);
@@ -893,11 +1058,15 @@ function performRestore(userId) {
         }
     })
     .catch(err => {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> Restore'; }
-        console.error(err);
-        showNotification('An unexpected error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = original;
+        showNotification('An error occurred while restoring', 'error');
     });
-}
+    
+    // Clear pending data
+    pendingRestoreUserId = null;
+    pendingRestoreUserName = null;
+});
 
 // Add CSS animations for notifications
 const style = document.createElement('style');
@@ -918,12 +1087,7 @@ function editUser(userId, name, email, roleId, isActive) {
     document.getElementById('editUserId').value = userId;
     document.getElementById('editName').value = name;
     document.getElementById('editEmail').value = email;
-<<<<<<< HEAD
     document.getElementById('editRole').value = roleId;
-=======
-    // role passed is role_id
-    document.getElementById('editRole').value = roleId;
->>>>>>> 6af8e22 (another update)
     document.getElementById('editIsActive').value = isActive;
     
     // Clear password field
@@ -953,6 +1117,13 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         return;
     }
     
+    // Validate special characters in name
+    const nameError = validateNameField(name);
+    if (nameError) {
+        alert(nameError);
+        return;
+    }
+    
     // Show loading spinner
     const spinner = document.getElementById('loadingSpinner');
     if (spinner) {
@@ -964,11 +1135,7 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     formData.append('name', name);
     formData.append('email', email);
     formData.append('password', password);
-<<<<<<< HEAD
     formData.append('role_id', roleId);
-=======
-    formData.append('role_id', roleId);
->>>>>>> 6af8e22 (another update)
     formData.append('is_active', isActive);
     
     const url = `<?= base_url('users/update') ?>/${userId}`;
@@ -1011,6 +1178,20 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         console.error('Fetch error:', error);
         alert('Error: ' + error.message);
     });
+});
+
+// Handle add user form submission
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    
+    // Validate special characters in name
+    const nameError = validateNameField(name);
+    if (nameError) {
+        e.preventDefault();
+        alert(nameError);
+        return false;
+    }
 });
 </script>
 

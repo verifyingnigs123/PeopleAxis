@@ -34,6 +34,26 @@ class Biometric extends BaseController
         return redirect()->back()->with('success', 'Biometric sync started (stub)');
     }
 
+    /**
+     * Show biometric device connection page
+     */
+    public function connect()
+    {
+        // Check if user is Super Admin
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        }
+
+        // Get device status (placeholder)
+        $data['deviceStatus'] = [
+            'connected' => false,
+            'lastSync' => null,
+            'records' => 0
+        ];
+
+        return view('biometric/connect', $data);
+    }
+
     // Helper to map biometric logs into attendance records
     protected function mapLogToAttendance($biometricLog)
     {

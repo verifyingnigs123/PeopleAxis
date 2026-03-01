@@ -327,7 +327,7 @@
 <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
     <div class="container-fluid">
         <!-- Brand Logo -->
-        <a class="navbar-brand" href="<?= base_url() ?>">
+        <a class="navbar-brand" href="<?= base_url('dashboard') ?>">
             <i class="fas fa-users-cog"></i> PeopleAxis
         </a>
 

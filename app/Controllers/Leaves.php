@@ -4,16 +4,72 @@ namespace App\Controllers;
 
 use App\Models\LeaveModel;
 use App\Models\AuditModel;
+use App\Models\EmployeeModel;
 
 class Leaves extends BaseController
 {
     protected $leaveModel;
     protected $auditModel;
+    protected $employeeModel;
 
     public function __construct()
     {
         $this->leaveModel = new LeaveModel();
         $this->auditModel = new AuditModel();
+        $this->employeeModel = new EmployeeModel();
+    }
+
+    /**
+     * Display leave form
+     */
+    public function create()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $data['leaveTypes'] = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
+        return view('leaves/create', $data);
+    }
+
+    /**
+     * Display leaves status
+     */
+    public function index()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $role = session()->get('role');
+        
+        if ($role === 'admin') {
+            // Super Admin - show all leaves
+            $leaves = $this->leaveModel
+                ->select('leaves.*, employees.name, employees.employee_id')
+                ->join('employees', 'employees.id = leaves.employee_id', 'left')
+                ->orderBy('leaves.start_date', 'DESC')
+                ->paginate(20);
+        } else {
+            // Employees and others - show own leaves
+            $employee = $this->employeeModel->where('user_id', session()->get('user_id'))->first();
+            
+            if (!$employee) {
+                return redirect()->back()->with('error', 'Employee profile not found');
+            }
+
+            $leaves = $this->leaveModel
+                ->where('employee_id', $employee['id'])
+                ->orderBy('start_date', 'DESC')
+                ->paginate(20);
+        }
+
+        $data['leaves'] = $leaves;
+        $data['pager'] = $this->leaveModel->pager;
+
+        return view('leaves/index', $data);
     }
 
     public function submit()

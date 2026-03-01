@@ -147,7 +147,6 @@ class Users extends BaseController
             // Get form data
             $name = $this->request->getPost('name');
             $email = $this->request->getPost('email');
-<<<<<<< HEAD
             $roleId = $this->request->getPost('role_id') ?? $this->request->getPost('role');
             $isActive = $this->request->getPost('is_active');
             $password = $this->request->getPost('password');
@@ -174,7 +173,6 @@ class Users extends BaseController
                 ]);
             }
 
-<<<<<<< HEAD
             // roleId should be numeric; additional validation can be added to ensure role exists
             if (!is_numeric($roleId)) {
                 return $this->response->setStatusCode(422)->setJSON([
@@ -202,11 +200,7 @@ class Users extends BaseController
             $updateData = [
                 'name' => $name,
                 'email' => $email,
-<<<<<<< HEAD
-                'role_id' => $roleId,
-=======
                 'role_id' => (int)$roleId,
->>>>>>> 6af8e22 (another update)
                 'is_active' => (int)$isActive,
                 'updated_at' => date('Y-m-d H:i:s')
             ];

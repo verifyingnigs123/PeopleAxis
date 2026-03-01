@@ -96,4 +96,61 @@ class Dashboard extends BaseController
 
         return view('auth/dashboard', $data);
     }
+
+    /**
+     * Display user profile
+     */
+    public function profile()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $userModel = new UserModel();
+        $userId = session()->get('user_id');
+
+        $data['user'] = $userModel->find($userId);
+
+        return view('profile/view', $data);
+    }
+
+    /**
+     * Update user profile
+     */
+    public function updateProfile()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $userModel = new UserModel();
+        $userId = session()->get('user_id');
+
+        $rules = [
+            'name' => 'required|min_length[3]|max_length[100]',
+            'email' => 'required|valid_email'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'email' => $this->request->getPost('email'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        // Update password if provided
+        $password = $this->request->getPost('password');
+        if (!empty($password) && strlen($password >= 6)) {
+            $data['password'] = $password;
+        }
+
+        $userModel->update($userId, $data);
+
+        return redirect()->back()->with('success', 'Profile updated successfully');
+    }
 }
