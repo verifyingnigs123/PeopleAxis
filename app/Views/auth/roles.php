@@ -49,6 +49,11 @@
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
         padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
     }
 
     .panel-header h2 {
@@ -116,6 +121,25 @@
     .badge-primary {
         background: #e8ecff;
         color: #2a5298;
+    }
+
+    .search-box {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .search-box input {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        width: 100%;
+        background: white;
+        color: #333;
+    }
+
+    .search-box input::placeholder {
+        color: #999;
     }
 
     .action-buttons {
@@ -220,6 +244,9 @@
 <div class="admin-panel">
     <div class="panel-header">
         <h2><i class="fas fa-list"></i> System Roles (<?= count($roles) ?>)</h2>
+        <div class="search-box">
+            <input type="text" id="roleSearch" placeholder="Search roles..." onkeyup="searchRoles(this.value)">
+        </div>
     </div>
 
     <div class="table-responsive">
@@ -640,6 +667,52 @@ document.getElementById('editRoleForm').addEventListener('submit', function(e) {
         alert('Error updating role');
     });
 });
+
+// Search/filter roles functionality
+function searchRoles(searchValue) {
+    const tableRows = document.querySelectorAll('.admin-table tbody tr');
+    const searchTerm = searchValue.toLowerCase().trim();
+    let visibleCount = 0;
+
+    tableRows.forEach(row => {
+        const roleName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const roleDescription = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        
+        if (roleName.includes(searchTerm) || roleDescription.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Show "no results" message if no roles match
+    let emptyStateDiv = document.querySelector('.search-empty-state');
+    if (visibleCount === 0 && searchTerm !== '') {
+        if (!emptyStateDiv) {
+            emptyStateDiv = document.createElement('div');
+            emptyStateDiv.className = 'empty-state search-empty-state';
+            emptyStateDiv.style.padding = '40px 20px';
+            emptyStateDiv.innerHTML = '<i class="fas fa-search"></i><p>No roles found matching "' + escapeHtml(searchValue) + '"</p>';
+            document.querySelector('.table-responsive').appendChild(emptyStateDiv);
+        } else {
+            emptyStateDiv.innerHTML = '<i class="fas fa-search"></i><p>No roles found matching "' + escapeHtml(searchValue) + '"</p>';
+            emptyStateDiv.style.display = '';
+        }
+    } else if (emptyStateDiv) {
+        emptyStateDiv.style.display = 'none';
+    }
+}
+
+// Helper function to escape HTML special characters
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 </script>
 
 <?= $this->endSection() ?>

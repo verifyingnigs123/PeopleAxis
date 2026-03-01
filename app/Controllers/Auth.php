@@ -60,9 +60,7 @@ class Auth extends BaseController
         $verified = $this->userModel->verifyPassword($password, $user->password);
         
         if (!$verified) {
-            // Last resort: just update password with user's input and log them in
-            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-            $this->userModel->update($user->id, ['password' => $hashedPassword]);
+            return redirect()->to('/login')->with('error', 'Invalid email or password');
         }
 
         // Determine role name

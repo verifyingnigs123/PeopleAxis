@@ -53,10 +53,11 @@ class UserModel extends Model
      */
     public function getUserByEmail($email)
     {
-        return $this->where('email', $email)
+        $user = $this->where('email', $email)
                     ->orWhere('username', $email)
-                    ->where('is_active', 1)
                     ->first();
+        
+        return ($user && $user->is_active == 1) ? $user : null;
     }
 
     /**
