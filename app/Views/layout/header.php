@@ -461,7 +461,7 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">User Management</div>
                     <a href="<?= base_url('users') ?>" class="sidebar-link">
-                        <i class="fas fa-users"></i> Manage Users (CRUD)
+                        <i class="fas fa-users"></i> Manage Users
                     </a>
                     <a href="<?= base_url('roles') ?>" class="sidebar-link">
                         <i class="fas fa-lock"></i> Assign Roles
@@ -526,7 +526,7 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Employees</div>
                     <a href="<?= base_url('employees') ?>" class="sidebar-link">
-                        <i class="fas fa-users"></i> Manage Employee Records (CRUD)
+                        <i class="fas fa-users"></i> Manage Employee Records
                     </a>
                     <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
                         <i class="fas fa-money-bill"></i> View Employee Salary Rate

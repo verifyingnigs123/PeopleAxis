@@ -385,6 +385,11 @@
             <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers(this.value)">
         </div>
     </div>
+    <?php
+        // Load roles for select boxes
+        $db = \Config\Database::connect();
+        $rolesList = $db->table('roles')->select('id, name')->orderBy('name','ASC')->get()->getResult();
+    ?>
     <div class="table-responsive">
         <?php if (!empty($users)): ?>
             <table class="admin-table" id="usersTable">
@@ -411,8 +416,12 @@
                             </td>
                             <td><?= esc($u->email) ?></td>
                             <td>
-                                <span class="badge <?= ($roleMap[$u->role_id] ?? 'User') === 'Super Admin' ? 'badge-admin' : 'badge-user' ?>">
-                                    <?= esc($roleMap[$u->role_id] ?? 'User') ?>
+                                <?php
+                                    $roleName = isset($u->role_name) ? $u->role_name : ($roleMap[$u->role_id] ?? (isset($u->role) ? $u->role : 'User'));
+                                    $roleClass = (strtolower($roleName) === 'super admin' || strtolower($roleName) === 'admin') ? 'badge-admin' : 'badge-user';
+                                ?>
+                                <span class="badge <?= $roleClass ?>">
+                                    <?= esc($roleName) ?>
                                 </span>
                             </td>
                             <td>
@@ -423,16 +432,16 @@
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', '<?= $u->role_id ?>', <?= $u->is_active ?>)" title="Edit User">
+                                    <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                     <?php if ($u->is_active): ?>
                                         <?php if ($u->id != $currentUserId): ?>
-                                            <button type="button" class="btn btn-sm btn-deactivate" onclick="toggleUserStatus(<?= $u->id ?>, 'deactivate')" title="Deactivate User">
-                                                <i class="fas fa-user-slash"></i> Deactivate
+                                            <button type="button" class="btn btn-sm btn-delete" data-user-id="<?= $u->id ?>" data-user-name="<?= esc($u->name) ?>" onclick="showDeleteModal(this, <?= $u->id ?>, '<?= esc($u->name) ?>')" title="Delete User">
+                                                <i class="fas fa-trash"></i> Delete
                                             </button>
                                         <?php else: ?>
-                                            <button type="button" class="btn btn-sm btn-disabled" disabled title="You cannot deactivate your own account">
+                                            <button type="button" class="btn btn-sm btn-disabled" disabled title="You cannot delete your own account">
                                                 <i class="fas fa-shield-alt"></i>
                                             </button>
                                         <?php endif; ?>
@@ -453,6 +462,25 @@
                 <p>No users found.</p>
             </div>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- Delete/Restore Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
+                <h5 class="modal-title" id="deleteUserModalLabel"><i class="fas fa-exclamation-triangle me-2"></i> Confirm Action</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <p id="deleteUserMessage">Are you sure you want to delete this user? This action can be undone by restoring them.</p>
+            </div>
+            <div class="modal-footer" style="border:none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -496,13 +524,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="role" class="form-label fw-600">Role <span class="text-danger">*</span></label>
-                            <select class="form-select" id="role" name="role_id" required>
-                                <option value="" disabled selected>Select role</option>
-                                <option value="1">Super Admin</option>
-                                <option value="2">HR Admin</option>
-                                <option value="3">Manager</option>
-                                <option value="4">Employee</option>
-                            </select>
+                                <select class="form-select" id="role" name="role_id" required>
+                                    <option value="" disabled selected>Select role</option>
+                                    <?php foreach ($rolesList as $r): ?>
+                                        <option value="<?= $r->id ?>"><?= esc($r->name) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="is_active" class="form-label fw-600">Status <span class="text-danger">*</span></label>
@@ -567,10 +594,9 @@
                         <div class="col-md-6 mb-3">
                             <label for="editRole" class="form-label fw-600">Role <span class="text-danger">*</span></label>
                             <select class="form-select" id="editRole" name="role_id" required>
-                                <option value="1">Super Admin</option>
-                                <option value="2">HR Admin</option>
-                                <option value="3">Manager</option>
-                                <option value="4">Employee</option>
+                                <?php foreach ($rolesList as $r): ?>
+                                    <option value="<?= $r->id ?>"><?= esc($r->name) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -604,10 +630,21 @@ function searchUsers(query) {
 }
 
 function toggleUserStatus(userId, action) {
-    const confirmMessage = action === 'activate' 
-        ? 'Are you sure you want to activate this user?' 
-        : 'Are you sure you want to deactivate this user? The user will not be able to log in.';
+    let confirmMessage = '';
+    if (action === 'activate') {
+        confirmMessage = 'Are you sure you want to activate this user?';
+    } else if (action === 'delete') {
+        confirmMessage = 'Are you sure you want to delete this user? This action cannot be undone.';
+    } else {
+        confirmMessage = 'Are you sure you want to deactivate this user? The user will not be able to log in.';
+    }
     
+    // For delete action we show modal instead of immediate confirm
+    if (action === 'delete') {
+        // noop here; delete is handled via showDeleteModal -> performDelete
+        return;
+    }
+
     if (!confirm(confirmMessage)) {
         return;
     }
@@ -620,12 +657,16 @@ function toggleUserStatus(userId, action) {
 
     const url = `<?= base_url('users/') ?>${action}/${userId}`;
     
+    const csrfHeader = document.querySelector('meta[name="<?= csrf_header() ?>"]').getAttribute('content');
+    const headers = {
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+    headers['<?= csrf_header() ?>'] = csrfHeader;
+
     fetch(url, {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            '<?= csrf_header() ?>': '<?= csrf_token() ?>'
-        }
+        credentials: 'same-origin',
+        headers: headers
     })
     .then(response => response.json())
     .then(data => {
@@ -638,34 +679,40 @@ function toggleUserStatus(userId, action) {
                 statusBadge.className = 'badge badge-active';
                 statusBadge.textContent = 'ACTIVE';
                 
-                // Replace button with deactivate button
-                actionCell.innerHTML = `
-                    <div class="action-buttons">
-                        <button type="button" class="btn btn-sm btn-edit" onclick="editUser(${userId}, '${button.getAttribute('data-name')}', '${button.getAttribute('data-email')}', '${button.getAttribute('data-role')}', 1)" title="Edit User">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-deactivate" onclick="toggleUserStatus(${userId}, 'deactivate')" title="Deactivate User">
-                            <i class="fas fa-user-slash"></i> Deactivate
-                        </button>
-                    </div>
-                `;
-            } else {
+                // Replace button with delete button
+                actionCell.querySelectorAll('.btn-delete, .btn-restore').forEach(n => n.remove());
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-sm btn-delete';
+                delBtn.setAttribute('data-user-id', userId);
+                delBtn.setAttribute('data-user-name', actionCell.closest('tr').querySelector('.user-cell').innerText.trim());
+                delBtn.title = 'Delete User';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                delBtn.addEventListener('click', function(e) { showDeleteModal(this, userId, this.getAttribute('data-user-name')); });
+                const container = actionCell.querySelector('.action-buttons') || actionCell;
+                container.appendChild(delBtn);
+            } else if (data.status === 'INACTIVE') {
                 statusBadge.className = 'badge badge-inactive';
                 statusBadge.textContent = 'INACTIVE';
                 
                 // Replace button with activate button
-                actionCell.innerHTML = `
-                    <div class="action-buttons">
-                        <button type="button" class="btn btn-sm btn-edit" onclick="editUser(${userId}, '${button.getAttribute('data-name')}', '${button.getAttribute('data-email')}', '${button.getAttribute('data-role')}', 0)" title="Edit User">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-activate" onclick="toggleUserStatus(${userId}, 'activate')" title="Activate User">
-                            <i class="fas fa-user-check"></i> Activate
-                        </button>
-                    </div>
-                `;
+                actionCell.querySelectorAll('.btn-delete, .btn-restore').forEach(n => n.remove());
+                const actBtn = document.createElement('button');
+                actBtn.type = 'button';
+                actBtn.className = 'btn btn-sm btn-activate';
+                actBtn.title = 'Activate User';
+                actBtn.innerHTML = '<i class="fas fa-user-check"></i> Activate';
+                actBtn.addEventListener('click', function(e) { toggleUserStatus(userId, 'activate'); });
+                const container = actionCell.querySelector('.action-buttons') || actionCell;
+                container.appendChild(actBtn);
             }
-            
+
+            // Update CSRF token in meta for future requests
+            if (data.csrf_hash) {
+                const meta = document.querySelector('meta[name="<?= csrf_header() ?>"]');
+                if (meta) meta.setAttribute('content', data.csrf_hash);
+            }
+
             // Show success message
             showNotification(data.message, 'success');
         } else {
@@ -711,6 +758,147 @@ function showNotification(message, type) {
     }, 3000);
 }
 
+// Show delete confirmation modal
+function showDeleteModal(button, userId, name) {
+    const modalEl = document.getElementById('deleteUserModal');
+    const msg = document.getElementById('deleteUserMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    msg.textContent = `Are you sure you want to delete ${name}? You can restore this user later.`;
+    confirmBtn.dataset.userId = userId;
+    // keep reference to source button to update UI after response
+    confirmBtn._sourceButton = button;
+    // set button label
+    confirmBtn.innerHTML = 'Delete';
+    confirmBtn.className = 'btn btn-danger';
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+// Perform delete (soft)
+document.getElementById('confirmDeleteBtn').addEventListener('click', function(e){
+    const btn = e.currentTarget;
+    const userId = btn.dataset.userId;
+    if (!userId) return;
+    // show loading
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    const csrfHeaderDel = document.querySelector('meta[name="<?= csrf_header() ?>"]').getAttribute('content');
+    const headersDel = {'X-Requested-With': 'XMLHttpRequest'};
+    headersDel['<?= csrf_header() ?>'] = csrfHeaderDel;
+
+    fetch(`<?= base_url('users/delete') ?>/${userId}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: headersDel
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        const modalEl = document.getElementById('deleteUserModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        if (data.success) {
+            // update UI: status badge and replace delete with restore
+            const statusBadge = document.getElementById(`status-${userId}`);
+            if (statusBadge) {
+                statusBadge.className = 'badge badge-inactive';
+                statusBadge.textContent = 'DELETED';
+            }
+            const sourceBtn = btn._sourceButton || btn._sourceButton;
+            // find action-buttons container
+            const actionCell = (sourceBtn && sourceBtn.closest('td')) ? sourceBtn.closest('td') : null;
+            if (actionCell) {
+                // remove existing delete button(s)
+                actionCell.querySelectorAll('.btn-delete').forEach(n => n.remove());
+                // add restore button
+                const restoreBtn = document.createElement('button');
+                restoreBtn.type = 'button';
+                restoreBtn.className = 'btn btn-sm btn-restore';
+                restoreBtn.setAttribute('data-user-id', userId);
+                restoreBtn.innerHTML = '<i class="fas fa-undo"></i> Restore';
+                restoreBtn.addEventListener('click', function(e){ performRestore(userId); });
+                const container = actionCell.querySelector('.action-buttons') || actionCell;
+                container.appendChild(restoreBtn);
+            }
+
+            if (data.csrf_hash) {
+                const meta = document.querySelector('meta[name="<?= csrf_header() ?>"]');
+                if (meta) meta.setAttribute('content', data.csrf_hash);
+            }
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to delete user', 'error');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        console.error(err);
+        showNotification('An unexpected error occurred', 'error');
+    });
+});
+
+function performRestore(userId) {
+    const btn = document.querySelector(`.btn-restore[data-user-id="${userId}"]`);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...'; }
+
+    const csrfHeaderRestore = document.querySelector('meta[name="<?= csrf_header() ?>"]').getAttribute('content');
+    const headersRestore = {'X-Requested-With': 'XMLHttpRequest'};
+    headersRestore['<?= csrf_header() ?>'] = csrfHeaderRestore;
+
+    fetch(`<?= base_url('users/restore') ?>/${userId}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: headersRestore
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> Restore'; }
+        if (data.success) {
+            const statusBadge = document.getElementById(`status-${userId}`);
+            if (statusBadge) {
+                statusBadge.className = 'badge badge-active';
+                statusBadge.textContent = 'ACTIVE';
+            }
+
+            // replace restore with delete
+            const restoreBtn = document.querySelector(`.btn-restore[data-user-id="${userId}"]`);
+            if (restoreBtn) {
+                const actionCell = restoreBtn.closest('td');
+                restoreBtn.remove();
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-sm btn-delete';
+                delBtn.setAttribute('data-user-id', userId);
+                const name = actionCell ? actionCell.closest('tr').querySelector('.user-cell').innerText.trim() : '';
+                delBtn.setAttribute('data-user-name', name);
+                delBtn.title = 'Delete User';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                delBtn.addEventListener('click', function(e){ showDeleteModal(this, userId, name); });
+                const container = actionCell.querySelector('.action-buttons') || actionCell;
+                container.appendChild(delBtn);
+            }
+
+            if (data.csrf_hash) {
+                const meta = document.querySelector('meta[name="<?= csrf_header() ?>"]');
+                if (meta) meta.setAttribute('content', data.csrf_hash);
+            }
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to restore user', 'error');
+        }
+    })
+    .catch(err => {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo"></i> Restore'; }
+        console.error(err);
+        showNotification('An unexpected error occurred', 'error');
+    });
+}
+
 // Add CSS animations for notifications
 const style = document.createElement('style');
 style.textContent = `
@@ -730,7 +918,12 @@ function editUser(userId, name, email, roleId, isActive) {
     document.getElementById('editUserId').value = userId;
     document.getElementById('editName').value = name;
     document.getElementById('editEmail').value = email;
+<<<<<<< HEAD
     document.getElementById('editRole').value = roleId;
+=======
+    // role passed is role_id
+    document.getElementById('editRole').value = roleId;
+>>>>>>> 6af8e22 (another update)
     document.getElementById('editIsActive').value = isActive;
     
     // Clear password field
@@ -771,18 +964,24 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     formData.append('name', name);
     formData.append('email', email);
     formData.append('password', password);
+<<<<<<< HEAD
     formData.append('role_id', roleId);
+=======
+    formData.append('role_id', roleId);
+>>>>>>> 6af8e22 (another update)
     formData.append('is_active', isActive);
     
     const url = `<?= base_url('users/update') ?>/${userId}`;
     console.log('Fetching:', url);
     
+    const csrfHeaderForm = document.querySelector('meta[name="<?= csrf_header() ?>"]').getAttribute('content');
+    const headersForm = {'X-Requested-With': 'XMLHttpRequest'};
+    headersForm['<?= csrf_header() ?>'] = csrfHeaderForm;
+
     fetch(url, {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            '<?= csrf_header() ?>': '<?= csrf_token() ?>'
-        },
+        credentials: 'same-origin',
+        headers: headersForm,
         body: formData
     })
     .then(response => {

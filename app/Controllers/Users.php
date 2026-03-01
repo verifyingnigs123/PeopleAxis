@@ -38,7 +38,16 @@ class Users extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
-        $data['users'] = $this->userModel->getAllUsers();
+        // Load users with role information to avoid N+1 queries in the view
+        $db = \Config\Database::connect();
+        $users = $db->table('users')
+            ->select('users.*, roles.id as role_id, roles.name as role_name')
+            ->join('roles', 'roles.id = users.role_id', 'left')
+            ->orderBy('users.created_at', 'DESC')
+            ->get()
+            ->getResult();
+
+        $data['users'] = $users;
         $currentUserId = session()->get('user_id');
         
         // Get role names for display
@@ -80,12 +89,11 @@ class Users extends BaseController
         }
         
         $rules = [
-            'name'           => 'required|min_length[3]|max_length[100]',
-            'email'          => 'required|valid_email|is_unique[users.email]',
-            'password'       => 'required|min_length[6]|max_length[255]',
-            'confirm_password' => 'required|matches[password]',
-            'role_id'        => 'required|in_list[1,2,3,4]',
-            'is_active'      => 'required|in_list[0,1]',
+            'name'     => 'required|min_length[3]|max_length[100]',
+            'email'    => 'required|valid_email|is_unique[users.email]',
+            'password' => 'required|min_length[6]|max_length[255]',
+            'role_id'  => 'required|numeric',
+            'is_active'=> 'permit_empty|in_list[0,1]'
         ];
 
         if (!$this->validate($rules)) {
@@ -96,8 +104,8 @@ class Users extends BaseController
             'name'       => $this->request->getPost('name'),
             'email'      => $this->request->getPost('email'),
             'password'   => $this->request->getPost('password'),
-            'role_id'    => $this->request->getPost('role_id'),
-            'is_active'  => $this->request->getPost('is_active'),
+            'role_id'    => (int)$this->request->getPost('role_id'),
+            'is_active'  => $this->request->getPost('is_active') ?? 1,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
@@ -139,7 +147,8 @@ class Users extends BaseController
             // Get form data
             $name = $this->request->getPost('name');
             $email = $this->request->getPost('email');
-            $roleId = $this->request->getPost('role_id');
+<<<<<<< HEAD
+            $roleId = $this->request->getPost('role_id') ?? $this->request->getPost('role');
             $isActive = $this->request->getPost('is_active');
             $password = $this->request->getPost('password');
 
@@ -165,10 +174,12 @@ class Users extends BaseController
                 ]);
             }
 
-            if (!in_array($roleId, ['1', '2', '3', '4'])) {
+<<<<<<< HEAD
+            // roleId should be numeric; additional validation can be added to ensure role exists
+            if (!is_numeric($roleId)) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
-                    'message' => 'Invalid role'
+                    'message' => 'Invalid role selection'
                 ]);
             }
 
@@ -191,7 +202,11 @@ class Users extends BaseController
             $updateData = [
                 'name' => $name,
                 'email' => $email,
+<<<<<<< HEAD
                 'role_id' => $roleId,
+=======
+                'role_id' => (int)$roleId,
+>>>>>>> 6af8e22 (another update)
                 'is_active' => (int)$isActive,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
@@ -205,7 +220,7 @@ class Users extends BaseController
             $result = $this->userModel->update($id, $updateData);
 
             if ($result) {
-                return $this->response->setJSON(['success' => true, 'message' => 'User updated successfully']);
+                return $this->response->setJSON(['success' => true, 'message' => 'User updated successfully', 'csrf_hash' => csrf_hash()]);
             } else {
                 return $this->response->setStatusCode(500)->setJSON([
                     'success' => false,
@@ -248,7 +263,8 @@ class Users extends BaseController
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'User activated successfully',
-                    'status' => 'ACTIVE'
+                    'status' => 'ACTIVE',
+                    'csrf_hash' => csrf_hash()
                 ]);
             } else {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -300,7 +316,8 @@ class Users extends BaseController
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'User deactivated successfully',
-                    'status' => 'INACTIVE'
+                    'status' => 'INACTIVE',
+                    'csrf_hash' => csrf_hash()
                 ]);
             } else {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -310,6 +327,108 @@ class Users extends BaseController
             }
         } catch (\Exception $e) {
             log_message('error', 'Deactivate user error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete user (hard delete)
+     */
+    public function delete($id)
+    {
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Admin only.'
+            ]);
+        }
+
+        try {
+            $user = $this->userModel->find($id);
+            if (!$user) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
+            }
+
+            // Prevent admin from deleting themselves
+            if ($user->id == session()->get('user_id')) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account'
+                ]);
+            }
+
+            // Soft-delete: mark user inactive and set deleted_at
+            $result = $this->userModel->update($id, [
+                'is_active' => 0,
+                'deleted_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            if ($result) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'User deleted (soft) successfully',
+                    'status' => 'DELETED',
+                    'csrf_hash' => csrf_hash()
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to delete user'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Delete user error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Restore a soft-deleted user
+     */
+    public function restore($id)
+    {
+        // Check if user is admin
+        if (session()->get('role') !== 'admin') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Admin only.'
+            ]);
+        }
+
+        try {
+            $user = $this->userModel->find($id);
+            if (!$user) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'User not found'
+                ]);
+            }
+
+            if ($this->userModel->update($id, ['is_active' => 1, 'deleted_at' => null])) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'User restored successfully',
+                    'status' => 'RESTORED',
+                    'csrf_hash' => csrf_hash()
+                ]);
+            }
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to restore user'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Restore user error: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()

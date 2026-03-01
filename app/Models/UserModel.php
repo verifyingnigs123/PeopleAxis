@@ -20,7 +20,7 @@ class UserModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Validation
-    protected $allowedFields    = ['username','email', 'password', 'name', 'role_id', 'is_active'];
+    protected $allowedFields    = ['username','email', 'password', 'name', 'role_id', 'is_active', 'deleted_at'];
 
     protected $validationRules      = [
         'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
