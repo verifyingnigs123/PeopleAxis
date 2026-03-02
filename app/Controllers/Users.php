@@ -14,7 +14,7 @@ class Users extends BaseController
     }
 
     /**
-     * Show create user form
+     * Show create user form - Now redirects to main users page with modal
      */
     public function create()
     {
@@ -24,7 +24,8 @@ class Users extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
-        return view('auth/create_user');
+        // Redirect to users page - the add user modal is now on the main page
+        return redirect()->to('/users');
     }
 
     /**
@@ -89,11 +90,12 @@ class Users extends BaseController
         }
         
         $rules = [
-            'name'     => 'required|min_length[3]|max_length[100]',
-            'email'    => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[6]|max_length[255]',
-            'role_id'  => 'required|numeric',
-            'is_active'=> 'permit_empty|in_list[0,1]'
+            'name'              => 'required|min_length[3]|max_length[100]',
+            'email'             => 'required|valid_email|is_unique[users.email]',
+            'password'          => 'required|min_length[6]|max_length[255]',
+            'confirm_password'  => 'required|matches[password]',
+            'role_id'           => 'required|numeric',
+            'is_active'         => 'permit_empty|in_list[0,1]'
         ];
 
         if (!$this->validate($rules)) {

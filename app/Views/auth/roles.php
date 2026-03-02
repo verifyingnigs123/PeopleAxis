@@ -199,6 +199,43 @@
         color: #95a5a6;
     }
 
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e8ed;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #2a5298;
+        box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+    }
+
+    .form-control.is-invalid {
+        border-color: #e74c3c;
+        box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    }
+
+    .text-danger {
+        color: #e74c3c;
+    }
+
     @keyframes slideInRight {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
@@ -306,7 +343,7 @@
 
 <!-- Add Role Modal -->
 <div class="modal fade" id="addRoleModal" tabindex="-1" aria-labelledby="addRoleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
             <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
                 <h5 class="modal-title" id="addRoleModalLabel">
@@ -314,17 +351,50 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= base_url('roles/store') ?>" method="POST">
+            <form action="<?= base_url('roles/store') ?>" method="POST" id="addRoleForm">
                 <?= csrf_field() ?>
                 <div class="modal-body" style="padding:30px;">
-                    <div class="mb-3">
-                        <label for="name" class="form-label fw-600">Role Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter role name" required>
+                    <!-- Form Header -->
+                    <div style="margin-bottom: 25px; text-align: center;">
+                        <h6 style="color: #1e3c72; font-weight: 700; margin: 0;">New Role Details</h6>
+                        <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Fill in the form below to create a new system role</p>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="description" class="form-label fw-600">Description</label>
-                        <textarea class="form-control" id="description" name="description" placeholder="Enter role description" rows="3"></textarea>
+                    <!-- Validation Errors -->
+                    <div id="addRoleErrors" class="alert alert-danger" style="display:none;">
+                        <strong>Please fix the following errors:</strong>
+                        <ul style="margin-bottom:0;margin-top:10px;" id="addRoleErrorsList"></ul>
+                    </div>
+
+                    <!-- Role Name Field -->
+                    <div class="form-group mb-3">
+                        <label for="addRoleName" class="form-label fw-600">
+                            Role Name <span class="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="addRoleName" 
+                            name="name" 
+                            placeholder="e.g., Manager, Supervisor, Assistant"
+                            pattern="^[a-zA-Z0-9 ]+$"
+                            title="Only letters, numbers, and spaces are allowed"
+                            value=""
+                            required
+                        >
+                        <small id="addNameError" class="text-danger" style="display:none;">Only letters, numbers, and spaces are allowed</small>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="form-group">
+                        <label for="addRoleDescription" class="form-label fw-600">Description</label>
+                        <textarea 
+                            class="form-control" 
+                            id="addRoleDescription" 
+                            name="description" 
+                            placeholder="Describe what this role does and its responsibilities"
+                            rows="4"
+                        ></textarea>
                     </div>
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
@@ -340,7 +410,7 @@
 
 <!-- Edit Role Modal -->
 <div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
             <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
                 <h5 class="modal-title" id="editRoleModalLabel">
@@ -351,14 +421,58 @@
             <form id="editRoleForm" method="POST">
                 <?= csrf_field() ?>
                 <div class="modal-body" style="padding:30px;">
-                    <div class="mb-3">
-                        <label for="edit_name" class="form-label fw-600">Role Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="edit_name" name="name" placeholder="Enter role name" required>
+                    <!-- Form Header -->
+                    <div style="margin-bottom: 20px;">
+                        <h6 id="editRoleTitle" style="color: #1e3c72; font-weight: 700; margin: 0;"></h6>
+                        <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Update role details below</p>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="edit_description" class="form-label fw-600">Description</label>
-                        <textarea class="form-control" id="edit_description" name="description" placeholder="Enter role description" rows="3"></textarea>
+                    <!-- Role Information Card -->
+                    <div style="background: #f8f9ff; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #2a5298;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+                            <span style="color: #7f8c8d; font-weight: 600;">Created Date:</span>
+                            <span id="editRoleCreatedDate" style="color: #2c3e50; font-weight: 500;"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0; font-size: 0.9rem;">
+                            <span style="color: #7f8c8d; font-weight: 600;">Last Updated:</span>
+                            <span id="editRoleUpdatedDate" style="color: #2c3e50; font-weight: 500;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Validation Errors -->
+                    <div id="editRoleErrors" class="alert alert-danger" style="display:none;">
+                        <strong>Please fix the following errors:</strong>
+                        <ul style="margin-bottom:0;margin-top:10px;" id="editRoleErrorsList"></ul>
+                    </div>
+
+                    <!-- Role Name Field -->
+                    <div class="form-group mb-3">
+                        <label for="editRoleName" class="form-label fw-600">
+                            Role Name <span class="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="editRoleName" 
+                            name="name" 
+                            placeholder="e.g., Manager, Supervisor, Assistant"
+                            pattern="^[a-zA-Z0-9 ]+$"
+                            title="Only letters, numbers, and spaces are allowed"
+                            required
+                        >
+                        <small id="editNameError" class="text-danger" style="display:none;">Only letters, numbers, and spaces are allowed</small>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="form-group">
+                        <label for="editRoleDescription" class="form-label fw-600">Description</label>
+                        <textarea 
+                            class="form-control" 
+                            id="editRoleDescription" 
+                            name="description" 
+                            placeholder="Describe what this role does and its responsibilities"
+                            rows="4"
+                        ></textarea>
                     </div>
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
@@ -442,9 +556,22 @@ function editRole(roleId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                document.getElementById('edit_name').value = data.data.name;
-                document.getElementById('edit_description').value = data.data.description || '';
+                const role = data.data;
+                document.getElementById('editRoleTitle').textContent = role.name;
+                document.getElementById('editRoleName').value = role.name;
+                document.getElementById('editRoleDescription').value = role.description || '';
+                
+                // Format and display dates
+                const createdDate = new Date(role.created_at);
+                const updatedDate = new Date(role.updated_at || role.created_at);
+                document.getElementById('editRoleCreatedDate').textContent = createdDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                document.getElementById('editRoleUpdatedDate').textContent = updatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                
                 document.getElementById('editRoleForm').action = '<?= base_url('roles/update') ?>/' + roleId;
+                
+                // Clear previous errors
+                document.getElementById('editRoleErrors').style.display = 'none';
+                document.getElementById('editRoleErrorsList').innerHTML = '';
             } else {
                 alert('Failed to load role data');
             }
@@ -713,6 +840,67 @@ function escapeHtml(unsafe) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+// Real-time validation for role name input
+document.addEventListener('DOMContentLoaded', function() {
+    const addRoleNameInput = document.getElementById('addRoleName');
+    const addNameError = document.getElementById('addNameError');
+    const editRoleNameInput = document.getElementById('editRoleName');
+    const editNameError = document.getElementById('editNameError');
+    const allowedPattern = /^[a-zA-Z0-9 ]*$/;
+    
+    // Validation for Add Role modal
+    if (addRoleNameInput) {
+        addRoleNameInput.addEventListener('input', function(e) {
+            if (!allowedPattern.test(this.value)) {
+                addNameError.style.display = 'block';
+                this.classList.add('is-invalid');
+                // Remove special characters
+                this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, '');
+            } else {
+                addNameError.style.display = 'none';
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        // Reset error on modal close
+        const addRoleModal = document.getElementById('addRoleModal');
+        if (addRoleModal) {
+            addRoleModal.addEventListener('hidden.bs.modal', function() {
+                addNameError.style.display = 'none';
+                addRoleNameInput.classList.remove('is-invalid');
+                addRoleNameInput.value = '';
+                document.getElementById('addRoleDescription').value = '';
+                document.getElementById('addRoleErrors').style.display = 'none';
+            });
+        }
+    }
+    
+    // Validation for Edit Role modal
+    if (editRoleNameInput) {
+        editRoleNameInput.addEventListener('input', function(e) {
+            if (!allowedPattern.test(this.value)) {
+                editNameError.style.display = 'block';
+                this.classList.add('is-invalid');
+                // Remove special characters
+                this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, '');
+            } else {
+                editNameError.style.display = 'none';
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        // Reset error on modal close
+        const editRoleModal = document.getElementById('editRoleModal');
+        if (editRoleModal) {
+            editRoleModal.addEventListener('hidden.bs.modal', function() {
+                editNameError.style.display = 'none';
+                editRoleNameInput.classList.remove('is-invalid');
+                document.getElementById('editRoleErrors').style.display = 'none';
+            });
+        }
+    }
+});
 </script>
 
 <?= $this->endSection() ?>

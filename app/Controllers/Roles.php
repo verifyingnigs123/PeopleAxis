@@ -36,7 +36,7 @@ class Roles extends BaseController
     }
 
     /**
-     * Show create role form
+     * Show create role form - Now redirects to main roles page with modal
      */
     public function create()
     {
@@ -45,7 +45,8 @@ class Roles extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
 
-        return view('auth/create_role');
+        // Redirect to roles page - the add role modal is now on the main page
+        return redirect()->to('/roles');
     }
 
     /**
@@ -59,7 +60,7 @@ class Roles extends BaseController
         }
 
         $rules = [
-            'name' => 'required|min_length[3]|max_length[50]|is_unique[roles.name]',
+            'name' => 'required|min_length[3]|max_length[50]|is_unique[roles.name]|alpha_space',
             'description' => 'permit_empty|max_length[255]'
         ];
 
@@ -78,7 +79,7 @@ class Roles extends BaseController
     }
 
     /**
-     * Show edit role form
+     * Show edit role form - Now redirects to main roles page with modal
      */
     public function edit($id)
     {
@@ -92,8 +93,9 @@ class Roles extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException("Role not found");
         }
 
-        $data['role'] = $role;
-        return view('auth/edit_role', $data);
+        // Redirect to roles page - the edit role modal is now on the main page
+        // The modal will be populated via AJAX when edit button is clicked
+        return redirect()->to('/roles');
     }
 
     /**
@@ -126,7 +128,7 @@ class Roles extends BaseController
         }
 
         $rules = [
-            'name' => 'required|min_length[3]|max_length[50]',
+            'name' => 'required|min_length[3]|max_length[50]|alpha_space',
             'description' => 'permit_empty|max_length[255]'
         ];
 

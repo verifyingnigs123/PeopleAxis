@@ -398,9 +398,9 @@
         </div>
     </div>
     <?php
-        // Load roles for select boxes
+        // Load roles for select boxes (only active/non-deleted roles)
         $db = \Config\Database::connect();
-        $rolesList = $db->table('roles')->select('id, name')->orderBy('name','ASC')->get()->getResult();
+        $rolesList = $db->table('roles')->select('id, name')->where('deleted_at', null)->orderBy('name','ASC')->get()->getResult();
     ?>
     <div class="table-responsive">
         <?php if (!empty($users)): ?>
@@ -533,7 +533,7 @@
 
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
             <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
                 <h5 class="modal-title" id="addUserModalLabel">
@@ -544,35 +544,68 @@
             <form id="addUserForm" action="<?= base_url('users/store') ?>" method="POST">
                 <?= csrf_field() ?>
                 <div class="modal-body" style="padding:30px;">
-
-                    <div class="mb-3">
-                        <label for="name" class="form-label fw-600">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name"
-                               placeholder="Enter full name" required>
-                        <small id="nameError" class="text-danger" style="display:none;"></small>
+                    <!-- Form Header -->
+                    <div style="margin-bottom: 25px; text-align: center;">
+                        <h6 style="color: #1e3c72; font-weight: 700; margin: 0;">User Information</h6>
+                        <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Create a new user account with appropriate role and permissions</p>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="email" class="form-label fw-600">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="email" name="email"
-                               placeholder="Enter email address" required>
+                    <!-- Validation Errors -->
+                    <div id="addUserErrors" class="alert alert-danger" style="display:none;">
+                        <strong>Please fix the following errors:</strong>
+                        <ul style="margin-bottom:0;margin-top:10px;" id="addUserErrorsList"></ul>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="password" class="form-label fw-600">Password <span class="text-danger">*</span></label>
-                        <div class="password-wrapper">
-                           <input type="password" class="form-control" id="password" name="password"
-                               placeholder="Enter password (min 6 characters)" required minlength="6" value="HRmanage" style="padding-right:2.8rem;">
-                           <button type="button" id="toggleAddPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddPasswordVisibility(event)">
-                               <i class="fas fa-eye-slash" aria-hidden="true"></i>
-                           </button>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserName" class="form-label fw-600">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="addUserName" name="name"
+                                       placeholder="Enter full name" required>
+                                <small id="nameError" class="text-danger" style="display:none;"></small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserEmail" class="form-label fw-600">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="addUserEmail" name="email"
+                                       placeholder="Enter email address" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserPassword" class="form-label fw-600">Password <span class="text-danger">*</span></label>
+                                <div class="password-wrapper">
+                                   <input type="password" class="form-control" id="addUserPassword" name="password"
+                                       placeholder="Enter password (min 6 characters)" required minlength="6" value="HRmanage" style="padding-right:2.8rem;">
+                                   <button type="button" id="toggleAddPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddPasswordVisibility(event)">
+                                       <i class="fas fa-eye-slash" aria-hidden="true"></i>
+                                   </button>
+                                </div>
+                                <small class="text-muted">Default password: HRmanage (change as needed)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserConfirmPassword" class="form-label fw-600">Confirm Password <span class="text-danger">*</span></label>
+                                <div class="password-wrapper">
+                                   <input type="password" class="form-control" id="addUserConfirmPassword" name="confirm_password"
+                                       placeholder="Confirm password" required minlength="6" value="HRmanage" style="padding-right:2.8rem;">
+                                   <button type="button" id="toggleAddConfirmPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddConfirmPasswordVisibility(event)">
+                                       <i class="fas fa-eye-slash" aria-hidden="true"></i>
+                                   </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="role" class="form-label fw-600">Role <span class="text-danger">*</span></label>
-                                <select class="form-select" id="role" name="role_id" required>
+                            <label for="addUserRole" class="form-label fw-600">Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="addUserRole" name="role_id" required>
                                     <option value="" disabled selected>Select role</option>
                                     <?php foreach ($rolesList as $r): ?>
                                         <option value="<?= $r->id ?>"><?= esc($r->name) ?></option>
@@ -580,19 +613,26 @@
                                 </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="is_active" class="form-label fw-600">Status <span class="text-danger">*</span></label>
-                            <select class="form-select" id="is_active" name="is_active" required>
+                            <label for="addUserStatus" class="form-label fw-600">Status <span class="text-danger">*</span></label>
+                            <select class="form-select" id="addUserStatus" name="is_active" required>
                                 <option value="1" selected>Active</option>
                                 <option value="0">Inactive</option>
                             </select>
                         </div>
                     </div>
 
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="addUserSendEmail" name="send_welcome" value="1">
+                        <label class="form-check-label" for="addUserSendEmail">
+                            Send welcome email to user
+                        </label>
+                    </div>
+
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border:none;padding:8px 24px;">
-                        <i class="fas fa-save me-1"></i> Save User
+                        <i class="fas fa-save me-1"></i> Create User
                     </button>
                 </div>
             </form>
@@ -1200,7 +1240,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
 function toggleAddPasswordVisibility(e) {
     try {
         if (e && e.preventDefault) e.preventDefault();
-        var pwd = document.getElementById('password');
+        var pwd = document.getElementById('addUserPassword');
         var btn = document.getElementById('toggleAddPassword');
         if (!pwd || !btn) return;
         var show = pwd.getAttribute('type') === 'password';
@@ -1215,6 +1255,45 @@ function toggleAddPasswordVisibility(e) {
         console.error(err);
     }
 }
+
+// Toggle for Add User confirm password
+function toggleAddConfirmPasswordVisibility(e) {
+    try {
+        if (e && e.preventDefault) e.preventDefault();
+        var pwd = document.getElementById('addUserConfirmPassword');
+        var btn = document.getElementById('toggleAddConfirmPassword');
+        if (!pwd || !btn) return;
+        var show = pwd.getAttribute('type') === 'password';
+        pwd.setAttribute('type', show ? 'text' : 'password');
+        btn.setAttribute('aria-pressed', String(show));
+        var icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('fa-eye', show);
+            icon.classList.toggle('fa-eye-slash', !show);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// Validate passwords match in add user form
+document.addEventListener('DOMContentLoaded', function() {
+    const addUserForm = document.getElementById('addUserForm');
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', function(e) {
+            const password = document.getElementById('addUserPassword').value;
+            const confirmPassword = document.getElementById('addUserConfirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Password and confirm password do not match!');
+                return false;
+            }
+            
+            return true;
+        });
+    }
+});
 
 // Toggle for Edit User password
 function toggleEditPasswordVisibility(e) {
