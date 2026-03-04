@@ -19,6 +19,7 @@ $routes->get('/dashboard', 'Dashboard::index');
 // Leaves
 $routes->get('/leaves', 'Leaves::index');
 $routes->get('/leaves/create', 'Leaves::create');
+$routes->post('/leaves/store', 'Leaves::store');
 $routes->post('/leaves/submit', 'Leaves::submit');
 $routes->post('/leaves/approve-manager/(:num)', 'Leaves::approveByManager/$1');
 $routes->post('/leaves/approve-hr/(:num)', 'Leaves::approveByHR/$1');
