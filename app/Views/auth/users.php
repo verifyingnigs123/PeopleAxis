@@ -137,6 +137,11 @@
         vertical-align: middle;
     }
 
+    .admin-table tbody td:last-child {
+        white-space: nowrap;
+        width: 1%;
+    }
+
     .admin-table tbody tr:last-child td {
         border-bottom: none;
     }
@@ -173,6 +178,69 @@
     .badge-inactive {
         background: #f8d7da;
         color: #721c24;
+    }
+
+    .badge-employee {
+        background: #e8f4fd;
+        color: #1e6fa5;
+    }
+
+    .badge-no-employee {
+        background: #f5f5f5;
+        color: #95a5a6;
+    }
+
+    .emp-id-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .emp-id-chip i {
+        font-size: 0.72rem;
+        opacity: 0.85;
+    }
+
+    .emp-id-none {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #bdc3c7;
+        font-size: 0.85rem;
+        font-style: italic;
+    }
+
+    .position-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #f0f4ff;
+        color: #2a5298;
+        border: 1px solid #c5d3f5;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .position-chip i {
+        font-size: 0.72rem;
+        opacity: 0.8;
+    }
+
+    .position-none {
+        color: #bdc3c7;
+        font-size: 0.85rem;
+        font-style: italic;
     }
 
     /* ===== Avatar ===== */
@@ -257,8 +325,13 @@
     /* ===== Action Buttons ===== */
     .action-buttons {
         display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+        gap: 0;
+        flex-wrap: nowrap;
+        align-items: center;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        width: fit-content;
     }
 
     .btn-edit,
@@ -266,16 +339,34 @@
     .btn-activate,
     .btn-deactivate,
     .btn-restore {
-        padding: 6px 12px;
-        font-size: 0.85rem;
-        border-radius: 4px;
+        padding: 7px 14px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border-radius: 0;
         border: none;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: filter 0.2s ease, transform 0.15s ease;
         display: inline-flex;
         align-items: center;
         gap: 5px;
         text-align: center;
+        white-space: nowrap;
+    }
+
+    .action-buttons > *:first-child {
+        border-radius: 6px 0 0 6px;
+    }
+
+    .action-buttons > *:last-child {
+        border-radius: 0 6px 6px 0;
+    }
+
+    .action-buttons > *:only-child {
+        border-radius: 6px;
+    }
+
+    .action-buttons > * + * {
+        border-left: 1px solid rgba(255,255,255,0.25);
     }
 
     .btn-edit {
@@ -284,9 +375,9 @@
     }
 
     .btn-edit:hover {
-        background: #2980b9;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        filter: brightness(1.12);
+        transform: none;
+        box-shadow: none;
     }
 
     .btn-delete {
@@ -295,9 +386,9 @@
     }
 
     .btn-delete:hover {
+        filter: brightness(1.12);
+    }
         background: #c0392b;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
     }
 
     .btn-activate {
@@ -306,9 +397,7 @@
     }
 
     .btn-activate:hover {
-        background: #229954;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        filter: brightness(1.12);
     }
 
     .btn-deactivate {
@@ -317,9 +406,7 @@
     }
 
     .btn-deactivate:hover {
-        background: #e67e22;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+        filter: brightness(1.12);
     }
 
     .btn-restore {
@@ -328,9 +415,7 @@
     }
 
     .btn-restore:hover {
-        background: #229954;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        filter: brightness(1.12);
     }
 
     .btn-disabled {
@@ -411,6 +496,8 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Employee ID#</th>
+                        <th>Position</th>
                         <th>Status</th>
                         <th>Joined</th>
                         <th>Actions</th>
@@ -418,12 +505,20 @@
                 </thead>
                 <tbody>
                     <?php foreach ($users as $i => $u): ?>
+                        <?php
+                            // Resolve linked employee early so Name column can use it
+                            $linkedEmp = $employeeEmailMap[$u->email] ?? null;
+                            $displayName = $linkedEmp
+                                ? trim(($linkedEmp['first_name'] ?? '') . ' ' . ($linkedEmp['last_name'] ?? ''))
+                                : $u->name;
+                            $displayName = $displayName ?: $u->name;
+                        ?>
                         <tr data-user-id="<?= $u->id ?>">
                             <td><?= $i + 1 ?></td>
                             <td>
                                 <div class="user-cell">
-                                    <div class="avatar"><?= strtoupper(substr($u->name, 0, 1)) ?></div>
-                                    <?= esc($u->name) ?>
+                                    <div class="avatar"><?= strtoupper(substr($displayName, 0, 1)) ?></div>
+                                    <?= esc($displayName) ?>
                                 </div>
                             </td>
                             <td><?= esc($u->email) ?></td>
@@ -435,6 +530,37 @@
                                 <span class="badge <?= $roleClass ?>">
                                     <?= esc($roleName) ?>
                                 </span>
+                            </td>
+                            <td>
+                                <?php if ($linkedEmp): ?>
+                                    <span class="emp-id-chip" title="<?= esc($displayName) ?>">
+                                        <i class="fas fa-hashtag"></i><?= esc($linkedEmp['employee_id'] ?? '') ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="emp-id-none">
+                                        <i class="fas fa-minus"></i> &mdash;
+                                    </span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php
+                                    $empPos = null;
+                                    $roleLower = strtolower($roleName);
+                                    if ($roleLower === 'super admin' || $roleLower === 'admin') {
+                                        $empPos = $roleName;
+                                    } elseif ($roleLower === 'hr admin' || $roleLower === 'hr') {
+                                        $empPos = $roleName;
+                                    } else {
+                                        $empPos = $linkedEmp['position_name'] ?? null;
+                                    }
+                                ?>
+                                <?php if ($empPos): ?>
+                                    <span class="position-chip">
+                                        <i class="fas fa-briefcase"></i> <?= esc($empPos) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="position-none">&mdash;</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
@@ -654,6 +780,9 @@
                 <?= csrf_field() ?>
                 <div class="modal-body" style="padding:30px;">
                     <input type="hidden" id="editUserId" name="user_id">
+
+                    <!-- Inline alert for edit modal -->
+                    <div id="editUserAlert" style="display:none;margin-bottom:15px;" class="alert"></div>
 
                     <div class="mb-3">
                         <label for="editName" class="form-label fw-600">Full Name <span class="text-danger">*</span></label>
@@ -1122,7 +1251,19 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+function showEditModalAlert(message, type) {
+    const alertBox = document.getElementById('editUserAlert');
+    if (!alertBox) return;
+    alertBox.className = `alert alert-${type}`;
+    alertBox.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
+    alertBox.style.display = 'block';
+}
+
 function editUser(userId, name, email, roleId, isActive) {
+    // Clear previous alerts
+    const alertBox = document.getElementById('editUserAlert');
+    if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; }
+
     // Populate modal fields with user data
     document.getElementById('editUserId').value = userId;
     document.getElementById('editName').value = name;
@@ -1153,14 +1294,14 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     
     // Validate form
     if (!name || !email || !roleId) {
-        alert('Please fill in all required fields');
+        showEditModalAlert('Please fill in all required fields.', 'danger');
         return;
     }
     
     // Validate special characters in name
     const nameError = validateNameField(name);
     if (nameError) {
-        alert(nameError);
+        showEditModalAlert(nameError, 'danger');
         return;
     }
     
@@ -1177,13 +1318,16 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     formData.append('password', password);
     formData.append('role_id', roleId);
     formData.append('is_active', isActive);
+    // Always include current CSRF token in POST body
+    const csrfMeta = document.querySelector('meta[name="<?= csrf_header() ?>"]');
+    if (csrfMeta) formData.append('<?= csrf_token() ?>', csrfMeta.getAttribute('content'));
     
     const url = `<?= base_url('users/update') ?>/${userId}`;
     console.log('Fetching:', url);
     
-    const csrfHeaderForm = document.querySelector('meta[name="<?= csrf_header() ?>"]').getAttribute('content');
+    const csrfHeaderForm = csrfMeta ? csrfMeta.getAttribute('content') : '';
     const headersForm = {'X-Requested-With': 'XMLHttpRequest'};
-    headersForm['<?= csrf_header() ?>'] = csrfHeaderForm;
+    if (csrfHeaderForm) headersForm['<?= csrf_header() ?>'] = csrfHeaderForm;
 
     fetch(url, {
         method: 'POST',
@@ -1201,22 +1345,23 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         console.log('Response data:', data);
         
         if (data.success) {
-            alert('User updated successfully!');
-            
-            // Close modal
+            // Close modal first
             const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
             if (modal) modal.hide();
             
+            // Show success toast after modal closes
+            showNotification('User updated successfully!', 'success');
+            
             // Reload page
-            setTimeout(() => location.reload(), 500);
+            setTimeout(() => location.reload(), 1200);
         } else {
-            alert('Error: ' + (data.message || 'Failed to update user'));
+            showEditModalAlert('Error: ' + (data.message || 'Failed to update user'), 'danger');
         }
     })
     .catch(error => {
         if (spinner) spinner.classList.remove('active');
         console.error('Fetch error:', error);
-        alert('Error: ' + error.message);
+        showEditModalAlert('Error: ' + error.message, 'danger');
     });
 });
 

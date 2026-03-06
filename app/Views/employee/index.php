@@ -185,6 +185,16 @@
         color: #856404;
     }
 
+    .badge-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-account-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -321,13 +331,14 @@
                             <td><?= esc($employee->email ?? '') ?></td>
                             <td><?= esc($positionMap[$employee->position_id] ?? 'N/A') ?></td>
                             <td>
-                                <?php 
-                                    $status = $employee->status ?? 'active';
-                                    $statusClass = 'badge-' . strtolower($status);
-                                    $statusText = ucfirst($status);
+                                <?php
+                                    $hasUserAccount = isset($userEmailSet[$employee->email]);
+                                    $accountBadgeClass = $hasUserAccount ? 'badge-account-active' : 'badge-pending';
+                                    $accountBadgeText = $hasUserAccount ? 'Active' : 'Pending';
+                                    $accountIcon = $hasUserAccount ? 'fa-user-check' : 'fa-user-clock';
                                 ?>
-                                <span class="badge <?= $statusClass ?>">
-                                    <?= $statusText ?>
+                                <span class="badge <?= $accountBadgeClass ?>">
+                                    <i class="fas <?= $accountIcon ?>"></i> <?= $accountBadgeText ?>
                                 </span>
                             </td>
                             <td>

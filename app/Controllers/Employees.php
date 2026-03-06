@@ -67,6 +67,53 @@ class Employees extends BaseController
             foreach ($departments as $dept) {
                 $departmentMap[$dept->id] = $dept->name;
             }
+
+            // Build a map of user emails → role name from the users/roles tables,
+            // restricted to active users only.
+            //   "Active"  → employee email exists as an active 'Employee' role user account
+            //   "Pending" → employee has no user account yet
+            // Employees linked to non-Employee roles (HR Admin, Super Admin, etc.)
+            // are excluded from the HR Admin employees table entirely.
+            $db = \Config\Database::connect();
+            $userRows = $db->table('users')
+                ->select('users.email, roles.name as role_name')
+                ->join('roles', 'roles.id = users.role_id', 'left')
+                ->where('users.is_active', 1)
+                ->where('users.deleted_at IS NULL')
+                ->get()
+                ->getResultArray();
+
+            // Build two sets: emails with Employee role, emails with any other role
+            $employeeRoleEmailSet = [];  // email → true  (Employee role users)
+            $nonEmployeeEmailSet  = [];  // email → true  (HR Admin, Super Admin, Manager, etc.)
+            foreach ($userRows as $usr) {
+                if (strtolower($usr['role_name']) === 'employee') {
+                    $employeeRoleEmailSet[$usr['email']] = true;
+                } else {
+                    $nonEmployeeEmailSet[$usr['email']] = true;
+                }
+            }
+
+            // Only include employees that are either:
+            //   (a) not linked to any user account yet (pending), OR
+            //   (b) linked to a user with the 'Employee' role
+            $employees = array_filter($employees, function ($emp) use ($nonEmployeeEmailSet) {
+                return !isset($nonEmployeeEmailSet[$emp->email]);
+            });
+            $employees = array_values($employees);
+
+            // $userEmailSet = emails of active Employee-role users (for the badge in the view)
+            $userEmailSet = $employeeRoleEmailSet;
+
+            // Sync account_status in DB for each visible employee so it stays accurate
+            foreach ($employees as $emp) {
+                $newAccountStatus = isset($userEmailSet[$emp->email]) ? 'active' : 'pending';
+                if (($emp->account_status ?? 'pending') !== $newAccountStatus) {
+                    $this->employeeModel->skipValidation(true)->update($emp->id, ['account_status' => $newAccountStatus]);
+                    $emp->account_status = $newAccountStatus;
+                }
+            }
+
         } catch (\Exception $e) {
             log_message('error', 'Failed to load employees: ' . $e->getMessage());
             $employees = [];
@@ -75,6 +122,7 @@ class Employees extends BaseController
             $positionMap = [];
             $departmentMap = [];
             $pendingEmployees = [];
+            $userEmailSet = [];
         }
 
         $data = [
@@ -86,6 +134,7 @@ class Employees extends BaseController
             'pendingEmployees' => $pendingEmployees,
             'isSuperAdmin' => $isSuperAdmin,
             'currentUserId' => session()->get('user_id'),
+            'userEmailSet' => $userEmailSet ?? [],
         ];
 
         return view('employee/index', $data);

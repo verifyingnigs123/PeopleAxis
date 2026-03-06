@@ -78,6 +78,20 @@ class Users extends BaseController
 
         $data['users'] = $otherUsers;
         $data['currentUserId'] = $currentUserId;
+
+        // Build employee email map so the view can show whether each user is linked to an employee record.
+        // Joins positions so we can display the employee's position in the manage-users table.
+        $employeeRows = $db->table('employees')
+            ->select('employees.email, employees.first_name, employees.last_name, employees.employee_id, employees.account_status, positions.name as position_name')
+            ->join('positions', 'positions.id = employees.position_id', 'left')
+            ->get()
+            ->getResultArray();
+        $employeeEmailMap = [];
+        foreach ($employeeRows as $emp) {
+            $employeeEmailMap[$emp['email']] = $emp;
+        }
+        $data['employeeEmailMap'] = $employeeEmailMap;
+
         return view('auth/users', $data);
     }
 
@@ -213,7 +227,10 @@ class Users extends BaseController
             }
 
             // Update in database
-            $result = $this->userModel->update($id, $updateData);
+            // skipValidation: controller already validated all fields above;
+            // the model's is_unique email rule would fail because it cannot
+            // resolve the {id} placeholder when 'id' is not in $updateData.
+            $result = $this->userModel->skipValidation(true)->update($id, $updateData);
 
             if ($result) {
                 return $this->response->setJSON(['success' => true, 'message' => 'User updated successfully', 'csrf_hash' => csrf_hash()]);
