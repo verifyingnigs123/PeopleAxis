@@ -30,6 +30,7 @@ class Leaves extends BaseController
         }
 
         $data['leaveTypes'] = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
+        $data['errors'] = []; // Initialize errors array
         return view('leaves/create', $data);
     }
 
@@ -93,6 +94,65 @@ class Leaves extends BaseController
         }
 
         return redirect()->back()->with('error', 'Unable to submit leave');
+    }
+
+    /**
+     * Store a new leave request
+     */
+    public function store()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $session = session();
+        $userId = $session->get('user_id');
+
+        // Get the employee profile for this user
+        $employee = $this->employeeModel->where('user_id', $userId)->first();
+        
+        if (!$employee) {
+            return redirect()->to('/dashboard')->with('error', 'Employee profile not found. Please contact HR.');
+        }
+
+        // Validate input
+        $fromDate = $this->request->getPost('from_date');
+        $toDate = $this->request->getPost('to_date');
+        
+        if (empty($fromDate) || empty($toDate)) {
+            $data['errors'] = ['from_date' => 'From date and To date are required'];
+            $data['leaveTypes'] = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
+            return view('leaves/create', $data);
+        }
+
+        if ($toDate < $fromDate) {
+            $data['errors'] = ['to_date' => 'End date must be after start date'];
+            $data['leaveTypes'] = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Unpaid', 'Other'];
+            return view('leaves/create', $data);
+        }
+
+        // Calculate number of days
+        $from = new \DateTime($fromDate);
+        $to = new \DateTime($toDate);
+        $days = $to->diff($from)->days + 1;
+
+        $data = [
+            'employee_id' => $employee['id'],
+            'leave_type' => $this->request->getPost('leave_type'),
+            'start_date' => $fromDate,
+            'end_date' => $toDate,
+            'number_of_days' => $days,
+            'reason' => $this->request->getPost('reason'),
+            'status' => 'pending',
+        ];
+
+        if ($this->leaveModel->save($data)) {
+            $this->auditModel->log($userId, 'Leave Submitted', 'Leave request submitted for ' . $days . ' days');
+            return redirect()->to('/leaves')->with('success', 'Leave request submitted successfully!');
+        }
+
+        return redirect()->back()->with('error', 'Unable to submit leave request. Please try again.')->withInput();
     }
 
     public function approveByManager($id)
