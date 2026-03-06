@@ -93,8 +93,9 @@ class Notification extends BaseController
             $this->notificationModel->markAsRead($notificationId, $userId);
             
             return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Notification marked as read'
+                'success'   => true,
+                'message'   => 'Notification marked as read',
+                'csrf_hash' => csrf_hash(),
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to mark notification as read: ' . $e->getMessage());
@@ -123,8 +124,9 @@ class Notification extends BaseController
             $this->notificationModel->markAllAsRead($userId);
             
             return $this->response->setJSON([
-                'success' => true,
-                'message' => 'All notifications marked as read'
+                'success'   => true,
+                'message'   => 'All notifications marked as read',
+                'csrf_hash' => csrf_hash(),
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to mark all notifications as read: ' . $e->getMessage());
@@ -153,8 +155,9 @@ class Notification extends BaseController
             $this->notificationModel->deleteNotification($notificationId, $userId);
             
             return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Notification deleted'
+                'success'   => true,
+                'message'   => 'Notification deleted',
+                'csrf_hash' => csrf_hash(),
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to delete notification: ' . $e->getMessage());

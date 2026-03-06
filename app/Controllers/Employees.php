@@ -38,9 +38,14 @@ class Employees extends BaseController
             return redirect()->to('/login');
         }
 
-        // Check access: HR Admin or Super Admin
+        // Super Admin must not see the full employee table — redirect to their own approvals page
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'])) {
+        if (in_array($role, ['Super Admin', 'admin'])) {
+            return redirect()->to('/employee/pending-approvals');
+        }
+
+        // Only HR Admin beyond this point
+        if (!in_array($role, ['HR Admin', 'hr'])) {
             return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
 
@@ -106,9 +111,15 @@ class Employees extends BaseController
             $userEmailSet = $employeeRoleEmailSet;
 
             // Sync account_status in DB for each visible employee so it stays accurate
+            // IMPORTANT: never overwrite an already-rejected or approved status
             foreach ($employees as $emp) {
+                $current = $emp->account_status ?? 'pending';
+                // Only auto-sync pending employees; leave rejected/approved untouched
+                if (in_array($current, ['rejected', 'approved'])) {
+                    continue;
+                }
                 $newAccountStatus = isset($userEmailSet[$emp->email]) ? 'active' : 'pending';
-                if (($emp->account_status ?? 'pending') !== $newAccountStatus) {
+                if ($current !== $newAccountStatus) {
                     $this->employeeModel->skipValidation(true)->update($emp->id, ['account_status' => $newAccountStatus]);
                     $emp->account_status = $newAccountStatus;
                 }
@@ -126,18 +137,67 @@ class Employees extends BaseController
         }
 
         $data = [
-            'employees' => $employees,
-            'departments' => $departments,
-            'positions' => $positions,
-            'positionMap' => $positionMap,
+            'employees'     => $employees,
+            'departments'   => $departments,
+            'positions'     => $positions,
+            'positionMap'   => $positionMap,
             'departmentMap' => $departmentMap,
-            'pendingEmployees' => $pendingEmployees,
-            'isSuperAdmin' => $isSuperAdmin,
+            'pendingEmployees' => [],
+            'isSuperAdmin'  => false,
             'currentUserId' => session()->get('user_id'),
-            'userEmailSet' => $userEmailSet ?? [],
+            'userEmailSet'  => $userEmailSet ?? [],
         ];
 
         return view('employee/index', $data);
+    }
+
+    /**
+     * Pending-approvals dashboard for Super Admin only
+     */
+    public function pendingApprovals()
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['Super Admin', 'admin'])) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        }
+
+        try {
+            $pending  = $this->employeeModel
+                ->where('account_status', 'pending')
+                ->orderBy('created_at', 'DESC')
+                ->findAll();
+
+            $rejected = $this->employeeModel
+                ->where('account_status', 'rejected')
+                ->orderBy('updated_at', 'DESC')
+                ->findAll();
+
+            $departments = $this->departmentModel->getActiveDepartments();
+            $positions   = $this->positionModel->getActivePositions();
+
+            $positionMap   = [];
+            foreach ($positions   as $p) { $positionMap[$p->id]   = $p->name; }
+            $departmentMap = [];
+            foreach ($departments as $d) { $departmentMap[$d->id] = $d->name; }
+
+        } catch (\Exception $e) {
+            log_message('error', 'pendingApprovals error: ' . $e->getMessage());
+            $pending  = [];
+            $rejected = [];
+            $positionMap   = [];
+            $departmentMap = [];
+        }
+
+        return view('employee/pending_approvals', [
+            'pending'      => $pending,
+            'rejected'     => $rejected,
+            'positionMap'  => $positionMap,
+            'departmentMap'=> $departmentMap,
+        ]);
     }
 
     /**
@@ -270,7 +330,7 @@ class Employees extends BaseController
                         'message' => "A new employee '{$firstName} {$lastName}' (ID: {$employeeId}) has been added and is waiting for account creation and approval.",
                         'type' => 'warning',
                         'icon' => 'fas fa-user-check',
-                        'link' => '/employee/review/' . $newEmployeeId,
+                        'link' => site_url('employee/review/' . $newEmployeeId),
                         'is_read' => false,
                     ]);
                 }
@@ -342,9 +402,11 @@ class Employees extends BaseController
             }
 
             $data = [
-                'employee' => $employee,
-                'department' => $department,
-                'position' => $position,
+                'employee'    => $employee,
+                'department'  => $department,
+                'position'    => $position,
+                'departments' => $this->departmentModel->getActiveDepartments(),
+                'positions'   => $this->positionModel->getActivePositions(),
             ];
 
             return view('employee/show', $data);
@@ -364,9 +426,9 @@ class Employees extends BaseController
             return redirect()->to('/login');
         }
 
-        // Check access: HR Admin or Super Admin
+        // Check access: HR Admin only
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'])) {
+        if (!in_array($role, ['HR Admin', 'hr'])) {
             return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
 
@@ -395,16 +457,38 @@ class Employees extends BaseController
     /**
      * Update an employee
      */
+    /**
+     * Return a single employee as JSON (for modal population)
+     */
+    public function getEmployee($id)
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON(['success' => false, 'message' => 'Unauthenticated']);
+        }
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['HR Admin', 'hr'])) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Access denied']);
+        }
+        $employee = $this->employeeModel->find($id);
+        if (!$employee) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Not found']);
+        }
+        return $this->response->setJSON(['success' => true, 'employee' => $employee]);
+    }
+
     public function update($id)
     {
+        $isAjax = $this->request->hasHeader('X-Requested-With') &&
+                  strtolower($this->request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+
         // Check if POST request
         if (!$this->request->is('post')) {
             return redirect()->to('/employee');
         }
 
-        // Check access: HR Admin or Super Admin
+        // Check access: HR Admin only
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'])) {
+        if (!in_array($role, ['HR Admin', 'hr'])) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
                 'message' => 'Access denied'
@@ -413,48 +497,193 @@ class Employees extends BaseController
 
         $employee = $this->employeeModel->find($id);
         if (!$employee) {
+            if ($isAjax) return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Employee not found']);
             return redirect()->to('/employee')->with('error', 'Employee not found');
         }
 
         $rules = [
-            'first_name' => 'required|min_length[2]',
-            'last_name' => 'required|min_length[2]',
-            'email' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']',
-            'phone' => 'permit_empty',
-            'department_id' => 'permit_empty|integer',
-            'position_id' => 'permit_empty|integer',
-            'date_of_birth' => 'permit_empty|valid_date',
-            'date_of_joining' => 'required|valid_date',
-            'status' => 'permit_empty|in_list[active,inactive,suspended]',
+            'first_name'     => ['label' => 'First Name',     'rules' => 'required|min_length[2]|max_length[100]'],
+            'last_name'      => ['label' => 'Last Name',      'rules' => 'required|min_length[2]|max_length[100]'],
+            'email'          => ['label' => 'Email',          'rules' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']'],
+            'phone'          => ['label' => 'Phone',          'rules' => 'permit_empty|max_length[20]'],
+            'department_id'  => ['label' => 'Department',     'rules' => 'permit_empty|integer'],
+            'position_id'    => ['label' => 'Position',       'rules' => 'permit_empty|integer'],
+            'date_of_birth'  => ['label' => 'Date of Birth',  'rules' => 'permit_empty|valid_date'],
+            'date_of_joining'=> ['label' => 'Date of Joining','rules' => 'required|valid_date'],
+            'status'         => ['label' => 'Status',         'rules' => 'permit_empty|in_list[active,inactive,suspended]'],
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()
-                ->withInput()
-                ->with('errors', $this->validator->getErrors());
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success'   => false,
+                    'errors'    => $this->validator->getErrors(),
+                    'csrf_hash' => csrf_hash(),
+                ]);
+            }
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // Manual special-character checks (regex_match in CI4 rule strings
+        // breaks when the pattern itself contains [ ] characters)
+        $specialCharErrors = [];
+        $firstName = trim($this->request->getPost('first_name'));
+        $lastName  = trim($this->request->getPost('last_name'));
+        $phone     = trim($this->request->getPost('phone') ?? '');
+
+        if (!preg_match("/^[A-Za-z\s\-']+$/u", $firstName)) {
+            $specialCharErrors['first_name'] = 'First name must contain only letters, spaces, hyphens or apostrophes — no special characters.';
+        }
+        if (!preg_match("/^[A-Za-z\s\-']+$/u", $lastName)) {
+            $specialCharErrors['last_name'] = 'Last name must contain only letters, spaces, hyphens or apostrophes — no special characters.';
+        }
+        if ($phone !== '' && !preg_match('/^[0-9\s\+\-\(\)]+$/u', $phone)) {
+            $specialCharErrors['phone'] = 'Phone must contain only digits, spaces, +, -, or parentheses — no special characters.';
+        }
+
+        if (!empty($specialCharErrors)) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success'   => false,
+                    'errors'    => $specialCharErrors,
+                    'csrf_hash' => csrf_hash(),
+                ]);
+            }
+            return redirect()->back()->withInput()->with('errors', $specialCharErrors);
         }
 
         $data = [
-            'first_name' => $this->request->getPost('first_name'),
-            'last_name' => $this->request->getPost('last_name'),
-            'email' => $this->request->getPost('email'),
-            'phone' => $this->request->getPost('phone'),
-            'department_id' => $this->request->getPost('department_id'),
-            'position_id' => $this->request->getPost('position_id'),
-            'date_of_birth' => $this->request->getPost('date_of_birth'),
+            'first_name'      => $firstName,
+            'last_name'       => $lastName,
+            'email'           => trim($this->request->getPost('email')),
+            'phone'           => $phone ?: null,
+            'department_id'   => $this->request->getPost('department_id') ?: null,
+            'position_id'     => $this->request->getPost('position_id') ?: null,
+            'date_of_birth'   => $this->request->getPost('date_of_birth') ?: null,
             'date_of_joining' => $this->request->getPost('date_of_joining'),
-            'status' => $this->request->getPost('status') ?? 'active',
+            'status'          => $this->request->getPost('status') ?? 'active',
         ];
 
         try {
-            if ($this->employeeModel->update($id, $data)) {
-                return redirect()->to('/employee')->with('success', 'Employee updated successfully');
-            } else {
-                return redirect()->back()->with('error', 'Failed to update employee');
+            $this->employeeModel->skipValidation(true)->update($id, $data);
+
+            if ($isAjax) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Employee updated successfully', 'csrf_hash' => csrf_hash()]);
             }
+            return redirect()->to('/employee')->with('success', 'Employee updated successfully');
         } catch (\Exception $e) {
             log_message('error', 'Employee update failed: ' . $e->getMessage());
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'An error occurred while updating the employee', 'csrf_hash' => csrf_hash()]);
+            }
             return redirect()->back()->with('error', 'An error occurred while updating the employee');
+        }
+    }
+
+    /**
+     * Re-apply a rejected employee for approval.
+     * Updates employee details and resets account_status to 'pending',
+     * then notifies all Super Admins.
+     */
+    public function reApply($id)
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->to('/employee');
+        }
+
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['HR Admin', 'hr'])) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Access denied.']);
+        }
+
+        $employee = $this->employeeModel->find($id);
+        if (!$employee) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Employee not found.', 'csrf_hash' => csrf_hash()]);
+        }
+
+        // Basic validation
+        $rules = [
+            'first_name'      => ['label' => 'First Name',     'rules' => 'required|min_length[2]|max_length[100]'],
+            'last_name'       => ['label' => 'Last Name',      'rules' => 'required|min_length[2]|max_length[100]'],
+            'email'           => ['label' => 'Email',          'rules' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']'],
+            'phone'           => ['label' => 'Phone',          'rules' => 'permit_empty|max_length[20]'],
+            'department_id'   => ['label' => 'Department',     'rules' => 'permit_empty|integer'],
+            'position_id'     => ['label' => 'Position',       'rules' => 'permit_empty|integer'],
+            'date_of_birth'   => ['label' => 'Date of Birth',  'rules' => 'permit_empty|valid_date'],
+            'date_of_joining' => ['label' => 'Date of Joining','rules' => 'required|valid_date'],
+            'status'          => ['label' => 'Status',         'rules' => 'permit_empty|in_list[active,inactive,suspended]'],
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success'   => false,
+                'errors'    => $this->validator->getErrors(),
+                'csrf_hash' => csrf_hash(),
+            ]);
+        }
+
+        // Special-character checks
+        $specialErrors = [];
+        $firstName = trim($this->request->getPost('first_name'));
+        $lastName  = trim($this->request->getPost('last_name'));
+        $phone     = trim($this->request->getPost('phone') ?? '');
+
+        if (!preg_match("/^[A-Za-z\s\-']+$/u", $firstName)) {
+            $specialErrors['first_name'] = 'First name must contain only letters, spaces, hyphens or apostrophes.';
+        }
+        if (!preg_match("/^[A-Za-z\s\-']+$/u", $lastName)) {
+            $specialErrors['last_name'] = 'Last name must contain only letters, spaces, hyphens or apostrophes.';
+        }
+        if ($phone !== '' && !preg_match('/^[0-9\s\+\-\(\)]+$/u', $phone)) {
+            $specialErrors['phone'] = 'Phone must contain only digits, spaces, +, -, or parentheses.';
+        }
+        if (!empty($specialErrors)) {
+            return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $specialErrors, 'csrf_hash' => csrf_hash()]);
+        }
+
+        $data = [
+            'first_name'      => $firstName,
+            'last_name'       => $lastName,
+            'email'           => trim($this->request->getPost('email')),
+            'phone'           => $phone ?: null,
+            'department_id'   => $this->request->getPost('department_id') ?: null,
+            'position_id'     => $this->request->getPost('position_id') ?: null,
+            'date_of_birth'   => $this->request->getPost('date_of_birth') ?: null,
+            'date_of_joining' => $this->request->getPost('date_of_joining'),
+            'status'          => $this->request->getPost('status') ?? 'active',
+            'account_status'  => 'pending',
+            'approval_notes'  => null,
+        ];
+
+        try {
+            $this->employeeModel->skipValidation(true)->update($id, $data);
+
+            // Notify all Super Admins
+            $db = \Config\Database::connect();
+            $superAdminRole = $db->table('roles')->where('name', 'Super Admin')->get()->getRow();
+            if ($superAdminRole) {
+                $superAdmins = $this->userModel->where('role_id', $superAdminRole->id)->where('is_active', 1)->findAll();
+                foreach ($superAdmins as $sa) {
+                    $this->notificationModel->insert([
+                        'user_id' => $sa->id,
+                        'title'   => 'Re-application for Approval',
+                        'message' => "{$firstName} {$lastName} has re-applied after rejection and is awaiting your review.",
+                        'type'    => 'warning',
+                        'icon'    => 'fas fa-redo',
+                        'link'    => site_url('employee/review/' . $id),
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
+            return $this->response->setJSON([
+                'success'   => true,
+                'message'   => 'Re-application submitted successfully.',
+                'csrf_hash' => csrf_hash(),
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'reApply failed: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'An error occurred. Please try again.', 'csrf_hash' => csrf_hash()]);
         }
     }
 
@@ -468,12 +697,15 @@ class Employees extends BaseController
             return redirect()->to('/employee');
         }
 
-        // Check access: Super Admin only for deletion
+        // Check access: Super Admin can delete anyone; HR Admin can only delete rejected employees
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['Super Admin', 'admin'])) {
+        $isSuperAdmin = in_array($role, ['Super Admin', 'admin']);
+        $isHRAdmin    = in_array($role, ['HR Admin', 'hr']);
+
+        if (!$isSuperAdmin && !$isHRAdmin) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied.'
             ]);
         }
 
@@ -483,6 +715,11 @@ class Employees extends BaseController
                 'success' => false,
                 'message' => 'Employee not found'
             ]);
+        }
+
+        // HR Admin may only delete employees whose account was rejected
+        if ($isHRAdmin && !$isSuperAdmin && ($employee->account_status ?? '') !== 'rejected') {
+            return redirect()->to('/employee')->with('error', 'HR Admin can only delete rejected employee records.');
         }
 
         try {
@@ -574,46 +811,40 @@ class Employees extends BaseController
     public function review($employeeId)
     {
         // Check access: Super Admin only
-        if (session()->get('role') !== 'admin') {
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['Super Admin', 'admin'])) {
             return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
 
         try {
             $employee = $this->employeeModel->find($employeeId);
             if (!$employee) {
-                return $this->response->setStatusCode(404)->setJSON([
-                    'success' => false,
-                    'message' => 'Employee not found'
-                ]);
+                return redirect()->to('/employee')->with('error', 'Employee not found.');
+            }
+
+            // Mark the notification as read (first notification linking here for this user)
+            $userId = session()->get('user_id');
+            if ($userId) {
+                $db = \Config\Database::connect();
+                $db->table('notifications')
+                    ->where('user_id', $userId)
+                    ->like('link', 'employee/review/' . $employeeId, 'both')
+                    ->where('is_read', 0)
+                    ->update(['is_read' => 1]);
             }
 
             // Load related information
             $department = $employee->department_id ? $this->departmentModel->find($employee->department_id) : null;
-            $position = $employee->position_id ? $this->positionModel->find($employee->position_id) : null;
+            $position   = $employee->position_id   ? $this->positionModel->find($employee->position_id)   : null;
 
-            return $this->response->setJSON([
-                'success' => true,
-                'data' => [
-                    'id' => $employee->id,
-                    'employee_id' => $employee->employee_id,
-                    'first_name' => $employee->first_name,
-                    'last_name' => $employee->last_name,
-                    'email' => $employee->email,
-                    'phone' => $employee->phone,
-                    'date_of_birth' => $employee->date_of_birth,
-                    'date_of_joining' => $employee->date_of_joining,
-                    'department' => $department ? $department->name : 'N/A',
-                    'position' => $position ? $position->name : 'N/A',
-                    'account_status' => $employee->account_status,
-                    'created_at' => $employee->created_at,
-                ]
+            return view('employee/review', [
+                'employee'   => $employee,
+                'department' => $department,
+                'position'   => $position,
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to review employee: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Error retrieving employee details'
-            ]);
+            return redirect()->to('/employee')->with('error', 'Error retrieving employee details.');
         }
     }
 
@@ -642,19 +873,22 @@ class Employees extends BaseController
             // Generate default credentials
             $username = strtolower($employee->first_name[0] . $employee->last_name);
             $password = $this->generatePassword();
-            
-            // Get HR Admin role
+
+            // Get Employee role (employees get the 'Employee' role, not HR Admin)
             $db = \Config\Database::connect();
-            $hrAdminRole = $db->table('roles')
-                ->where('name', 'HR Admin')
-                ->first();
+            $employeeRole = $db->table('roles')->where('name', 'Employee')->get()->getRow();
+            // Fallback to any role with id=4, or the lowest-privilege role available
+            $roleId = $employeeRole ? $employeeRole->id : 4;
+
+            // Get HR Admin role (for notification purposes)
+            $hrAdminRole = $db->table('roles')->where('name', 'HR Admin')->get()->getRow();
 
             // Create user account
             $userData = [
-                'name' => $employee->first_name . ' ' . $employee->last_name,
-                'email' => $employee->email,
-                'password' => $password,
-                'role_id' => $hrAdminRole ? $hrAdminRole->id : 3,  // Default to HR Admin role
+                'name'      => $employee->first_name . ' ' . $employee->last_name,
+                'email'     => $employee->email,
+                'password'  => $password,
+                'role_id'   => $roleId,
                 'is_active' => 1,
             ];
 
@@ -677,26 +911,28 @@ class Employees extends BaseController
             $this->sendCredentialsEmail($employee->email, $username, $password, $employee->first_name);
 
             // Notify HR Admin
-            $hrAdmins = $this->userModel
-                ->where('role_id', $hrAdminRole->id)
-                ->where('is_active', 1)
-                ->findAll();
+            if ($hrAdminRole) {
+                $hrAdmins = $this->userModel
+                    ->where('role_id', $hrAdminRole->id)
+                    ->where('is_active', 1)
+                    ->findAll();
 
-            foreach ($hrAdmins as $hrAdmin) {
-                $this->notificationModel->insert([
-                    'user_id' => $hrAdmin->id,
-                    'title' => 'Employee Account Approved',
-                    'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' has been approved by Super Admin. Account credentials have been sent to their email.",
-                    'type' => 'success',
-                    'icon' => 'fas fa-check-circle',
-                    'link' => '/employee/' . $employeeId,
-                    'is_read' => false,
-                ]);
+                foreach ($hrAdmins as $hrAdmin) {
+                    $this->notificationModel->insert([
+                        'user_id' => $hrAdmin->id,
+                        'title'   => 'Employee Account Approved',
+                        'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' has been approved by Super Admin. Account credentials have been sent to their email.",
+                        'type'    => 'success',
+                        'icon'    => 'fas fa-check-circle',
+                        'link'    => site_url('employee/show/' . $employeeId),
+                        'is_read' => false,
+                    ]);
+                }
             }
 
             return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Employee account approved! Credentials sent to ' . $employee->email,
+                'success'   => true,
+                'message'   => 'Employee account approved! Credentials sent to ' . $employee->email,
                 'csrf_hash' => csrf_hash()
             ]);
         } catch (\Exception $e) {
@@ -738,30 +974,35 @@ class Employees extends BaseController
                 'approval_notes' => $rejectionNotes,
             ]);
 
+            // Send rejection email to the employee
+            $this->sendRejectionEmail($employee->email, $employee->first_name, $rejectionNotes);
+
             // Notify HR Admin about rejection
             $db = \Config\Database::connect();
-            $hrAdminRole = $db->table('roles')->where('name', 'HR Admin')->first();
-            
-            $hrAdmins = $this->userModel
-                ->where('role_id', $hrAdminRole->id)
-                ->where('is_active', 1)
-                ->findAll();
+            $hrAdminRole = $db->table('roles')->where('name', 'HR Admin')->get()->getRow();
 
-            foreach ($hrAdmins as $hrAdmin) {
-                $this->notificationModel->insert([
-                    'user_id' => $hrAdmin->id,
-                    'title' => 'Employee Account Rejected',
-                    'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' (ID: {$employee->employee_id}) has been rejected by Super Admin. Reason: {$rejectionNotes}",
-                    'type' => 'danger',
-                    'icon' => 'fas fa-times-circle',
-                    'link' => '/employee/' . $employeeId,
-                    'is_read' => false,
-                ]);
+            if ($hrAdminRole) {
+                $hrAdmins = $this->userModel
+                    ->where('role_id', $hrAdminRole->id)
+                    ->where('is_active', 1)
+                    ->findAll();
+
+                foreach ($hrAdmins as $hrAdmin) {
+                    $this->notificationModel->insert([
+                        'user_id' => $hrAdmin->id,
+                        'title'   => 'Employee Account Rejected',
+                        'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' (ID: {$employee->employee_id}) has been rejected by Super Admin. Reason: {$rejectionNotes}",
+                        'type'    => 'danger',
+                        'icon'    => 'fas fa-times-circle',
+                        'link'    => site_url('employee/show/' . $employeeId),
+                        'is_read' => false,
+                    ]);
+                }
             }
 
             return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Employee account rejected. HR Admin has been notified.',
+                'success'   => true,
+                'message'   => 'Employee application rejected. Rejection email sent to ' . $employee->email . ' and HR Admin notified.',
                 'csrf_hash' => csrf_hash()
             ]);
         } catch (\Exception $e) {
@@ -770,6 +1011,61 @@ class Employees extends BaseController
                 'success' => false,
                 'message' => 'Error rejecting employee account'
             ]);
+        }
+    }
+
+    /**
+     * Send rejection email to employee
+     */
+    private function sendRejectionEmail($email, $firstName, $reason)
+    {
+        try {
+            $emailService = \Config\Services::email();
+            $emailService->setFrom(env('email.fromEmail'), env('email.fromName', 'PeopleAxis HR System'));
+            $emailService->setTo($email);
+            $emailService->setSubject('PeopleAxis HR System - Employment Application Update');
+
+            $htmlBody = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+                        .header { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+                        .content { padding: 20px; }
+                        .reason-box { background: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0; border-radius: 4px; }
+                        .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2>Employment Application Update</h2>
+                        </div>
+                        <div class='content'>
+                            <p>Dear {$firstName},</p>
+                            <p>We regret to inform you that your employee account application has been reviewed and unfortunately could not be approved at this time.</p>
+                            <div class='reason-box'>
+                                <strong>Reason:</strong><br>{$reason}
+                            </div>
+                            <p>If you believe this is an error or would like further clarification, please contact your HR department.</p>
+                            <p>We appreciate your interest and thank you for your patience.</p>
+                            <p>Best regards,<br>PeopleAxis HR System</p>
+                        </div>
+                        <div class='footer'>
+                            <p>This is an automated email. Please do not reply to this message.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            $emailService->setMessage($htmlBody);
+            $emailService->send();
+            return true;
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to send rejection email: ' . $e->getMessage());
+            return false;
         }
     }
 

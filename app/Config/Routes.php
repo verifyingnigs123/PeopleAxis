@@ -53,11 +53,14 @@ $routes->get('/roles/getRole/(:num)', 'Roles::getRole/$1');
 // Employees
 $routes->get('/employees', 'Employees::index');
 $routes->get('/employee', 'Employees::index');
+$routes->get('/employee/pending-approvals', 'Employees::pendingApprovals');
 $routes->get('/employee/create', 'Employees::create');
 $routes->post('/employee/store', 'Employees::store');
 $routes->get('/employee/show/(:num)', 'Employees::show/$1');
 $routes->get('/employee/edit/(:num)', 'Employees::edit/$1');
+$routes->get('/employee/get/(:num)', 'Employees::getEmployee/$1');
 $routes->post('/employee/update/(:num)', 'Employees::update/$1');
+$routes->post('/employee/re-apply/(:num)', 'Employees::reApply/$1');
 $routes->post('/employee/delete/(:num)', 'Employees::delete/$1');
 $routes->get('/employee/review/(:num)', 'Employees::review/$1');
 $routes->post('/employee/approve-account/(:num)', 'Employees::approveAccount/$1');

@@ -200,16 +200,16 @@
                 <label for="first_name" class="form-label">First Name <span class="required-star">*</span></label>
                 <input type="text" class="form-control" id="first_name" name="first_name" 
                        placeholder="Enter first name" required value="<?= esc($employee->first_name) ?>">
-                <?php if (has_error('first_name')): ?>
-                    <div class="error-text"><?= error('first_name') ?></div>
+                <?php if (service('validation')->hasError('first_name')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('first_name')) ?></div>
                 <?php endif; ?>
             </div>
             <div class="form-group">
                 <label for="last_name" class="form-label">Last Name <span class="required-star">*</span></label>
                 <input type="text" class="form-control" id="last_name" name="last_name" 
                        placeholder="Enter last name" required value="<?= esc($employee->last_name) ?>">
-                <?php if (has_error('last_name')): ?>
-                    <div class="error-text"><?= error('last_name') ?></div>
+                <?php if (service('validation')->hasError('last_name')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('last_name')) ?></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -220,8 +220,8 @@
                 <label for="email" class="form-label">Email <span class="required-star">*</span></label>
                 <input type="email" class="form-control" id="email" name="email" 
                        placeholder="Enter email address" required value="<?= esc($employee->email) ?>">
-                <?php if (has_error('email')): ?>
-                    <div class="error-text"><?= error('email') ?></div>
+                <?php if (service('validation')->hasError('email')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('email')) ?></div>
                 <?php endif; ?>
             </div>
             <div class="form-group">
@@ -248,8 +248,8 @@
                 <label for="date_of_joining" class="form-label">Date of Joining <span class="required-star">*</span></label>
                 <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" 
                        required value="<?= esc($employee->date_of_joining ?? '') ?>">
-                <?php if (has_error('date_of_joining')): ?>
-                    <div class="error-text"><?= error('date_of_joining') ?></div>
+                <?php if (service('validation')->hasError('date_of_joining')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('date_of_joining')) ?></div>
                 <?php endif; ?>
             </div>
         </div>

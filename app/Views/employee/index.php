@@ -195,6 +195,18 @@
         color: #155724;
     }
 
+    .badge-rejected {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .btn-rejected {
+        background: #e74c3c;
+        color: white;
+        cursor: default;
+        opacity: 0.85;
+    }
+
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -332,10 +344,21 @@
                             <td><?= esc($positionMap[$employee->position_id] ?? 'N/A') ?></td>
                             <td>
                                 <?php
+                                    $acctStatus = $employee->account_status ?? 'pending';
                                     $hasUserAccount = isset($userEmailSet[$employee->email]);
-                                    $accountBadgeClass = $hasUserAccount ? 'badge-account-active' : 'badge-pending';
-                                    $accountBadgeText = $hasUserAccount ? 'Active' : 'Pending';
-                                    $accountIcon = $hasUserAccount ? 'fa-user-check' : 'fa-user-clock';
+                                    if ($acctStatus === 'rejected') {
+                                        $accountBadgeClass = 'badge-rejected';
+                                        $accountBadgeText  = 'Rejected';
+                                        $accountIcon       = 'fa-times-circle';
+                                    } elseif ($hasUserAccount || $acctStatus === 'approved') {
+                                        $accountBadgeClass = 'badge-account-active';
+                                        $accountBadgeText  = 'Active';
+                                        $accountIcon       = 'fa-user-check';
+                                    } else {
+                                        $accountBadgeClass = 'badge-pending';
+                                        $accountBadgeText  = 'Pending';
+                                        $accountIcon       = 'fa-user-clock';
+                                    }
                                 ?>
                                 <span class="badge <?= $accountBadgeClass ?>">
                                     <i class="fas <?= $accountIcon ?>"></i> <?= $accountBadgeText ?>
@@ -346,17 +369,31 @@
                                     <a href="<?= base_url('employee/show/' . $employee->id) ?>" class="btn-action btn-view" title="View Details">
                                         <i class="fas fa-eye"></i> View
                                     </a>
-                                    <a href="<?= base_url('employee/edit/' . $employee->id) ?>" class="btn-action btn-edit" title="Edit">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <?php $role = session()->get('role_name') ?? session()->get('role'); ?>
-                                    <?php if (in_array($role, ['Super Admin', 'admin'])): ?>
-                                        <form method="POST" action="<?= base_url('employee/delete/' . $employee->id) ?>" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this employee?');">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn-action btn-delete" title="Delete">
+                                    <?php
+                                        $currentRole     = session()->get('role_name') ?? session()->get('role');
+                                        $isSuperAdminRow = in_array($currentRole, ['Super Admin', 'admin']);
+                                        $isRejected      = ($employee->account_status ?? 'pending') === 'rejected';
+                                    ?>
+                                    <?php if ($isRejected): ?>
+                                        <button class="btn-action btn-delete" title="Delete rejected employee"
+                                            onclick="openDeleteModal(
+                                                '<?= base_url('employee/delete/' . $employee->id) ?>',
+                                                '<?= esc($employee->first_name . ' ' . $employee->last_name, 'js') ?>',
+                                                true
+                                            )">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    <?php else: ?>
+                                        <?php if ($isSuperAdminRow): ?>
+                                            <button class="btn-action btn-delete" title="Delete"
+                                                onclick="openDeleteModal(
+                                                    '<?= base_url('employee/delete/' . $employee->id) ?>',
+                                                    '<?= esc($employee->first_name . ' ' . $employee->last_name, 'js') ?>',
+                                                    false
+                                                )">
                                                 <i class="fas fa-trash"></i> Delete
                                             </button>
-                                        </form>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -373,6 +410,34 @@
                 </button>
             </div>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content" style="max-width:460px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#c0392b 0%,#e74c3c 100%);">
+            <h2><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h2>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align:center; padding:35px 30px;">
+            <div style="font-size:3rem; color:#e74c3c; margin-bottom:16px;">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <h3 id="deleteModalTitle" style="color:#2c3e50; margin:0 0 10px;"></h3>
+            <p id="deleteModalMsg" style="color:#7f8c8d; margin:0 0 28px; font-size:.97rem;"></p>
+            <form id="deleteConfirmForm" method="POST">
+                <?= csrf_field() ?>
+                <div style="display:flex; gap:12px; justify-content:center;">
+                    <button type="submit" class="btn-modal btn-danger-modal">
+                        <i class="fas fa-trash"></i> Yes, Delete
+                    </button>
+                    <button type="button" class="btn-modal btn-secondary" onclick="closeDeleteModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -484,6 +549,105 @@
                         <i class="fas fa-save"></i> Add Employee
                     </button>
                     <button type="button" class="btn-modal btn-secondary" onclick="closeAddEmployeeModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div id="editEmployeeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg,#1a6b39 0%,#27ae60 100%);">
+            <h2><i class="fas fa-user-edit"></i> Edit Employee — <span id="editModalName"></span></h2>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Error Messages -->
+            <div id="editErrors" class="alert alert-danger" style="display:none; margin-bottom:20px;">
+                <i class="fas fa-exclamation-circle"></i>
+                <div id="editErrorList"></div>
+            </div>
+            <!-- Success Message -->
+            <div id="editSuccess" class="alert alert-success" style="display:none; margin-bottom:20px;">
+                <i class="fas fa-check-circle"></i>
+                <div id="editSuccessMsg"></div>
+            </div>
+            <form id="editEmployeeForm">
+                <?= csrf_field() ?>
+                <!-- First & Last Name -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">First Name <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="edit_first_name" name="first_name" placeholder="Enter first name" required>
+                    </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Last Name <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="edit_last_name" name="last_name" placeholder="Enter last name" required>
+                    </div>
+                </div>
+                <!-- Email & Phone -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">Email <span class="required-star">*</span></label>
+                        <input type="email" class="form-control-modal" id="edit_email" name="email" placeholder="Enter email address" required>
+                    </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" placeholder="Enter phone number">
+                    </div>
+                </div>
+                <!-- Department & Position -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">Department</label>
+                        <select class="form-control-modal" id="edit_department_id" name="department_id">
+                            <option value="">Select Department</option>
+                            <?php foreach ($departments ?? [] as $dept): ?>
+                                <option value="<?= $dept->id ?>"><?= esc($dept->name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Position</label>
+                        <select class="form-control-modal" id="edit_position_id" name="position_id">
+                            <option value="">Select Position</option>
+                            <?php foreach ($positions ?? [] as $pos): ?>
+                                <option value="<?= $pos->id ?>"><?= esc($pos->name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <!-- DOB & Date of Joining -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">Date of Birth</label>
+                        <input type="date" class="form-control-modal" id="edit_date_of_birth" name="date_of_birth">
+                    </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Date of Joining <span class="required-star">*</span></label>
+                        <input type="date" class="form-control-modal" id="edit_date_of_joining" name="date_of_joining" required>
+                    </div>
+                </div>
+                <!-- Status -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">Status</label>
+                        <select class="form-control-modal" id="edit_status" name="status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Actions -->
+                <div class="modal-actions">
+                    <button type="submit" class="btn-modal btn-primary" style="background:linear-gradient(135deg,#1a6b39 0%,#27ae60 100%)">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <button type="button" class="btn-modal btn-secondary" onclick="closeEditModal()">
                         <i class="fas fa-times"></i> Cancel
                     </button>
                 </div>
@@ -660,6 +824,15 @@
         background: #7f8c8d;
     }
 
+    .btn-danger-modal {
+        background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+        color: white;
+    }
+    .btn-danger-modal:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(192,57,43,0.35);
+    }
+
     @media (max-width: 600px) {
         .modal-content {
             width: 95%;
@@ -693,6 +866,25 @@
 </style>
 
 <script>
+    // ── Delete Confirmation Modal ──
+    function openDeleteModal(action, name, isRejected) {
+        const modal = document.getElementById('deleteConfirmModal');
+        document.getElementById('deleteConfirmForm').action = action;
+        document.getElementById('deleteModalTitle').textContent = 'Delete "' + name + '"?';
+        document.getElementById('deleteModalMsg').textContent = isRejected
+            ? 'This employee application was rejected. Deleting will permanently remove their record. This cannot be undone.'
+            : 'Are you sure you want to permanently delete this employee? This action cannot be undone.';
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').classList.remove('show');
+        document.body.style.overflow = 'auto';
+    }
+    document.getElementById('deleteConfirmModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+
     function openAddEmployeeModal() {
         const modal = document.getElementById('addEmployeeModal');
         modal.classList.add('show');
@@ -713,19 +905,119 @@
         });
     }
 
-    // Close modal when clicking outside
+    // Close modals when clicking outside
     window.onclick = function(event) {
-        const modal = document.getElementById('addEmployeeModal');
-        if (event.target === modal) {
-            closeAddEmployeeModal();
-        }
-    }
+        const addModal  = document.getElementById('addEmployeeModal');
+        const editModal = document.getElementById('editEmployeeModal');
+        if (event.target === addModal)  closeAddEmployeeModal();
+        if (event.target === editModal) closeEditModal();
+    };
 
-    // Close modal on Escape key
+    // Close modals on Escape key
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
+            closeDeleteModal();
             closeAddEmployeeModal();
+            closeEditModal();
         }
+    });
+
+    // ── Edit Employee Modal ────────────────────────────────────
+    let currentEditId = null;
+
+    function openEditModal(id) {
+        currentEditId = id;
+        const modal = document.getElementById('editEmployeeModal');
+        document.getElementById('editErrors').style.display   = 'none';
+        document.getElementById('editSuccess').style.display  = 'none';
+        document.getElementById('editModalName').textContent  = 'Loading…';
+
+        fetch('<?= base_url('employee/get/') ?>' + id, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) { alert('Could not load employee data.'); return; }
+            const e = data.employee;
+            document.getElementById('editModalName').textContent  = (e.first_name ?? '') + ' ' + (e.last_name ?? '');
+            document.getElementById('edit_first_name').value      = e.first_name    ?? '';
+            document.getElementById('edit_last_name').value       = e.last_name     ?? '';
+            document.getElementById('edit_email').value           = e.email         ?? '';
+            document.getElementById('edit_phone').value           = e.phone         ?? '';
+            document.getElementById('edit_date_of_birth').value   = e.date_of_birth ?? '';
+            document.getElementById('edit_date_of_joining').value = e.date_of_joining ?? '';
+            document.getElementById('edit_department_id').value   = e.department_id ?? '';
+            document.getElementById('edit_position_id').value     = e.position_id   ?? '';
+            document.getElementById('edit_status').value          = e.status        ?? 'active';
+        })
+        .catch(() => alert('Failed to fetch employee data.'));
+
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editEmployeeModal').classList.remove('show');
+        document.body.style.overflow = 'auto';
+        document.getElementById('editEmployeeForm').reset();
+        document.getElementById('editErrors').style.display  = 'none';
+        document.getElementById('editSuccess').style.display = 'none';
+        currentEditId = null;
+    }
+
+    document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!currentEditId) return;
+
+        const formData = new FormData(this);
+        document.getElementById('editErrors').style.display  = 'none';
+        document.getElementById('editSuccess').style.display = 'none';
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+        fetch('<?= base_url('employee/update/') ?>' + currentEditId, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json().then(data => ({ status: r.status, data })))
+        .then(({ status, data }) => {
+            // Refresh CSRF
+            if (data.csrf_hash) {
+                document.querySelectorAll('#editEmployeeForm input[name="<?= csrf_token() ?>"]').forEach(el => el.value = data.csrf_hash);
+                document.querySelectorAll('#addEmployeeForm input[name="<?= csrf_token() ?>"]').forEach(el => el.value = data.csrf_hash);
+            }
+            if (data.success) {
+                const successDiv = document.getElementById('editSuccess');
+                const successMsg = document.getElementById('editSuccessMsg');
+                successDiv.style.display = 'flex';
+                successMsg.innerHTML = '<strong>Employee updated successfully!</strong>';
+                setTimeout(() => { window.location.reload(); }, 1200);
+            } else {
+                const errDiv  = document.getElementById('editErrors');
+                const errList = document.getElementById('editErrorList');
+                errDiv.style.display = 'flex';
+                if (data.errors) {
+                    let html = '<strong>Validation Errors:</strong><ul style="margin:10px 0 0 0;padding-left:20px;">';
+                    for (const [, msg] of Object.entries(data.errors)) html += `<li>${msg}</li>`;
+                    html += '</ul>';
+                    errList.innerHTML = html;
+                } else {
+                    errList.innerHTML = `<strong>${data.message ?? 'An error occurred.'}</strong>`;
+                }
+            }
+        })
+        .catch(() => {
+            const errDiv = document.getElementById('editErrors');
+            document.getElementById('editErrorList').innerHTML = '<strong>Network error. Please try again.</strong>';
+            errDiv.style.display = 'flex';
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        });
     });
 
     // Handle form submission

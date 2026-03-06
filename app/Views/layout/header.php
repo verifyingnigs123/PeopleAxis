@@ -614,9 +614,9 @@
 
                 <!-- Notification Bell -->
                 <li class="nav-item notification-dropdown">
-                    <a class="nav-link notification-bell" id="notificationBell" title="Notifications">
+                    <a class="nav-link notification-bell" id="notificationBell" href="#" title="Notifications">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                        <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
                     </a>
                     <div class="notification-dropdown-menu" id="notificationMenu">
                         <div class="notification-dropdown-header">
@@ -754,6 +754,14 @@
                     <div class="sidebar-section-title">Salary</div>
                     <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
                         <i class="fas fa-dollar-sign"></i> Edit Employee Salary Rates
+                    </a>
+                </div>
+
+                <!-- Employee Approvals Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Employee Approvals</div>
+                    <a href="<?= base_url('employee/pending-approvals') ?>" class="sidebar-link">
+                        <i class="fas fa-user-check"></i> Pending &amp; Rejected
                     </a>
                 </div>
 
@@ -1023,16 +1031,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // ── CSRF helpers (CI4 cookie-based CSRF) ──────────────────────────────────
+    const CSRF_NAME = '<?= csrf_token() ?>';   // field name  (e.g. csrf_test_name)
+    let   CSRF_HASH = '<?= csrf_hash() ?>';    // current hash – refreshed after each POST
+
+    function csrfFormData() {
+        const fd = new FormData();
+        fd.append(CSRF_NAME, CSRF_HASH);
+        return fd;
+    }
+
+    function refreshCsrf(responseData) {
+        // CI4 can return a new hash in the response; update it so next call works
+        if (responseData && responseData.csrf_hash) CSRF_HASH = responseData.csrf_hash;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Fetch and display notifications
     function fetchNotifications() {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
         fetch('<?= base_url('/api/notifications') ?>', {
             method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken
-            }
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => {
             if (!response.ok) {
@@ -1065,16 +1084,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let html = '';
         notifications.forEach(notif => {
-            const timeAgo = getTimeAgo(notif.created_at);
+            const timeAgo   = getTimeAgo(notif.created_at);
             const typeClass = notif.type || 'info';
-            const unreadClass = !notif.is_read ? 'unread' : '';
-            const link = notif.link ? `<a href="${notif.link}" class="notification-link">View</a>` : '';
+            const isUnread  = parseInt(notif.is_read) === 0;
+            const unreadClass = isUnread ? 'unread' : '';
+            const linkAttr  = notif.link ? `data-link="${notif.link}"` : '';
+            const cursor    = notif.link ? 'style="cursor:pointer;"' : '';
 
             html += `
-                <div class="notification-item ${unreadClass}" data-notification-id="${notif.id}">
+                <div class="notification-item ${unreadClass}" data-notification-id="${notif.id}" ${linkAttr} ${cursor}>
                     <div class="notification-item-content">
                         <div class="notification-item-icon ${typeClass}">
-                            <i class="${notif.icon}"></i>
+                            <i class="${notif.icon || 'fas fa-bell'}"></i>
                         </div>
                         <div class="notification-item-text">
                             <div class="notification-item-title">${escapeHtml(notif.title)}</div>
@@ -1083,8 +1104,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     <div class="notification-item-actions">
-                        ${link}
-                        <button type="button" class="notification-delete" data-notification-id="${notif.id}" title="Delete">
+                        ${notif.link ? `<a href="${notif.link}" class="notification-link" onclick="event.stopPropagation();">View &rarr;</a>` : ''}
+                        <button type="button" class="notification-delete" data-notification-id="${notif.id}" title="Delete" onclick="event.stopPropagation();">
                             <i class="fas fa-trash-alt"></i> Delete
                         </button>
                     </div>
@@ -1094,7 +1115,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         notificationList.innerHTML = html;
 
-        // Add event listeners to delete buttons
+        // Click on the whole notification item → navigate + mark as read
+        document.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const notifId = this.getAttribute('data-notification-id');
+                const link    = this.getAttribute('data-link');
+
+                // Mark as read, then navigate
+                markNotificationRead(notifId, function() {
+                    if (!link) return;
+                    // Handle both full URLs (new) and bare paths (old notifications in DB)
+                    if (link.startsWith('http://') || link.startsWith('https://')) {
+                        window.location.href = link;
+                    } else {
+                        window.location.href = '<?= rtrim(base_url(), '/') ?>/' + link.replace(/^\//, '');
+                    }
+                });
+            });
+        });
+
+        // Standalone delete buttons
         document.querySelectorAll('.notification-delete').forEach(btn => {
             btn.addEventListener('click', function() {
                 const notifId = this.getAttribute('data-notification-id');
@@ -1116,61 +1156,73 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update badge with unread count
     function updateBadge(notifications) {
         if (!notificationBadge) return;
-        
-        const unreadCount = notifications.filter(n => !n.is_read).length;
-        
+
+        // is_read can be 0, 1, "0", "1", true or false — normalise with parseInt
+        const unreadCount = notifications.filter(n => parseInt(n.is_read) === 0).length;
+
         if (unreadCount > 0) {
-            notificationBadge.textContent = unreadCount;
-            notificationBadge.style.display = 'flex';
+            notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+            notificationBadge.style.display    = 'flex';
             notificationBadge.style.visibility = 'visible';
-            notificationBadge.style.opacity = '1';
+            notificationBadge.style.opacity    = '1';
         } else {
-            notificationBadge.style.display = 'none';
+            notificationBadge.style.display    = 'none';
             notificationBadge.style.visibility = 'hidden';
         }
     }
 
+    // Mark a single notification as read, then run callback
+    function markNotificationRead(notifId, callback) {
+        fetch(`<?= base_url('/api/notifications/') ?>${notifId}/read`, {
+            method: 'POST',
+            body: csrfFormData(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            refreshCsrf(data);
+            if (typeof callback === 'function') callback();
+        })
+        .catch(() => {
+            if (typeof callback === 'function') callback();
+        });
+    }
+
     // Mark all notifications as read
     function markAllNotificationsAsRead() {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
         fetch('<?= base_url('/api/notifications/mark-all-read') ?>', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfToken
-            }
+            body: csrfFormData(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                fetchNotifications(); // Refresh notifications
-            }
+            refreshCsrf(data);
+            if (data.success) fetchNotifications();
         })
         .catch(error => console.error('Error:', error));
     }
 
     // Delete a single notification
     function deleteNotification(notificationId) {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
-        if (confirm('Are you sure you want to delete this notification?')) {
-            fetch(`<?= base_url('/api/notifications/') ?>${notificationId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    fetchNotifications(); // Refresh notifications
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
+        if (!confirm('Are you sure you want to delete this notification?')) return;
+
+        const fd = csrfFormData();
+        fd.append('_method', 'DELETE');   // method override for DELETE route
+
+        fetch(`<?= base_url('/api/notifications/') ?>${notificationId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': CSRF_HASH
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            refreshCsrf(data);
+            if (data.success) fetchNotifications();
+        })
+        .catch(error => console.error('Error:', error));
     }
 
     // Get time ago string
