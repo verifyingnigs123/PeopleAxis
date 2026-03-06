@@ -58,6 +58,9 @@ $routes->get('/employee/show/(:num)', 'Employees::show/$1');
 $routes->get('/employee/edit/(:num)', 'Employees::edit/$1');
 $routes->post('/employee/update/(:num)', 'Employees::update/$1');
 $routes->post('/employee/delete/(:num)', 'Employees::delete/$1');
+$routes->get('/employee/review/(:num)', 'Employees::review/$1');
+$routes->post('/employee/approve-account/(:num)', 'Employees::approveAccount/$1');
+$routes->post('/employee/reject-account/(:num)', 'Employees::rejectAccount/$1');
 $routes->get('/employees/salary', 'Employees::salary');
 $routes->post('/employees/salary/update', 'Employees::updateSalary');
 

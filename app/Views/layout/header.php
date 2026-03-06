@@ -330,6 +330,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        overflow: visible;
     }
 
     .notification-bell:hover {
@@ -338,19 +339,22 @@
 
     .notification-badge {
         position: absolute;
-        top: -5px;
-        right: 0;
+        top: -8px;
+        right: -8px;
         background: #e74c3c;
         color: white;
         border-radius: 50%;
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 700;
         animation: pulse 2s infinite;
+        box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+        z-index: 1001;
+        line-height: 1;
     }
 
     @keyframes pulse {
@@ -1006,82 +1010,17 @@ function confirmLogout() {
     }
 }
 
-// ===== Handle Sidebar Form Submissions =====
+// ===== Initialize Notification System =====
 document.addEventListener('DOMContentLoaded', function() {
-    const sidebarForms = document.querySelectorAll('.sidebar-sync-form');
-    
-    sidebarForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const btn = this.querySelector('button[type="submit"]');
-            const originalHtml = btn.innerHTML;
-            
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-            
-            // Submit the form
-            const formData = new FormData(this);
-            
-            fetch(this.getAttribute('action'), {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                
-                if (data.status === 'success') {
-                    alert(data.message || 'Sync completed successfully!');
-                } else {
-                    alert(data.message || 'Sync failed. Please try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                alert('An error occurred during sync. Please try again.');
-            });
-        });
-    });
-
-    // ===== Real-Time Notification System =====
     const notificationBell = document.getElementById('notificationBell');
     const notificationBadge = document.getElementById('notificationBadge');
     const notificationMenu = document.getElementById('notificationMenu');
     const notificationList = document.getElementById('notificationList');
     const markAllReadBtn = document.getElementById('markAllRead');
     
-    // Toggle notification dropdown
-    if (notificationBell) {
-        notificationBell.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            notificationMenu.classList.toggle('show');
-            if (notificationMenu.classList.contains('show')) {
-                fetchNotifications();
-            }
-        });
-    }
-
-    // Close notification dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.notification-dropdown')) {
-            notificationMenu && notificationMenu.classList.remove('show');
-        }
-    });
-
-    // Mark all as read
-    if (markAllReadBtn) {
-        markAllReadBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            markAllNotificationsAsRead();
-        });
+    if (!notificationBell || !notificationBadge) {
+        console.warn('Notification elements not found');
+        return;
     }
 
     // Fetch and display notifications
@@ -1107,11 +1046,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateBadge(data.notifications);
             } else {
                 showEmptyNotifications();
+                updateBadge([]);
             }
         })
         .catch(error => {
             console.error('Error fetching notifications:', error);
             notificationList.innerHTML = '<div class="notification-empty"><i class="fas fa-exclamation-circle"></i><p>Error loading notifications</p></div>';
+            updateBadge([]);
         });
     }
 
@@ -1174,13 +1115,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update badge with unread count
     function updateBadge(notifications) {
+        if (!notificationBadge) return;
+        
         const unreadCount = notifications.filter(n => !n.is_read).length;
         
         if (unreadCount > 0) {
             notificationBadge.textContent = unreadCount;
             notificationBadge.style.display = 'flex';
+            notificationBadge.style.visibility = 'visible';
+            notificationBadge.style.opacity = '1';
         } else {
             notificationBadge.style.display = 'none';
+            notificationBadge.style.visibility = 'hidden';
         }
     }
 
@@ -1263,13 +1209,79 @@ document.addEventListener('DOMContentLoaded', function() {
         return text.replace(/[&<>"']/g, m => map[m]);
     }
 
-    // Fetch notifications on page load
-    if (notificationBell) {
-        fetchNotifications();
-        
-        // Refresh notifications every 30 seconds
-        setInterval(fetchNotifications, 30000);
+    // Toggle notification dropdown
+    notificationBell.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        notificationMenu.classList.toggle('show');
+        if (notificationMenu.classList.contains('show')) {
+            fetchNotifications();
+        }
+    });
+
+    // Close notification dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.notification-dropdown')) {
+            notificationMenu && notificationMenu.classList.remove('show');
+        }
+    });
+
+    // Mark all as read
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            markAllNotificationsAsRead();
+        });
     }
+
+    // Fetch notifications and auto-refresh
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
+});
+
+// ===== Handle Sidebar Form Submissions =====
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarForms = document.querySelectorAll('.sidebar-sync-form');
+    
+    sidebarForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = this.querySelector('button[type="submit"]');
+            const originalHtml = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+            
+            // Submit the form
+            const formData = new FormData(this);
+            
+            fetch(this.getAttribute('action'), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                
+                if (data.status === 'success') {
+                    alert(data.message || 'Sync completed successfully!');
+                } else {
+                    alert(data.message || 'Sync failed. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                alert('An error occurred during sync. Please try again.');
+            });
+        });
+    });
 });
 </script>
 

@@ -12,7 +12,7 @@ class EmployeeModel extends Model
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['employee_id', 'first_name', 'last_name', 'email', 'phone', 'department_id', 'position_id', 'date_of_birth', 'date_of_joining', 'status'];
+    protected $allowedFields    = ['employee_id', 'first_name', 'last_name', 'email', 'phone', 'department_id', 'position_id', 'date_of_birth', 'date_of_joining', 'status', 'account_status', 'user_id', 'approval_notes'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -36,4 +36,33 @@ class EmployeeModel extends Model
     {
         return $this->where('department_id', $departmentId)->findAll();
     }
+
+    /**
+     * Get pending employee accounts waiting for Super Admin approval
+     */
+    public function getPendingEmployees()
+    {
+        return $this->where('account_status', 'pending')
+                    ->orderBy('created_at', 'DESC')
+                    ->findAll();
+    }
+
+    /**
+     * Get approved employees with user accounts
+     */
+    public function getApprovedEmployees()
+    {
+        return $this->where('account_status', 'approved')
+                    ->findAll();
+    }
+
+    /**
+     * Get rejected employee accounts
+     */
+    public function getRejectedEmployees()
+    {
+        return $this->where('account_status', 'rejected')
+                    ->findAll();
+    }
 }
+
