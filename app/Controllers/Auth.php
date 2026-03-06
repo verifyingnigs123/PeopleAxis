@@ -2,6 +2,10 @@
 
 namespace App\Controllers;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
 class Auth extends BaseController
 {
     protected $userModel;
@@ -136,7 +140,7 @@ class Auth extends BaseController
 
     public function forgotPassword()
     {
-        return view('auth/forgot-password');
+        return view('Forgotpassword/forgotpassword');
     }
 
     public function forgotPasswordProcess()
@@ -165,31 +169,63 @@ class Auth extends BaseController
         $otpModel = model('OtpModel');
         $otp = $otpModel->generateOtp($email);
 
-        // Send email with OTP
-        $emailService = \Config\Services::email();
-        $emailConfig = new \Config\Email();
-        
-        $emailService->initialize($emailConfig);
-        $emailService->setTo($email);
-        $emailService->setFrom($emailConfig->fromEmail ?? 'noreply@peopleaxis.com', $emailConfig->fromName ?? 'PeopleAxis');
-        $emailService->setSubject('Your Password Reset OTP - PeopleAxis');
-        
-        // Load the email template
-        $emailBody = view('auth/email-otp', [
-            'otp' => $otp,
-            'userName' => $user->name
+        // Load the HTML email body
+        $emailBody = view('Forgotpassword/emailotp', [
+            'otp'      => $otp,
+            'userName' => $user->name,
         ]);
-        $emailService->setMessage($emailBody);
-        $emailService->setMailType('html');
 
-        if ($emailService->send()) {
-            // Store email in session for verification step
+        // Send via PHPMailer
+        $sent = $this->sendOtpEmail($email, $emailBody);
+
+        if ($sent === true) {
             session()->set('reset_email', $email);
             return redirect()->to('/verify-otp')->with('success', 'OTP has been sent to your email. Please check your inbox.');
         } else {
-            // Log error for debugging
-            log_message('error', 'Failed to send OTP email: ' . $emailService->printDebugger());
-            return redirect()->to('/forgot-password')->with('error', 'Failed to send OTP. Please try again or contact support.');
+            log_message('error', 'Failed to send OTP email: ' . $sent);
+            return redirect()->to('/forgot-password')->with('error', 'Failed to send OTP email. Please try again later.');
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // PHPMailer helper — credentials hardcoded to bypass .env issues
+    // ---------------------------------------------------------------
+    private function sendOtpEmail(string $to, string $htmlBody)
+    {
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'raphjohnvisayas@gmail.com';
+            $mail->Password   = 'knmxiszpprfriqrg';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
+            $mail->Timeout    = 30;
+
+            // Fix SSL certificate verification issues common in XAMPP / local dev
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                    'allow_self_signed' => true,
+                ],
+            ];
+
+            $mail->setFrom('raphjohnvisayas@gmail.com', 'PeopleAxis HR System');
+            $mail->addAddress($to);
+
+            $mail->isHTML(true);
+            $mail->CharSet  = 'UTF-8';
+            $mail->Subject  = 'Your Password Reset OTP - PeopleAxis';
+            $mail->Body     = $htmlBody;
+            $mail->AltBody  = strip_tags($htmlBody);
+
+            $mail->send();
+            return true;
+        } catch (Exception $e) {
+            log_message('error', '[sendOtpEmail] PHPMailer error to [' . $to . ']: ' . $mail->ErrorInfo);
+            return $mail->ErrorInfo;
         }
     }
 
@@ -202,7 +238,7 @@ class Auth extends BaseController
             return redirect()->to('/forgot-password')->with('error', 'Please start the password reset process again.');
         }
 
-        return view('auth/verify-otp', ['email' => $email]);
+        return view('Forgotpassword/verifyotp', ['email' => $email]);
     }
 
     public function verifyOtpProcess()
@@ -244,7 +280,7 @@ class Auth extends BaseController
             return redirect()->to('/forgot-password')->with('error', 'Please complete the verification process first.');
         }
 
-        return view('auth/reset-password', ['email' => $email]);
+        return view('Forgotpassword/resetpassword', ['email' => $email]);
     }
 
     public function resetPasswordProcess()

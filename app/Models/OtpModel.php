@@ -17,7 +17,7 @@ class OtpModel extends Model
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
-    protected $updatedField  = null;
+    protected $updatedField  = '';  // No updated_at column in this table
 
     // Validation
     protected $allowedFields = ['email', 'otp', 'expires_at', 'is_used', 'created_at'];

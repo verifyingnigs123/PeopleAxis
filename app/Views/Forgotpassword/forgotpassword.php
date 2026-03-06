@@ -3,45 +3,45 @@
 <?= $this->section('content') ?>
 
 <style>
-    .forgot-password-container {
+    .auth-container {
         max-width: 500px;
         margin: 3rem auto;
     }
 
-    .forgot-password-card {
+    .auth-card {
         background: white;
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         overflow: hidden;
     }
 
-    .forgot-password-header {
+    .auth-header {
         background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
         color: white;
         padding: 2rem;
         text-align: center;
     }
 
-    .forgot-password-header h1 {
+    .auth-header h1 {
         margin: 0 0 0.5rem 0;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 700;
     }
 
-    .forgot-password-header i {
+    .auth-header i.header-icon {
         font-size: 2.5rem;
         color: #f39c12;
         margin-bottom: 0.5rem;
         display: block;
     }
 
-    .forgot-password-header p {
+    .auth-header p {
         margin: 0;
         font-size: 0.9rem;
         opacity: 0.9;
     }
 
-    .forgot-password-body {
+    .auth-body {
         padding: 2rem;
     }
 
@@ -64,7 +64,6 @@
         border-radius: 6px;
         font-size: 0.95rem;
         transition: all 0.3s ease;
-        box-sizing: border-box;
     }
 
     .form-group input:focus {
@@ -73,7 +72,7 @@
         box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
     }
 
-    .forgot-password-btn {
+    .auth-btn {
         width: 100%;
         padding: 0.75rem;
         background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
@@ -87,7 +86,7 @@
         margin-bottom: 1rem;
     }
 
-    .forgot-password-btn:hover {
+    .auth-btn:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 20px rgba(52, 152, 219, 0.3);
     }
@@ -96,7 +95,6 @@
         border-radius: 6px;
         border: none;
         margin-bottom: 1.5rem;
-        padding: 1rem;
     }
 
     .alert-danger {
@@ -109,98 +107,115 @@
         color: #155724;
     }
 
-    .alert-info {
-        background-color: #d1ecf1;
-        color: #0c5460;
-    }
-
-    .forgot-password-footer {
+    .auth-footer {
         padding: 0 2rem 2rem;
         text-align: center;
     }
 
-    .forgot-password-footer p {
+    .auth-footer p {
         margin: 0;
         font-size: 0.9rem;
         color: #7f8c8d;
     }
 
-    .forgot-password-footer a {
+    .auth-footer a {
         color: #3498db;
         text-decoration: none;
         font-weight: 600;
     }
 
-    .forgot-password-footer a:hover {
+    .auth-footer a:hover {
         text-decoration: underline;
     }
 
-    .info-text {
-        background-color: #e3f2fd;
-        border-left: 4px solid #2196F3;
-        padding: 1rem;
-        border-radius: 4px;
+    .back-link {
+        display: inline-block;
+        margin-bottom: 2rem;
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        color: #2980b9;
+    }
+
+    .info-box {
+        background: #eaf4fb;
+        border-left: 4px solid #3498db;
+        border-radius: 6px;
+        padding: 0.85rem 1rem;
         margin-bottom: 1.5rem;
         font-size: 0.9rem;
-        color: #1565c0;
+        color: #2c3e50;
+    }
+
+    .info-box i {
+        color: #3498db;
+        margin-right: 0.4rem;
     }
 </style>
 
-<div class="forgot-password-container">
-    <div class="forgot-password-card">
-        <div class="forgot-password-header">
-            <i class="fas fa-key"></i>
-            <h1>Forgot Password?</h1>
-            <p>No worries! We'll send you an OTP to reset your password</p>
+<div class="auth-container">
+    <a href="<?= base_url('login') ?>" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Login
+    </a>
+
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-key header-icon"></i>
+            <h1>Forgot Password</h1>
+            <p>Enter your email to receive a one-time password</p>
         </div>
 
-        <div class="forgot-password-body">
+        <div class="auth-body">
             <?php if (session()->has('error')): ?>
-                <div class="alert alert-danger" role="alert">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <?= session('error') ?>
-                </div>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle"></i> <?= esc(session()->get('error')) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
             <?php endif; ?>
 
             <?php if (session()->has('success')): ?>
-                <div class="alert alert-success" role="alert">
-                    <i class="fas fa-check-circle"></i>
-                    <?= session('success') ?>
-                </div>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle"></i> <?= esc(session()->get('success')) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
             <?php endif; ?>
 
-            <div class="info-text">
+            <div class="info-box">
                 <i class="fas fa-info-circle"></i>
-                Enter your email address below and we'll send you an OTP code to verify your identity.
+                We will send a 6-digit OTP to your registered email address. The OTP is valid for <strong>10 minutes</strong>.
             </div>
 
-            <form method="POST" action="/forgot-password">
+            <form action="<?= base_url('forgot-password') ?>" method="POST">
                 <?= csrf_field() ?>
 
                 <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
-                        required 
-                        placeholder="Enter your email address"
-                        value="<?= old('email') ?>"
+                    <label for="email">
+                        <i class="fas fa-envelope"></i> Email Address
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="form-control"
+                        placeholder="Enter your registered email"
+                        value="<?= esc(old('email')) ?>"
+                        required
+                        autofocus
                     >
                 </div>
 
-                <button type="submit" class="forgot-password-btn">
+                <button type="submit" class="auth-btn">
                     <i class="fas fa-paper-plane"></i> Send OTP
                 </button>
             </form>
         </div>
 
-        <div class="forgot-password-footer">
+        <div class="auth-footer">
             <p>
-                Remember your password? 
-                <a href="/login">
-                    <i class="fas fa-sign-in-alt"></i> Go back to login
-                </a>
+                Remember your password? <a href="<?= base_url('login') ?>">Sign In</a>
             </p>
         </div>
     </div>
