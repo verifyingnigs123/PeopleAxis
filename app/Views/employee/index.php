@@ -316,7 +316,8 @@
     <div class="panel-header">
         <h2><i class="fas fa-list"></i> Employee Records (<?= count($employees) ?>)</h2>
         <div class="search-box">
-            <input type="text" id="employeeSearchInput" placeholder="Search users..." onkeyup="searchEmployees(this.value)">
+            <input type="text" id="employeeSearchInput" placeholder="Search employees..." oninput="blockSearchSpecialChars(this)" onkeyup="searchEmployees(this.value)">
+            <div id="employeeSearchInputError" style="display:none;color:#dc3545;font-size:0.8rem;margin-top:4px;">Special characters are not allowed in the search.</div>
         </div>
     </div>
 
@@ -470,12 +471,16 @@
                     <div class="form-group-modal">
                         <label for="first_name" class="form-label">First Name <span class="required-star">*</span></label>
                         <input type="text" class="form-control-modal" id="first_name" name="first_name" 
-                               placeholder="Enter first name" required>
+                               placeholder="Enter first name" required
+                               oninput="validateSpecialChars(this,'add_first_name_err','name')">
+                        <span id="add_first_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">First name cannot contain special characters.</span>
                     </div>
                     <div class="form-group-modal">
                         <label for="last_name" class="form-label">Last Name <span class="required-star">*</span></label>
                         <input type="text" class="form-control-modal" id="last_name" name="last_name" 
-                               placeholder="Enter last name" required>
+                               placeholder="Enter last name" required
+                               oninput="validateSpecialChars(this,'add_last_name_err','name')">
+                        <span id="add_last_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">Last name cannot contain special characters.</span>
                     </div>
                 </div>
 
@@ -489,7 +494,9 @@
                     <div class="form-group-modal">
                         <label for="phone" class="form-label">Phone Number</label>
                         <input type="tel" class="form-control-modal" id="phone" name="phone" 
-                               placeholder="Enter phone number">
+                               placeholder="Enter phone number"
+                               oninput="validateSpecialChars(this,'add_phone_err','phone')">
+                        <span id="add_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;">Phone cannot contain special characters.</span>
                     </div>
                 </div>
 
@@ -581,11 +588,15 @@
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label class="form-label">First Name <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="edit_first_name" name="first_name" placeholder="Enter first name" required>
+                        <input type="text" class="form-control-modal" id="edit_first_name" name="first_name" placeholder="Enter first name" required
+                               oninput="validateSpecialChars(this,'edit_first_name_err','name')">
+                        <span id="edit_first_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">First name cannot contain special characters.</span>
                     </div>
                     <div class="form-group-modal">
                         <label class="form-label">Last Name <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="edit_last_name" name="last_name" placeholder="Enter last name" required>
+                        <input type="text" class="form-control-modal" id="edit_last_name" name="last_name" placeholder="Enter last name" required
+                               oninput="validateSpecialChars(this,'edit_last_name_err','name')">
+                        <span id="edit_last_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">Last name cannot contain special characters.</span>
                     </div>
                 </div>
                 <!-- Email & Phone -->
@@ -596,7 +607,9 @@
                     </div>
                     <div class="form-group-modal">
                         <label class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" placeholder="Enter phone number">
+                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" placeholder="Enter phone number"
+                               oninput="validateSpecialChars(this,'edit_phone_err','phone')">
+                        <span id="edit_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;">Phone cannot contain special characters.</span>
                     </div>
                 </div>
                 <!-- Department & Position -->
@@ -965,9 +978,32 @@
         currentEditId = null;
     }
 
+    // Shared special-character validator for form fields
+    function validateSpecialChars(input, errId, type) {
+        const namePattern  = /^[A-Za-z\s\-\']*$/;
+        const phonePattern = /^[0-9\s\+\-\(\)]*$/;
+        const pattern = (type === 'phone') ? phonePattern : namePattern;
+        const errSpan = document.getElementById(errId);
+        if (!errSpan) return true;
+        if (input.value !== '' && !pattern.test(input.value)) {
+            errSpan.style.display = 'block';
+            input.classList.add('is-invalid');
+            return false;
+        } else {
+            errSpan.style.display = 'none';
+            input.classList.remove('is-invalid');
+            return true;
+        }
+    }
+
     document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
         if (!currentEditId) return;
+        // Validate before submit
+        const fnOk = validateSpecialChars(document.getElementById('edit_first_name'), 'edit_first_name_err', 'name');
+        const lnOk = validateSpecialChars(document.getElementById('edit_last_name'),  'edit_last_name_err',  'name');
+        const phOk = validateSpecialChars(document.getElementById('edit_phone'),       'edit_phone_err',      'phone');
+        if (!fnOk || !lnOk || !phOk) return;
 
         const formData = new FormData(this);
         document.getElementById('editErrors').style.display  = 'none';
@@ -1023,6 +1059,11 @@
     // Handle form submission
     document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        // Validate before submit
+        const fnOk = validateSpecialChars(document.getElementById('first_name'), 'add_first_name_err', 'name');
+        const lnOk = validateSpecialChars(document.getElementById('last_name'),  'add_last_name_err',  'name');
+        const phOk = validateSpecialChars(document.getElementById('phone'),      'add_phone_err',      'phone');
+        if (!fnOk || !lnOk || !phOk) return;
         
         const formData = new FormData(this);
         const errorDiv = document.getElementById('modalErrors');
@@ -1093,6 +1134,21 @@
             }
         });
     });
+
+    function blockSearchSpecialChars(input) {
+        const SEARCH_ALLOWED = /^[a-zA-Z0-9\s@._\-]*$/;
+        const errorDiv = document.getElementById(input.id + 'Error');
+        if (!SEARCH_ALLOWED.test(input.value)) {
+            input.value = input.value.replace(/[^a-zA-Z0-9\s@._\-]/g, '');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+                clearTimeout(input._errTimer);
+                input._errTimer = setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
+            }
+        } else {
+            if (errorDiv) errorDiv.style.display = 'none';
+        }
+    }
 
     // Search function
     function searchEmployees(searchValue) {

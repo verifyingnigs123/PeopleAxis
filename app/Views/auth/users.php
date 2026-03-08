@@ -479,7 +479,8 @@
     <div class="panel-header">
         <h2><i class="fas fa-list"></i> User Management (<?= count($users) ?>)</h2>
         <div class="search-box">
-            <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers(this.value)">
+            <input type="text" id="userSearch" placeholder="Search users..." oninput="blockSearchSpecialChars(this)" onkeyup="searchUsers(this.value)">
+            <div id="userSearchError" style="display:none;color:#dc3545;font-size:0.8rem;margin-top:4px;">Special characters are not allowed in the search.</div>
         </div>
     </div>
     <?php
@@ -706,12 +707,12 @@
                                 <label for="addUserPassword" class="form-label fw-600">Password <span class="text-danger">*</span></label>
                                 <div class="password-wrapper">
                                    <input type="password" class="form-control" id="addUserPassword" name="password"
-                                       placeholder="Enter password (min 6 characters)" required minlength="6" value="HRmanage" style="padding-right:2.8rem;">
+                                       placeholder="Enter password (min 6 characters)" required minlength="6" value="HRmanage!" style="padding-right:2.8rem;">
                                    <button type="button" id="toggleAddPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddPasswordVisibility(event)">
                                        <i class="fas fa-eye-slash" aria-hidden="true"></i>
                                    </button>
                                 </div>
-                                <small class="text-muted">Default password: HRmanage (change as needed)</small>
+                                <small class="text-muted">Default password: HRmanage! (change as needed)</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -719,7 +720,7 @@
                                 <label for="addUserConfirmPassword" class="form-label fw-600">Confirm Password <span class="text-danger">*</span></label>
                                 <div class="password-wrapper">
                                    <input type="password" class="form-control" id="addUserConfirmPassword" name="confirm_password"
-                                       placeholder="Confirm password" required minlength="6" value="HRmanage" style="padding-right:2.8rem;">
+                                       placeholder="Confirm password" required minlength="6" value="HRmanage!" style="padding-right:2.8rem;">
                                    <button type="button" id="toggleAddConfirmPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddConfirmPasswordVisibility(event)">
                                        <i class="fas fa-eye-slash" aria-hidden="true"></i>
                                    </button>
@@ -839,6 +840,21 @@
 </div>
 
 <script>
+function blockSearchSpecialChars(input) {
+    const SEARCH_ALLOWED = /^[a-zA-Z0-9\s@._\-]*$/;
+    const errorDiv = document.getElementById(input.id + 'Error') || document.getElementById('userSearchError');
+    if (!SEARCH_ALLOWED.test(input.value)) {
+        input.value = input.value.replace(/[^a-zA-Z0-9\s@._\-]/g, '');
+        if (errorDiv) {
+            errorDiv.style.display = 'block';
+            clearTimeout(input._errTimer);
+            input._errTimer = setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
+        }
+    } else {
+        if (errorDiv) errorDiv.style.display = 'none';
+    }
+}
+
 function searchUsers(query) {
     const rows = document.querySelectorAll('#usersTable tbody tr');
     query = query.toLowerCase().trim();
@@ -880,7 +896,7 @@ function validateNameField(value) {
 
 // Real-time validation for name fields
 document.addEventListener('DOMContentLoaded', function() {
-    const nameInput = document.getElementById('name');
+    const nameInput = document.getElementById('addUserName');
     const nameErrorDiv = document.getElementById('nameError');
     const editNameInput = document.getElementById('editName');
     const editNameErrorDiv = document.getElementById('editNameError');
@@ -1367,14 +1383,36 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
 
 // Handle add user form submission
 document.getElementById('addUserForm').addEventListener('submit', function(e) {
-    const name = document.getElementById('name').value;
-    const email = document.getElementById('email').value;
+    const nameInput = document.getElementById('addUserName');
+    const emailInput = document.getElementById('addUserEmail');
+    const name = nameInput ? nameInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const errorsBox = document.getElementById('addUserErrors');
+    const errorsList = document.getElementById('addUserErrorsList');
+
+    if (errorsBox) errorsBox.style.display = 'none';
+    if (errorsList) errorsList.innerHTML = '';
+
+    const errors = [];
+
+    if (!name || !email) {
+        errors.push('Please fill in all required fields.');
+    }
     
     // Validate special characters in name
     const nameError = validateNameField(name);
     if (nameError) {
+        errors.push(nameError);
+    }
+
+    if (errors.length > 0) {
         e.preventDefault();
-        alert(nameError);
+        if (errorsList) {
+            errorsList.innerHTML = errors.map(msg => `<li>${msg}</li>`).join('');
+        }
+        if (errorsBox) {
+            errorsBox.style.display = 'block';
+        }
         return false;
     }
 });

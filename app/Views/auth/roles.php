@@ -282,7 +282,8 @@
     <div class="panel-header">
         <h2><i class="fas fa-list"></i> System Roles (<?= count($roles) ?>)</h2>
         <div class="search-box">
-            <input type="text" id="roleSearch" placeholder="Search roles..." onkeyup="searchRoles(this.value)">
+            <input type="text" id="roleSearch" placeholder="Search roles..." oninput="blockSearchSpecialChars(this)" onkeyup="searchRoles(this.value)">
+            <div id="roleSearchError" style="display:none;color:#dc3545;font-size:0.8rem;margin-top:4px;">Special characters are not allowed in the search.</div>
         </div>
     </div>
 
@@ -794,6 +795,21 @@ document.getElementById('editRoleForm').addEventListener('submit', function(e) {
         alert('Error updating role');
     });
 });
+
+function blockSearchSpecialChars(input) {
+    const SEARCH_ALLOWED = /^[a-zA-Z0-9\s@._\-]*$/;
+    const errorDiv = document.getElementById(input.id + 'Error');
+    if (!SEARCH_ALLOWED.test(input.value)) {
+        input.value = input.value.replace(/[^a-zA-Z0-9\s@._\-]/g, '');
+        if (errorDiv) {
+            errorDiv.style.display = 'block';
+            clearTimeout(input._errTimer);
+            input._errTimer = setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
+        }
+    } else {
+        if (errorDiv) errorDiv.style.display = 'none';
+    }
+}
 
 // Search/filter roles functionality
 function searchRoles(searchValue) {

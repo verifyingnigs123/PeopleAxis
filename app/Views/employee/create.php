@@ -199,7 +199,9 @@
             <div class="form-group">
                 <label for="first_name" class="form-label">First Name <span class="required-star">*</span></label>
                 <input type="text" class="form-control" id="first_name" name="first_name" 
-                       placeholder="Enter first name" required value="<?= old('first_name') ?>">
+                       placeholder="Enter first name" required value="<?= old('first_name') ?>"
+                       oninput="validateSpecialChars(this,'err_first_name','name')">
+                <span id="err_first_name" style="display:none;color:#dc3545;font-size:0.85rem;">First name cannot contain special characters.</span>
                 <?php if (has_error('first_name')): ?>
                     <div class="error-text"><?= error('first_name') ?></div>
                 <?php endif; ?>
@@ -207,7 +209,9 @@
             <div class="form-group">
                 <label for="last_name" class="form-label">Last Name <span class="required-star">*</span></label>
                 <input type="text" class="form-control" id="last_name" name="last_name" 
-                       placeholder="Enter last name" required value="<?= old('last_name') ?>">
+                       placeholder="Enter last name" required value="<?= old('last_name') ?>"
+                       oninput="validateSpecialChars(this,'err_last_name','name')">
+                <span id="err_last_name" style="display:none;color:#dc3545;font-size:0.85rem;">Last name cannot contain special characters.</span>
                 <?php if (has_error('last_name')): ?>
                     <div class="error-text"><?= error('last_name') ?></div>
                 <?php endif; ?>
@@ -227,7 +231,9 @@
             <div class="form-group">
                 <label for="phone" class="form-label">Phone Number</label>
                 <input type="tel" class="form-control" id="phone" name="phone" 
-                       placeholder="Enter phone number" value="<?= old('phone') ?>">
+                       placeholder="Enter phone number" value="<?= old('phone') ?>"
+                       oninput="validateSpecialChars(this,'err_phone','phone')">
+                <span id="err_phone" style="display:none;color:#dc3545;font-size:0.85rem;">Phone cannot contain special characters.</span>
             </div>
         </div>
 
@@ -297,5 +303,31 @@
         </div>
     </form>
 </div>
+
+<script>
+function validateSpecialChars(input, errId, type) {
+    const namePattern  = /^[A-Za-z\s\-\']*$/;
+    const phonePattern = /^[0-9\s\+\-\(\)]*$/;
+    const pattern = (type === 'phone') ? phonePattern : namePattern;
+    const errSpan = document.getElementById(errId);
+    if (!errSpan) return true;
+    if (input.value !== '' && !pattern.test(input.value)) {
+        errSpan.style.display = 'block';
+        input.style.borderColor = '#dc3545';
+        return false;
+    } else {
+        errSpan.style.display = 'none';
+        input.style.borderColor = '';
+        return true;
+    }
+}
+
+document.getElementById('employeeForm').addEventListener('submit', function(e) {
+    const fnOk = validateSpecialChars(document.getElementById('first_name'), 'err_first_name', 'name');
+    const lnOk = validateSpecialChars(document.getElementById('last_name'),  'err_last_name',  'name');
+    const phOk = validateSpecialChars(document.getElementById('phone'),      'err_phone',      'phone');
+    if (!fnOk || !lnOk || !phOk) e.preventDefault();
+});
+</script>
 
 <?= $this->endSection() ?>

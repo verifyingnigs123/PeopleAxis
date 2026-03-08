@@ -75,8 +75,8 @@ class Dashboard extends BaseController
                     $employee = $employeeModel->where('user_id', $session->get('user_id'))->first();
                     if ($employee) {
                         $data['employee'] = $employee;
-                        $data['attendance'] = $attendanceModel->where('employee_id', $employee['id'])->findAll();
-                        $data['leaves'] = $leaveModel->where('employee_id', $employee['id'])->findAll();
+                        $data['attendance'] = $attendanceModel->where('employee_id', $employee->id)->findAll();
+                        $data['leaves'] = $leaveModel->where('employee_id', $employee->id)->findAll();
                     } else {
                         // No employee record exists yet - create placeholder data
                         $data['employee'] = null;

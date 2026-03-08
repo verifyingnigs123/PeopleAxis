@@ -277,6 +277,34 @@ class Employees extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
+        // Birthdate validation: must not be 2026 or later, and employee must be at least 18 years old
+        $dateOfBirth = trim($this->request->getPost('date_of_birth') ?? '');
+        if ($dateOfBirth !== '') {
+            $dob = \DateTime::createFromFormat('Y-m-d', $dateOfBirth);
+            if (!$dob || $dob->format('Y-m-d') !== $dateOfBirth) {
+                $isAjaxCheck = $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+                $err = ['date_of_birth' => 'Please enter a valid date of birth (YYYY-MM-DD).'];
+                if ($isAjaxCheck) return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
+                return redirect()->back()->withInput()->with('errors', $err);
+            }
+            $today = new \DateTime();
+            $age   = $today->diff($dob)->y;
+            if ((int)$dob->format('Y') >= 2026) {
+                $err = ['date_of_birth' => 'Date of birth cannot be in the year 2026 or later.'];
+                if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                    return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
+                }
+                return redirect()->back()->withInput()->with('errors', $err);
+            }
+            if ($age < 18) {
+                $err = ['date_of_birth' => 'Employee must be at least 18 years old.'];
+                if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                    return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
+                }
+                return redirect()->back()->withInput()->with('errors', $err);
+            }
+        }
+
         // Auto-generate Employee ID in format PPA-00001
         $lastEmployee = $this->employeeModel->orderBy('id', 'DESC')->first();
         $nextNumber = 1;
@@ -292,13 +320,13 @@ class Employees extends BaseController
 
         $data = [
             'employee_id' => $employeeId,
-            'first_name' => $this->request->getPost('first_name'),
-            'last_name' => $this->request->getPost('last_name'),
-            'email' => $this->request->getPost('email'),
+            'first_name' => trim($this->request->getPost('first_name')),
+            'last_name' => trim($this->request->getPost('last_name')),
+            'email' => trim($this->request->getPost('email')),
             'phone' => $this->request->getPost('phone'),
             'department_id' => $this->request->getPost('department_id'),
             'position_id' => $this->request->getPost('position_id'),
-            'date_of_birth' => $this->request->getPost('date_of_birth'),
+            'date_of_birth' => $dateOfBirth ?: null,
             'date_of_joining' => $this->request->getPost('date_of_joining'),
             'status' => $this->request->getPost('status') ?? 'active',
             'account_status' => 'pending',  // New employee account is pending approval
@@ -552,6 +580,33 @@ class Employees extends BaseController
             return redirect()->back()->withInput()->with('errors', $specialCharErrors);
         }
 
+        // Birthdate validation: must not be 2026 or later, and employee must be at least 18 years old
+        $dateOfBirth = trim($this->request->getPost('date_of_birth') ?? '');
+        if ($dateOfBirth !== '') {
+            $dob = \DateTime::createFromFormat('Y-m-d', $dateOfBirth);
+            if (!$dob || $dob->format('Y-m-d') !== $dateOfBirth) {
+                $dobErrors = ['date_of_birth' => 'Please enter a valid date of birth (YYYY-MM-DD).'];
+                if ($isAjax) return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $dobErrors, 'csrf_hash' => csrf_hash()]);
+                return redirect()->back()->withInput()->with('errors', $dobErrors);
+            }
+            $today = new \DateTime();
+            $age   = $today->diff($dob)->y;
+            if ((int)$dob->format('Y') >= 2026) {
+                $dobErrors = ['date_of_birth' => 'Date of birth cannot be in the year 2026 or later.'];
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $dobErrors, 'csrf_hash' => csrf_hash()]);
+                }
+                return redirect()->back()->withInput()->with('errors', $dobErrors);
+            }
+            if ($age < 18) {
+                $dobErrors = ['date_of_birth' => 'Employee must be at least 18 years old.'];
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $dobErrors, 'csrf_hash' => csrf_hash()]);
+                }
+                return redirect()->back()->withInput()->with('errors', $dobErrors);
+            }
+        }
+
         $data = [
             'first_name'      => $firstName,
             'last_name'       => $lastName,
@@ -559,7 +614,7 @@ class Employees extends BaseController
             'phone'           => $phone ?: null,
             'department_id'   => $this->request->getPost('department_id') ?: null,
             'position_id'     => $this->request->getPost('position_id') ?: null,
-            'date_of_birth'   => $this->request->getPost('date_of_birth') ?: null,
+            'date_of_birth'   => $dateOfBirth ?: null,
             'date_of_joining' => $this->request->getPost('date_of_joining'),
             'status'          => $this->request->getPost('status') ?? 'active',
         ];
@@ -641,6 +696,23 @@ class Employees extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $specialErrors, 'csrf_hash' => csrf_hash()]);
         }
 
+        // Birthdate validation: must not be 2026 or later, and employee must be at least 18 years old
+        $dateOfBirth = trim($this->request->getPost('date_of_birth') ?? '');
+        if ($dateOfBirth !== '') {
+            $dob = \DateTime::createFromFormat('Y-m-d', $dateOfBirth);
+            if (!$dob || $dob->format('Y-m-d') !== $dateOfBirth) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Please enter a valid date of birth (YYYY-MM-DD).'], 'csrf_hash' => csrf_hash()]);
+            }
+            $today = new \DateTime();
+            $age   = $today->diff($dob)->y;
+            if ((int)$dob->format('Y') >= 2026) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Date of birth cannot be in the year 2026 or later.'], 'csrf_hash' => csrf_hash()]);
+            }
+            if ($age < 18) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Employee must be at least 18 years old.'], 'csrf_hash' => csrf_hash()]);
+            }
+        }
+
         $data = [
             'first_name'      => $firstName,
             'last_name'       => $lastName,
@@ -648,7 +720,7 @@ class Employees extends BaseController
             'phone'           => $phone ?: null,
             'department_id'   => $this->request->getPost('department_id') ?: null,
             'position_id'     => $this->request->getPost('position_id') ?: null,
-            'date_of_birth'   => $this->request->getPost('date_of_birth') ?: null,
+            'date_of_birth'   => $dateOfBirth ?: null,
             'date_of_joining' => $this->request->getPost('date_of_joining'),
             'status'          => $this->request->getPost('status') ?? 'active',
             'account_status'  => 'pending',

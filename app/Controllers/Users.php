@@ -116,8 +116,23 @@ class Users extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        // Require at least one special character in the password
+        $password = $this->request->getPost('password');
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+            return redirect()->back()->withInput()->with('errors', [
+                'password' => 'Password must contain at least one special character (e.g. !, @, #, $).'
+            ]);
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+        if (!preg_match('/^[A-Za-z0-9\s]+$/', $name)) {
+            return redirect()->back()->withInput()->with('errors', [
+                'name' => 'Name can only contain letters, numbers, and spaces. Special characters are not allowed.'
+            ]);
+        }
+
         $this->userModel->insert([
-            'name'       => $this->request->getPost('name'),
+            'name'       => $name,
             'email'      => $this->request->getPost('email'),
             'password'   => $this->request->getPost('password'),
             'role_id'    => (int)$this->request->getPost('role_id'),
@@ -161,7 +176,7 @@ class Users extends BaseController
             }
 
             // Get form data
-            $name = $this->request->getPost('name');
+            $name = trim((string) $this->request->getPost('name'));
             $email = $this->request->getPost('email');
             $roleId = $this->request->getPost('role_id') ?? $this->request->getPost('role');
             $isActive = $this->request->getPost('is_active');
@@ -179,6 +194,13 @@ class Users extends BaseController
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
                     'message' => 'Name must be 3-100 characters'
+                ]);
+            }
+
+            if (!preg_match('/^[A-Za-z0-9\s]+$/', $name)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Name can only contain letters, numbers, and spaces. Special characters are not allowed.'
                 ]);
             }
 
@@ -223,6 +245,12 @@ class Users extends BaseController
 
             // Only update password if provided
             if (!empty($password) && is_string($password) && strlen(trim($password)) >= 6) {
+                if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'success' => false,
+                        'message' => 'Password must contain at least one special character (e.g. !, @, #, $).'
+                    ]);
+                }
                 $updateData['password'] = trim($password);
             }
 
