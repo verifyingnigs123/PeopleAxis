@@ -483,7 +483,7 @@
                 document.querySelector('.approval-card').style.display = 'none';
                 document.querySelector('.status-banner').className = 'status-banner rejected';
                 document.querySelector('.status-banner').innerHTML = '<i class="fas fa-times-circle fa-lg"></i> This employee application has been <strong>rejected</strong>. A rejection email has been sent.';
-                setTimeout(() => location.reload(), 3000);
+                // Remove automatic page refresh for real-time update
             } else {
                 showApiAlert(data.message || 'Failed to reject application.', 'danger');
                 setLoading('btnConfirmReject', false);

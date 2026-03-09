@@ -290,7 +290,7 @@ class Employees extends BaseController
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
             if ((int)$dob->format('Y') >= 2026) {
-                $err = ['date_of_birth' => 'Date of birth cannot be in the year 2026 or later.'];
+                $err = ['date_of_birth' => 'Users must be 18 years old or older to create an account.'];
                 if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
                     return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
                 }
@@ -592,7 +592,7 @@ class Employees extends BaseController
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
             if ((int)$dob->format('Y') >= 2026) {
-                $dobErrors = ['date_of_birth' => 'Date of birth cannot be in the year 2026 or later.'];
+                $dobErrors = ['date_of_birth' => 'Users must be 18 years old or older to create an account.'];
                 if ($isAjax) {
                     return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $dobErrors, 'csrf_hash' => csrf_hash()]);
                 }
@@ -706,7 +706,7 @@ class Employees extends BaseController
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
             if ((int)$dob->format('Y') >= 2026) {
-                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Date of birth cannot be in the year 2026 or later.'], 'csrf_hash' => csrf_hash()]);
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Users must be 18 years old or older to create an account.'], 'csrf_hash' => csrf_hash()]);
             }
             if ($age < 18) {
                 return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Employee must be at least 18 years old.'], 'csrf_hash' => csrf_hash()]);
@@ -1092,8 +1092,9 @@ class Employees extends BaseController
     private function sendRejectionEmail($email, $firstName, $reason)
     {
         try {
+            $emailConfig = new \Config\Email();
             $emailService = \Config\Services::email();
-            $emailService->setFrom(env('email.fromEmail'), env('email.fromName', 'PeopleAxis HR System'));
+            $emailService->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
             $emailService->setTo($email);
             $emailService->setSubject('PeopleAxis HR System - Employment Application Update');
 

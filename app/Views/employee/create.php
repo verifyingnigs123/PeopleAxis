@@ -268,7 +268,7 @@
             <div class="form-group">
                 <label for="date_of_joining" class="form-label">Date of Joining <span class="required-star">*</span></label>
                 <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" 
-                       required value="<?= old('date_of_joining') ?>">
+                       required value="<?= old('date_of_joining', date('Y-m-d')) ?>">
                 <?php if (has_error('date_of_joining')): ?>
                     <div class="error-text"><?= error('date_of_joining') ?></div>
                 <?php endif; ?>
@@ -279,8 +279,11 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="date_of_birth" class="form-label">Date of Birth</label>
-                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                <input type="date" class="form-control <?= has_error('date_of_birth') ? 'is-invalid' : '' ?>" id="date_of_birth" name="date_of_birth" 
                        value="<?= old('date_of_birth') ?>">
+                <?php if (has_error('date_of_birth')): ?>
+                    <div class="error-text"><?= error('date_of_birth') ?></div>
+                <?php endif; ?>
             </div>
             <div class="form-group">
                 <label for="status" class="form-label">Status</label>

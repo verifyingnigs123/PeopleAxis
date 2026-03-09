@@ -19,12 +19,32 @@ class EmployeeModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    protected $validationRules = [
-        'employee_id'     => 'required|is_unique[employees.employee_id,id,{id}]',
-        'first_name'      => 'required|min_length[2]',
-        'last_name'       => 'required|min_length[2]',
-        'email'           => 'required|valid_email|is_unique[employees.email,id,{id}]',
-        'date_of_joining' => 'required|valid_date',
+    protected $validationMessages = [
+        'employee_id' => [
+            'required' => 'Employee ID is required.',
+            'is_unique' => 'Employee ID already exists.',
+        ],
+        'first_name' => [
+            'required' => 'First name is required.',
+            'min_length' => 'First name must be at least 2 characters.',
+        ],
+        'last_name' => [
+            'required' => 'Last name is required.',
+            'min_length' => 'Last name must be at least 2 characters.',
+        ],
+        'email' => [
+            'required' => 'Email is required.',
+            'valid_email' => 'Please provide a valid email address.',
+            'is_unique' => 'Email address already exists.',
+        ],
+        'date_of_birth' => [
+            'valid_date' => 'Please enter a valid date of birth.',
+            'check_age' => 'Employee must be at least 18 years old.',
+        ],
+        'date_of_joining' => [
+            'required' => 'Date of joining is required.',
+            'valid_date' => 'Please enter a valid date of joining.',
+        ],
     ];
 
     public function getActiveEmployees()

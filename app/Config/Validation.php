@@ -41,4 +41,24 @@ class Validation extends BaseConfig
     // --------------------------------------------------------------------
     // Rules
     // --------------------------------------------------------------------
+
+    /**
+     * Check if the date of birth corresponds to an age of at least the specified minimum.
+     */
+    public function check_age(string $str, string $minAge = '18'): bool
+    {
+        if (empty($str)) {
+            return true;
+        }
+
+        $dob = \DateTime::createFromFormat('Y-m-d', $str);
+        if (!$dob) {
+            return false;
+        }
+
+        $today = new \DateTime();
+        $age = $today->diff($dob)->y;
+
+        return $age >= (int)$minAge;
+    }
 }
