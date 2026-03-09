@@ -337,6 +337,8 @@ class Employees extends BaseController
                 $newEmployeeId = $this->employeeModel->getInsertID();
                 $firstName = $this->request->getPost('first_name');
                 $lastName = $this->request->getPost('last_name');
+                $actorName = session()->get('name') ?? session()->get('username') ?? 'HR Admin';
+                $actorRole = session()->get('role_name') ?? session()->get('role') ?? 'User';
                 
                 // Send notification to all Super Admins
                 // First get the Super Admin role ID
@@ -352,10 +354,20 @@ class Employees extends BaseController
                 }
 
                 foreach ($superAdmins as $superAdmin) {
+                    $title = 'New Employee Awaiting Approval';
+                    $message = "A new employee '{$firstName} {$lastName}' (ID: {$employeeId}) has been added and is waiting for account creation and approval.";
+
+                    if (in_array($actorRole, ['HR Admin', 'hr'])) {
+                        $title = 'New Employee Added by HR Admin';
+                        $message = "HR Admin {$actorName} added '{$firstName} {$lastName}' (ID: {$employeeId}) and submitted for your approval.";
+                    }
+
                     $this->notificationModel->insert([
                         'user_id' => $superAdmin->id,
-                        'title' => 'New Employee Awaiting Approval',
-                        'message' => "A new employee '{$firstName} {$lastName}' (ID: {$employeeId}) has been added and is waiting for account creation and approval.",
+                        'role' => 'Super Admin',
+                        'title' => $title,
+                        'message' => $message,
+                        'status' => 'unread',
                         'type' => 'warning',
                         'icon' => 'fas fa-user-check',
                         'link' => site_url('employee/review/' . $newEmployeeId),
@@ -729,6 +741,7 @@ class Employees extends BaseController
 
         try {
             $this->employeeModel->skipValidation(true)->update($id, $data);
+            $actorName = session()->get('name') ?? session()->get('username') ?? 'HR Admin';
 
             // Notify all Super Admins
             $db = \Config\Database::connect();
@@ -738,8 +751,10 @@ class Employees extends BaseController
                 foreach ($superAdmins as $sa) {
                     $this->notificationModel->insert([
                         'user_id' => $sa->id,
+                        'role'   => 'Super Admin',
                         'title'   => 'Re-application for Approval',
-                        'message' => "{$firstName} {$lastName} has re-applied after rejection and is awaiting your review.",
+                        'message' => "HR Admin {$actorName} re-submitted {$firstName} {$lastName} after rejection and is awaiting your review.",
+                        'status'  => 'unread',
                         'type'    => 'warning',
                         'icon'    => 'fas fa-redo',
                         'link'    => site_url('employee/review/' . $id),
@@ -992,8 +1007,10 @@ class Employees extends BaseController
                 foreach ($hrAdmins as $hrAdmin) {
                     $this->notificationModel->insert([
                         'user_id' => $hrAdmin->id,
+                        'role'    => 'HR Admin',
                         'title'   => 'Employee Account Approved',
                         'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' has been approved by Super Admin. Account credentials have been sent to their email.",
+                        'status'  => 'unread',
                         'type'    => 'success',
                         'icon'    => 'fas fa-check-circle',
                         'link'    => site_url('employee/show/' . $employeeId),
@@ -1062,8 +1079,10 @@ class Employees extends BaseController
                 foreach ($hrAdmins as $hrAdmin) {
                     $this->notificationModel->insert([
                         'user_id' => $hrAdmin->id,
+                        'role'    => 'HR Admin',
                         'title'   => 'Employee Account Rejected',
                         'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' (ID: {$employee->employee_id}) has been rejected by Super Admin. Reason: {$rejectionNotes}",
+                        'status'  => 'unread',
                         'type'    => 'danger',
                         'icon'    => 'fas fa-times-circle',
                         'link'    => site_url('employee/show/' . $employeeId),

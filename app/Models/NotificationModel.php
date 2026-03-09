@@ -17,8 +17,10 @@ class NotificationModel extends Model
     protected $deletedField = 'deleted_at';
     protected $allowedFields = [
         'user_id',
+        'role',
         'title',
         'message',
+        'status',
         'type',
         'link',
         'is_read',
@@ -33,7 +35,10 @@ class NotificationModel extends Model
     public function getUnreadNotifications($userId)
     {
         return $this->where('user_id', $userId)
-                    ->where('is_read', false)
+                    ->groupStart()
+                        ->where('status', 'unread')
+                        ->orWhere('is_read', false)
+                    ->groupEnd()
                     ->orderBy('created_at', 'DESC')
                     ->findAll();
     }
@@ -55,7 +60,10 @@ class NotificationModel extends Model
     public function getUnreadCount($userId)
     {
         return $this->where('user_id', $userId)
-                    ->where('is_read', false)
+                    ->groupStart()
+                        ->where('status', 'unread')
+                        ->orWhere('is_read', false)
+                    ->groupEnd()
                     ->countAllResults();
     }
 
@@ -66,7 +74,11 @@ class NotificationModel extends Model
     {
         return $this->where('id', $notificationId)
                     ->where('user_id', $userId)
-                    ->update(['is_read' => true]);
+                    ->set([
+                        'status' => 'read',
+                        'is_read' => true,
+                    ])
+                    ->update();
     }
 
     /**
@@ -75,18 +87,24 @@ class NotificationModel extends Model
     public function markAllAsRead($userId)
     {
         return $this->where('user_id', $userId)
-                    ->update(['is_read' => true]);
+                    ->set([
+                        'status' => 'read',
+                        'is_read' => true,
+                    ])
+                    ->update();
     }
 
     /**
      * Create a new notification
      */
-    public function createNotification($userId, $title, $message, $type = 'info', $link = null, $icon = 'fas fa-bell')
+    public function createNotification($userId, $title, $message, $type = 'info', $link = null, $icon = 'fas fa-bell', $role = null)
     {
         return $this->insert([
             'user_id' => $userId,
+            'role' => $role,
             'title' => $title,
             'message' => $message,
+            'status' => 'unread',
             'type' => $type,
             'link' => $link,
             'is_read' => false,
@@ -111,5 +129,13 @@ class NotificationModel extends Model
         return $this->where('id', $notificationId)
                     ->where('user_id', $userId)
                     ->delete();
+    }
+
+    /**
+     * Delete all notifications for a user
+     */
+    public function deleteAllNotifications($userId)
+    {
+        return $this->where('user_id', $userId)->delete();
     }
 }
