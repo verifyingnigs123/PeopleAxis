@@ -621,7 +621,10 @@
                     <div class="notification-dropdown-menu" id="notificationMenu">
                         <div class="notification-dropdown-header">
                             <h5>Notifications</h5>
-                            <button class="btn-clear" id="markAllRead" title="Mark all as read">Mark all read</button>
+                            <div>
+                                <button class="btn-clear" id="markAllRead" title="Mark all as read">Mark all read</button>
+                                <button class="btn-clear" id="deleteAllNotifications" title="Delete all notifications">Delete all</button>
+                            </div>
                         </div>
                         <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
                             <div class="notification-loading">
@@ -1025,6 +1028,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const notificationMenu = document.getElementById('notificationMenu');
     const notificationList = document.getElementById('notificationList');
     const markAllReadBtn = document.getElementById('markAllRead');
+    const deleteAllBtn = document.getElementById('deleteAllNotifications');
+    let notificationsPollHandle = null;
+    let notificationEventSource = null;
+    let streamReconnectHandle = null;
     
     if (!notificationBell || !notificationBadge) {
         console.warn('Notification elements not found');
@@ -1062,17 +1069,63 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success && Array.isArray(data.notifications)) {
                 renderNotifications(data.notifications);
-                updateBadge(data.notifications);
+                updateBadge(data.unread_count ?? null, data.notifications);
             } else {
                 showEmptyNotifications();
-                updateBadge([]);
+                updateBadge(0, []);
             }
         })
         .catch(error => {
             console.error('Error fetching notifications:', error);
             notificationList.innerHTML = '<div class="notification-empty"><i class="fas fa-exclamation-circle"></i><p>Error loading notifications</p></div>';
-            updateBadge([]);
+            updateBadge(0, []);
         });
+    }
+
+    function stopNotificationsPolling() {
+        if (notificationsPollHandle) {
+            clearInterval(notificationsPollHandle);
+            notificationsPollHandle = null;
+        }
+    }
+
+    function startNotificationsPolling(intervalMs) {
+        stopNotificationsPolling();
+        notificationsPollHandle = setInterval(fetchNotifications, intervalMs);
+    }
+
+    function connectNotificationStream() {
+        if (typeof EventSource === 'undefined') {
+            startNotificationsPolling(5000);
+            return;
+        }
+
+        if (notificationEventSource) {
+            notificationEventSource.close();
+            notificationEventSource = null;
+        }
+
+        notificationEventSource = new EventSource('<?= base_url('/api/notifications/stream') ?>');
+
+        notificationEventSource.addEventListener('notification', function() {
+            fetchNotifications();
+            stopNotificationsPolling();
+        });
+
+        notificationEventSource.onerror = function() {
+            if (notificationEventSource) {
+                notificationEventSource.close();
+                notificationEventSource = null;
+            }
+
+            // Fallback while stream is reconnecting.
+            startNotificationsPolling(5000);
+
+            if (streamReconnectHandle) {
+                clearTimeout(streamReconnectHandle);
+            }
+            streamReconnectHandle = setTimeout(connectNotificationStream, 5000);
+        };
     }
 
     // Render notifications in the dropdown
@@ -1086,7 +1139,8 @@ document.addEventListener('DOMContentLoaded', function() {
         notifications.forEach(notif => {
             const timeAgo   = getTimeAgo(notif.created_at);
             const typeClass = notif.type || 'info';
-            const isUnread  = parseInt(notif.is_read) === 0;
+            const statusVal = String(notif.status || '').toLowerCase();
+            const isUnread  = statusVal ? statusVal === 'unread' : parseInt(notif.is_read) === 0;
             const unreadClass = isUnread ? 'unread' : '';
             const linkAttr  = notif.link ? `data-link="${notif.link}"` : '';
             const cursor    = notif.link ? 'style="cursor:pointer;"' : '';
@@ -1154,11 +1208,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Update badge with unread count
-    function updateBadge(notifications) {
+    function updateBadge(unreadCountFromApi, notifications) {
         if (!notificationBadge) return;
 
-        // is_read can be 0, 1, "0", "1", true or false — normalise with parseInt
-        const unreadCount = notifications.filter(n => parseInt(n.is_read) === 0).length;
+        let unreadCount = Number.isInteger(unreadCountFromApi)
+            ? unreadCountFromApi
+            : notifications.filter(n => {
+                const statusVal = String(n.status || '').toLowerCase();
+                return statusVal ? statusVal === 'unread' : parseInt(n.is_read) === 0;
+            }).length;
 
         if (unreadCount > 0) {
             notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
@@ -1208,14 +1266,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!confirm('Are you sure you want to delete this notification?')) return;
 
         const fd = csrfFormData();
-        fd.append('_method', 'DELETE');   // method override for DELETE route
 
-        fetch(`<?= base_url('/api/notifications/') ?>${notificationId}`, {
-            method: 'DELETE',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': CSRF_HASH
-            }
+        fetch(`<?= base_url('/api/notifications/') ?>${notificationId}/delete`, {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            refreshCsrf(data);
+            if (data.success) fetchNotifications();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function deleteAllNotifications() {
+        if (!confirm('Delete all notifications? This cannot be undone.')) return;
+
+        fetch('<?= base_url('/api/notifications/delete-all') ?>', {
+            method: 'POST',
+            body: csrfFormData(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
         .then(data => {
@@ -1286,9 +1357,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Fetch notifications and auto-refresh
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            deleteAllNotifications();
+        });
+    }
+
+    // Initial load and real-time updates
     fetchNotifications();
-    setInterval(fetchNotifications, 30000);
+    connectNotificationStream();
+    startNotificationsPolling(5000);
+
+    window.addEventListener('beforeunload', function() {
+        if (notificationEventSource) {
+            notificationEventSource.close();
+        }
+        stopNotificationsPolling();
+        if (streamReconnectHandle) {
+            clearTimeout(streamReconnectHandle);
+        }
+    });
 });
 
 // ===== Handle Sidebar Form Submissions =====

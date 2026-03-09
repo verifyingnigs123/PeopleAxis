@@ -30,11 +30,13 @@ class Notification extends BaseController
 
         try {
             $notifications = $this->notificationModel->getUserNotifications($userId, (int)$limit);
+            $unreadCount = $this->notificationModel->getUnreadCount($userId);
             
             return $this->response->setJSON([
                 'success' => true,
                 'notifications' => $notifications,
-                'count' => count($notifications)
+                'count' => count($notifications),
+                'unread_count' => $unreadCount,
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to fetch notifications: ' . $e->getMessage());
@@ -73,6 +75,78 @@ class Notification extends BaseController
                 'message' => 'Failed to fetch unread count'
             ])->setStatusCode(500);
         }
+    }
+
+    /**
+     * Server-Sent Events stream for near real-time notification updates.
+     */
+    public function stream()
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setBody('Unauthorized');
+        }
+
+        $userId = (int) session()->get('user_id');
+
+        @ini_set('output_buffering', 'off');
+        @ini_set('zlib.output_compression', 0);
+        @ini_set('implicit_flush', 1);
+        if (function_exists('apache_setenv')) {
+            @apache_setenv('no-gzip', '1');
+        }
+
+        ignore_user_abort(true);
+        set_time_limit(0);
+
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache, no-transform');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+
+        $lastUnread = null;
+        $lastLatestId = null;
+        $startedAt = time();
+        $maxRuntimeSeconds = 25;
+
+        while (!connection_aborted() && (time() - $startedAt) < $maxRuntimeSeconds) {
+            $unreadCount = (int) $this->notificationModel->getUnreadCount($userId);
+            $latest = $this->notificationModel
+                ->where('user_id', $userId)
+                ->orderBy('id', 'DESC')
+                ->first();
+            $latestId = $latest ? (int) $latest->id : 0;
+
+            if ($unreadCount !== $lastUnread || $latestId !== $lastLatestId) {
+                $payload = json_encode([
+                    'unread_count' => $unreadCount,
+                    'latest_notification_id' => $latestId,
+                    'ts' => time(),
+                ]);
+
+                echo "event: notification\n";
+                echo "data: {$payload}\n\n";
+
+                $lastUnread = $unreadCount;
+                $lastLatestId = $latestId;
+            } else {
+                // Keep-alive comment so proxies do not close idle streams.
+                echo ": ping\n\n";
+            }
+
+            if (ob_get_level() > 0) {
+                @ob_flush();
+            }
+            @flush();
+            sleep(2);
+        }
+
+        echo "event: close\n";
+        echo "data: {}\n\n";
+        if (ob_get_level() > 0) {
+            @ob_flush();
+        }
+        @flush();
+        return;
     }
 
     /**
@@ -164,6 +238,37 @@ class Notification extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Failed to delete notification'
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Delete all notifications for the logged-in user
+     */
+    public function deleteAll()
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ])->setStatusCode(401);
+        }
+
+        $userId = session()->get('user_id');
+
+        try {
+            $this->notificationModel->deleteAllNotifications($userId);
+
+            return $this->response->setJSON([
+                'success'   => true,
+                'message'   => 'All notifications deleted',
+                'csrf_hash' => csrf_hash(),
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to delete all notifications: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete all notifications'
             ])->setStatusCode(500);
         }
     }

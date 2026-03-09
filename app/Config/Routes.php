@@ -92,9 +92,12 @@ $routes->post('/reports/generate', 'Reports::generate');
 
 // Notification routes (API)
 $routes->get('/api/notifications', 'Notification::getNotifications');
+$routes->get('/api/notifications/stream', 'Notification::stream');
 $routes->get('/api/notifications/unread-count', 'Notification::getUnreadCount');
 $routes->post('/api/notifications/(:num)/read', 'Notification::markAsRead/$1');
 $routes->post('/api/notifications/mark-all-read', 'Notification::markAllAsRead');
+$routes->post('/api/notifications/(:num)/delete', 'Notification::delete/$1');
+$routes->post('/api/notifications/delete-all', 'Notification::deleteAll');
 $routes->delete('/api/notifications/(:num)', 'Notification::delete/$1');
 
 // Forgot Password routes
