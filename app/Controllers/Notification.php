@@ -88,6 +88,11 @@ class Notification extends BaseController
 
         $userId = (int) session()->get('user_id');
 
+        // CRITICAL: release the PHP session lock immediately.
+        // Without this, every other page request that needs the session
+        // (i.e. every page load) is blocked until this SSE stream ends.
+        session_write_close();
+
         @ini_set('output_buffering', 'off');
         @ini_set('zlib.output_compression', 0);
         @ini_set('implicit_flush', 1);

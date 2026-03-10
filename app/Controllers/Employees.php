@@ -5,16 +5,17 @@ namespace App\Controllers;
 use App\Models\EmployeeModel;
 use App\Models\SalaryModel;
 use App\Models\DepartmentModel;
-use App\Models\PositionModel;
+use App\Models\RoleModel;
 use App\Models\NotificationModel;
 use App\Models\UserModel;
+use App\Libraries\PhDeductions;
 
 class Employees extends BaseController
 {
     protected $employeeModel;
     protected $salaryModel;
     protected $departmentModel;
-    protected $positionModel;
+    protected $roleModel;
     protected $notificationModel;
     protected $userModel;
 
@@ -23,7 +24,7 @@ class Employees extends BaseController
         $this->employeeModel = new EmployeeModel();
         $this->salaryModel = new SalaryModel();
         $this->departmentModel = new DepartmentModel();
-        $this->positionModel = new PositionModel();
+        $this->roleModel = new RoleModel();
         $this->notificationModel = new NotificationModel();
         $this->userModel = new UserModel();
     }
@@ -50,9 +51,21 @@ class Employees extends BaseController
         }
 
         try {
-            $employees = $this->employeeModel->orderBy('created_at', 'DESC')->findAll();
+            // Fetch employees with their role name joined from users → roles via email match.
+            // COALESCE falls back to the role set directly on the employee record (employees.role_id)
+            // so that employees pending a user account still show the correct position (e.g. Manager).
+            $db = \Config\Database::connect();
+            $employeeRows = $db->table('employees')
+                ->select('employees.*, COALESCE(user_roles.name, emp_roles.name) AS user_role_name')
+                ->join('users',       'users.email = employees.email AND users.deleted_at IS NULL AND users.is_active = 1', 'left')
+                ->join('roles AS user_roles', 'user_roles.id = users.role_id AND user_roles.deleted_at IS NULL', 'left')
+                ->join('roles AS emp_roles',  'emp_roles.id = employees.role_id AND emp_roles.deleted_at IS NULL', 'left')
+                ->orderBy('employees.created_at', 'DESC')
+                ->get()->getResult();
+            $employees = $employeeRows;
+
             $departments = $this->departmentModel->getActiveDepartments();
-            $positions = $this->positionModel->getActivePositions();
+            $roles = $this->roleModel->where('deleted_at', null)->orderBy('name', 'ASC')->findAll();
             
             // Get pending employees for Super Admin approval
             $pendingEmployees = [];
@@ -61,10 +74,10 @@ class Employees extends BaseController
                 $pendingEmployees = $this->employeeModel->getPendingEmployees();
             }
             
-            // Create position lookup array for quick access
-            $positionMap = [];
-            foreach ($positions as $pos) {
-                $positionMap[$pos->id] = $pos->name;
+            // Create role lookup array for quick access
+            $roleMap = [];
+            foreach ($roles as $r) {
+                $roleMap[$r->id] = $r->name;
             }
             
             // Create department lookup array for quick access
@@ -75,11 +88,6 @@ class Employees extends BaseController
 
             // Build a map of user emails → role name from the users/roles tables,
             // restricted to active users only.
-            //   "Active"  → employee email exists as an active 'Employee' role user account
-            //   "Pending" → employee has no user account yet
-            // Employees linked to non-Employee roles (HR Admin, Super Admin, etc.)
-            // are excluded from the HR Admin employees table entirely.
-            $db = \Config\Database::connect();
             $userRows = $db->table('users')
                 ->select('users.email, roles.name as role_name')
                 ->join('roles', 'roles.id = users.role_id', 'left')
@@ -88,49 +96,89 @@ class Employees extends BaseController
                 ->get()
                 ->getResultArray();
 
-            // Build two sets: emails with Employee role, emails with any other role
-            $employeeRoleEmailSet = [];  // email → true  (Employee role users)
-            $nonEmployeeEmailSet  = [];  // email → true  (HR Admin, Super Admin, Manager, etc.)
+            // Build sets based on role:
+            //   $adminOnlyEmailSet  → Super Admin / HR Admin accounts (excluded from HR view)
+            //   $userEmailSet       → Employee and Manager-role users (shown as Active badge)
+            $adminOnlyEmailSet = [];  // email → true  (Super Admin, HR Admin)
+            $userEmailSet      = [];  // email → true  (Employee, Manager — shown as Active)
             foreach ($userRows as $usr) {
-                if (strtolower($usr['role_name']) === 'employee') {
-                    $employeeRoleEmailSet[$usr['email']] = true;
+                $rn = strtolower($usr['role_name']);
+                if (in_array($rn, ['super admin', 'hr admin'])) {
+                    $adminOnlyEmailSet[$usr['email']] = true;
                 } else {
-                    $nonEmployeeEmailSet[$usr['email']] = true;
+                    // Employee, Manager, or any other non-admin role
+                    $userEmailSet[$usr['email']] = true;
                 }
             }
 
-            // Only include employees that are either:
-            //   (a) not linked to any user account yet (pending), OR
-            //   (b) linked to a user with the 'Employee' role
-            $employees = array_filter($employees, function ($emp) use ($nonEmployeeEmailSet) {
-                return !isset($nonEmployeeEmailSet[$emp->email]);
+            // Build a set of emails whose user accounts have been soft-deleted by
+            // Super Admin (is_active = 0).  These employees should be hidden from
+            // the HR Admin table; they reappear automatically once the account is
+            // restored (is_active restored to 1).
+            $deletedAccountRows = $db->table('users')
+                ->select('email')
+                ->where('is_active', 0)
+                ->get()
+                ->getResultArray();
+            $deletedAccountEmailSet = [];
+            foreach ($deletedAccountRows as $du) {
+                $deletedAccountEmailSet[$du['email']] = true;
+            }
+
+            // Exclude Super Admin / HR Admin accounts AND employees whose user
+            // account has been deleted.  Employees with no account at all are
+            // still shown (they were never deleted, just not registered yet).
+            $employees = array_filter($employees, function ($emp) use ($adminOnlyEmailSet, $deletedAccountEmailSet) {
+                return !isset($adminOnlyEmailSet[$emp->email])
+                    && !isset($deletedAccountEmailSet[$emp->email]);
             });
             $employees = array_values($employees);
 
-            // $userEmailSet = emails of active Employee-role users (for the badge in the view)
-            $userEmailSet = $employeeRoleEmailSet;
-
-            // Sync account_status in DB for each visible employee so it stays accurate
-            // IMPORTANT: never overwrite an already-rejected or approved status
+            // Sync account_status in DB for each visible employee so it stays accurate.
+            // IMPORTANT: never overwrite an already-rejected or approved status.
+            // Batch all updates into two single queries (active / pending) instead of
+            // one UPDATE per row to avoid N-query slowness on page load.
+            // Also reset status=inactive for any pending employee that somehow has status=active
+            // (e.g. records created before the inactive-by-default rule was enforced).
+            $toActive  = [];
+            $toPending = [];
+            $toInactive = [];
             foreach ($employees as $emp) {
                 $current = $emp->account_status ?? 'pending';
-                // Only auto-sync pending employees; leave rejected/approved untouched
                 if (in_array($current, ['rejected', 'approved'])) {
                     continue;
                 }
                 $newAccountStatus = isset($userEmailSet[$emp->email]) ? 'active' : 'pending';
                 if ($current !== $newAccountStatus) {
-                    $this->employeeModel->skipValidation(true)->update($emp->id, ['account_status' => $newAccountStatus]);
+                    if ($newAccountStatus === 'active') {
+                        $toActive[]  = $emp->id;
+                    } else {
+                        $toPending[] = $emp->id;
+                    }
                     $emp->account_status = $newAccountStatus;
                 }
+                // Ensure pending employees have status=inactive in the DB
+                if ($newAccountStatus === 'pending' && ($emp->status ?? 'inactive') !== 'inactive') {
+                    $toInactive[] = $emp->id;
+                    $emp->status  = 'inactive';
+                }
+            }
+            if (!empty($toActive)) {
+                $db->table('employees')->whereIn('id', $toActive)->update(['account_status' => 'active']);
+            }
+            if (!empty($toPending)) {
+                $db->table('employees')->whereIn('id', $toPending)->update(['account_status' => 'pending']);
+            }
+            if (!empty($toInactive)) {
+                $db->table('employees')->whereIn('id', $toInactive)->update(['status' => 'inactive']);
             }
 
         } catch (\Exception $e) {
             log_message('error', 'Failed to load employees: ' . $e->getMessage());
             $employees = [];
             $departments = [];
-            $positions = [];
-            $positionMap = [];
+            $roles = [];
+            $roleMap = [];
             $departmentMap = [];
             $pendingEmployees = [];
             $userEmailSet = [];
@@ -139,8 +187,9 @@ class Employees extends BaseController
         $data = [
             'employees'     => $employees,
             'departments'   => $departments,
-            'positions'     => $positions,
-            'positionMap'   => $positionMap,
+            'roles'         => $roles ?? [],
+            'positions'     => $roles ?? [],
+            'positionMap'   => $roleMap ?? [],
             'departmentMap' => $departmentMap,
             'pendingEmployees' => [],
             'isSuperAdmin'  => false,
@@ -177,10 +226,10 @@ class Employees extends BaseController
                 ->findAll();
 
             $departments = $this->departmentModel->getActiveDepartments();
-            $positions   = $this->positionModel->getActivePositions();
+            $roles       = $this->roleModel->where('deleted_at', null)->orderBy('name', 'ASC')->findAll();
 
-            $positionMap   = [];
-            foreach ($positions   as $p) { $positionMap[$p->id]   = $p->name; }
+            $roleMap = [];
+            foreach ($roles as $r) { $roleMap[$r->id] = $r->name; }
             $departmentMap = [];
             foreach ($departments as $d) { $departmentMap[$d->id] = $d->name; }
 
@@ -188,14 +237,14 @@ class Employees extends BaseController
             log_message('error', 'pendingApprovals error: ' . $e->getMessage());
             $pending  = [];
             $rejected = [];
-            $positionMap   = [];
+            $roleMap       = [];
             $departmentMap = [];
         }
 
         return view('employee/pending_approvals', [
             'pending'      => $pending,
             'rejected'     => $rejected,
-            'positionMap'  => $positionMap,
+            'positionMap'  => $roleMap,
             'departmentMap'=> $departmentMap,
         ]);
     }
@@ -218,16 +267,16 @@ class Employees extends BaseController
 
         try {
             $departments = $this->departmentModel->getActiveDepartments();
-            $positions = $this->positionModel->getActivePositions();
+            $roles = $this->roleModel->where('deleted_at', null)->orderBy('name', 'ASC')->findAll();
         } catch (\Exception $e) {
-            log_message('error', 'Failed to load departments/positions: ' . $e->getMessage());
+            log_message('error', 'Failed to load departments/roles: ' . $e->getMessage());
             $departments = [];
-            $positions = [];
+            $roles = [];
         }
 
         $data = [
             'departments' => $departments,
-            'positions' => $positions,
+            'roles'       => $roles,
         ];
 
         return view('employee/create', $data);
@@ -253,15 +302,19 @@ class Employees extends BaseController
         }
 
         $rules = [
-            'first_name' => 'required|min_length[2]',
-            'last_name' => 'required|min_length[2]',
-            'email' => 'required|valid_email|is_unique[employees.email]',
-            'phone' => 'permit_empty',
-            'department_id' => 'permit_empty|integer',
-            'position_id' => 'permit_empty|integer',
-            'date_of_birth' => 'permit_empty|valid_date',
+            'first_name'      => 'required|min_length[2]',
+            'last_name'       => 'required|min_length[2]',
+            'email'           => 'required|valid_email|is_unique[employees.email]',
+            'phone'           => 'permit_empty',
+            'department_id'   => 'permit_empty|integer',
+            'role_id'         => 'permit_empty|integer',
+            'date_of_birth'   => 'permit_empty|valid_date',
             'date_of_joining' => 'required|valid_date',
-            'status' => 'permit_empty|in_list[active,inactive,suspended]',
+            'status'          => 'permit_empty|in_list[active,inactive,suspended]',
+            'biometric_id'    => 'permit_empty',
+            'rate'            => 'permit_empty',
+            'rate_type'       => 'permit_empty|in_list[hourly,daily,monthly]',
+            'employment_type' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]',
         ];
 
         if (!$this->validate($rules)) {
@@ -318,18 +371,24 @@ class Employees extends BaseController
         
         $employeeId = 'PPA-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
 
+        $dateHired = trim($this->request->getPost('date_of_joining') ?? '');
         $data = [
-            'employee_id' => $employeeId,
-            'first_name' => trim($this->request->getPost('first_name')),
-            'last_name' => trim($this->request->getPost('last_name')),
-            'email' => trim($this->request->getPost('email')),
-            'phone' => $this->request->getPost('phone'),
-            'department_id' => $this->request->getPost('department_id'),
-            'position_id' => $this->request->getPost('position_id'),
-            'date_of_birth' => $dateOfBirth ?: null,
-            'date_of_joining' => $this->request->getPost('date_of_joining'),
-            'status' => $this->request->getPost('status') ?? 'active',
-            'account_status' => 'pending',  // New employee account is pending approval
+            'employee_id'     => $employeeId,
+            'first_name'      => trim($this->request->getPost('first_name')),
+            'last_name'       => trim($this->request->getPost('last_name')),
+            'email'           => trim($this->request->getPost('email')),
+            'phone'           => $this->request->getPost('phone'),
+            'department_id'   => $this->request->getPost('department_id') ?: null,
+            'role_id'         => $this->request->getPost('role_id') ?: null,
+            'date_of_birth'   => $dateOfBirth ?: null,
+            'date_of_joining' => $dateHired ?: null,
+            'date_hired'      => $dateHired ?: null,
+            'status'          => 'inactive',  // always inactive until Super Admin approves
+            'account_status'  => 'pending',
+            'biometric_id'    => $employeeId,
+            'rate'            => $this->request->getPost('rate') ?: null,
+            'rate_type'       => $this->request->getPost('rate_type') ?: null,
+            'employment_type' => $this->request->getPost('employment_type') ?: null,
         ];
 
         try {
@@ -375,6 +434,28 @@ class Employees extends BaseController
                     ]);
                 }
 
+                // Auto-create salary record from the rate/rate_type if provided
+                $rate     = (float) ($this->request->getPost('rate') ?? 0);
+                $rateType = $this->request->getPost('rate_type') ?? 'monthly';
+                if ($rate > 0) {
+                    if ($rateType === 'hourly')    { $baseSalary = $rate * 8 * 26; }
+                    elseif ($rateType === 'daily') { $baseSalary = $rate * 26; }
+                    else                           { $baseSalary = $rate; }
+                    $ded = PhDeductions::compute($baseSalary, 0);
+                    $this->salaryModel->skipValidation(true)->insert([
+                        'employee_id'             => $newEmployeeId,
+                        'base_salary'             => $baseSalary,
+                        'allowances'              => 0,
+                        'sss_contribution'        => $ded['sss'],
+                        'philhealth_contribution' => $ded['philhealth'],
+                        'pagibig_contribution'    => $ded['pagibig'],
+                        'withholding_tax'         => $ded['withholding_tax'],
+                        'deductions'              => 0,
+                        'net_salary'              => $ded['net_salary'],
+                        'effective_from'          => date('Y-m-d'),
+                    ]);
+                }
+
                 // Check if it's an AJAX request
                 if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
                     return $this->response->setJSON([
@@ -417,9 +498,10 @@ class Employees extends BaseController
             return redirect()->to('/login');
         }
 
-        // Check access: HR Admin or Super Admin
+        // Check access: HR Admin and Super Admin see all details including salary.
+        // Manager can view basic employee info but salary is hidden in the view.
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'])) {
+        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin', 'Manager', 'manager'])) {
             return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
 
@@ -429,24 +511,75 @@ class Employees extends BaseController
                 return redirect()->to('/employee')->with('error', 'Employee not found');
             }
 
-            // Load related department and position information
+            // Load related department
             $department = null;
-            $position = null;
-            
             if ($employee->department_id) {
                 $department = $this->departmentModel->find($employee->department_id);
             }
-            
-            if ($employee->position_id) {
-                $position = $this->positionModel->find($employee->position_id);
+
+            // Resolve position the same way as the employee index:
+            // employees → users (by email) → roles
+            $db = \Config\Database::connect();
+            $positionRecord = null;
+            $userRow = $db->table('users')
+                ->select('roles.id AS role_id, roles.name AS role_name')
+                ->join('roles', 'roles.id = users.role_id AND roles.deleted_at IS NULL', 'left')
+                ->where('users.email', $employee->email)
+                ->where('users.deleted_at IS NULL')
+                ->where('users.is_active', 1)
+                ->get()->getRow();
+            if ($userRow && $userRow->role_name) {
+                // Build a simple object so the view can use $position->name
+                $positionRecord = (object)['id' => $userRow->role_id, 'name' => $userRow->role_name];
+            }
+
+            // Load salary information for this employee; auto-create/recompute statutory if needed
+            $salary  = $this->salaryModel->getEmployeeSalary($employee->id);
+            $empRate = (float)($employee->rate ?? 0);
+            if ($empRate > 0) {
+                $rt = $employee->rate_type ?? 'monthly';
+                if ($rt === 'hourly')    { $base = $empRate * 8 * 26; }
+                elseif ($rt === 'daily') { $base = $empRate * 26; }
+                else                     { $base = $empRate; }
+                if (!$salary) {
+                    $ded = PhDeductions::compute($base, 0);
+                    $this->salaryModel->skipValidation(true)->insert([
+                        'employee_id'             => $employee->id,
+                        'base_salary'             => $base,
+                        'allowances'              => 0,
+                        'sss_contribution'        => $ded['sss'],
+                        'philhealth_contribution' => $ded['philhealth'],
+                        'pagibig_contribution'    => $ded['pagibig'],
+                        'withholding_tax'         => $ded['withholding_tax'],
+                        'deductions'              => 0,
+                        'net_salary'              => $ded['net_salary'],
+                        'effective_from'          => date('Y-m-d'),
+                    ]);
+                    $salary = $this->salaryModel->getEmployeeSalary($employee->id);
+                } elseif ((float)($salary->sss_contribution ?? 0) == 0) {
+                    // Backfill statutory columns for legacy rows
+                    $allowances = (float)($salary->allowances ?? 0);
+                    $extraDed   = (float)($salary->deductions ?? 0);
+                    $ded = PhDeductions::compute((float)$salary->base_salary, $allowances);
+                    $this->salaryModel->update($salary->id, [
+                        'sss_contribution'        => $ded['sss'],
+                        'philhealth_contribution' => $ded['philhealth'],
+                        'pagibig_contribution'    => $ded['pagibig'],
+                        'withholding_tax'         => $ded['withholding_tax'],
+                        'net_salary'              => $ded['net_salary'] - $extraDed,
+                    ]);
+                    $salary = $this->salaryModel->getEmployeeSalary($employee->id);
+                }
             }
 
             $data = [
                 'employee'    => $employee,
                 'department'  => $department,
-                'position'    => $position,
+                'position'    => $positionRecord,
                 'departments' => $this->departmentModel->getActiveDepartments(),
-                'positions'   => $this->positionModel->getActivePositions(),
+                'roles'       => $this->roleModel->where('deleted_at', null)->orderBy('name', 'ASC')->findAll(),
+                'positions'   => $this->roleModel->where('deleted_at', null)->orderBy('name', 'ASC')->findAll(),
+                'salary'      => $salary,
             ];
 
             return view('employee/show', $data);
@@ -479,12 +612,13 @@ class Employees extends BaseController
             }
 
             $departments = $this->departmentModel->getActiveDepartments();
-            $positions = $this->positionModel->getActivePositions();
+            $roles = $this->roleModel->where('deleted_at', null)->orderBy('name', 'ASC')->findAll();
 
             $data = [
-                'employee' => $employee,
+                'employee'    => $employee,
                 'departments' => $departments,
-                'positions' => $positions,
+                'roles'       => $roles,
+                'positions'   => $roles,
             ];
 
             return view('employee/edit', $data);
@@ -547,10 +681,14 @@ class Employees extends BaseController
             'email'          => ['label' => 'Email',          'rules' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']'],
             'phone'          => ['label' => 'Phone',          'rules' => 'permit_empty|max_length[20]'],
             'department_id'  => ['label' => 'Department',     'rules' => 'permit_empty|integer'],
-            'position_id'    => ['label' => 'Position',       'rules' => 'permit_empty|integer'],
+            'role_id'        => ['label' => 'Role',            'rules' => 'permit_empty|integer'],
             'date_of_birth'  => ['label' => 'Date of Birth',  'rules' => 'permit_empty|valid_date'],
-            'date_of_joining'=> ['label' => 'Date of Joining','rules' => 'required|valid_date'],
+            'date_of_joining'=> ['label' => 'Date Hired',      'rules' => 'required|valid_date'],
             'status'         => ['label' => 'Status',         'rules' => 'permit_empty|in_list[active,inactive,suspended]'],
+            'biometric_id'   => ['label' => 'Biometric ID',   'rules' => 'permit_empty'],
+            'rate'           => ['label' => 'Salary Rate',    'rules' => 'permit_empty'],
+            'rate_type'      => ['label' => 'Rate Type',      'rules' => 'permit_empty|in_list[hourly,daily,monthly]'],
+            'employment_type'=> ['label' => 'Employment Type','rules' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]'],
         ];
 
         if (!$this->validate($rules)) {
@@ -619,20 +757,62 @@ class Employees extends BaseController
             }
         }
 
+        $dateHiredUpd = trim($this->request->getPost('date_of_joining') ?? '');
         $data = [
             'first_name'      => $firstName,
             'last_name'       => $lastName,
             'email'           => trim($this->request->getPost('email')),
             'phone'           => $phone ?: null,
             'department_id'   => $this->request->getPost('department_id') ?: null,
-            'position_id'     => $this->request->getPost('position_id') ?: null,
+            'role_id'         => $this->request->getPost('role_id') ?: null,
             'date_of_birth'   => $dateOfBirth ?: null,
-            'date_of_joining' => $this->request->getPost('date_of_joining'),
+            'date_of_joining' => $dateHiredUpd ?: null,
+            'date_hired'      => $dateHiredUpd ?: null,
             'status'          => $this->request->getPost('status') ?? 'active',
+            'biometric_id'    => $employee->employee_id,
+            'rate'            => $this->request->getPost('rate') ?: null,
+            'rate_type'       => $this->request->getPost('rate_type') ?: null,
+            'employment_type' => $this->request->getPost('employment_type') ?: null,
         ];
 
         try {
             $this->employeeModel->skipValidation(true)->update($id, $data);
+
+            // Auto-upsert salary record when rate is provided
+            $rate     = (float) ($this->request->getPost('rate') ?? 0);
+            $rateType = $this->request->getPost('rate_type') ?? 'monthly';
+            if ($rate > 0) {
+                if ($rateType === 'hourly')    { $baseSalary = $rate * 8 * 26; }
+                elseif ($rateType === 'daily') { $baseSalary = $rate * 26; }
+                else                           { $baseSalary = $rate; }
+                $existing   = $this->salaryModel->getEmployeeSalary($id);
+                $allowances = $existing ? (float)($existing->allowances ?? 0) : 0;
+                $extraDed   = $existing ? (float)($existing->deductions ?? 0) : 0;
+                $ded = PhDeductions::compute($baseSalary, $allowances);
+                if ($existing) {
+                    $this->salaryModel->update($existing->id, [
+                        'base_salary'             => $baseSalary,
+                        'sss_contribution'        => $ded['sss'],
+                        'philhealth_contribution' => $ded['philhealth'],
+                        'pagibig_contribution'    => $ded['pagibig'],
+                        'withholding_tax'         => $ded['withholding_tax'],
+                        'net_salary'              => $ded['net_salary'] - $extraDed,
+                    ]);
+                } else {
+                    $this->salaryModel->skipValidation(true)->insert([
+                        'employee_id'             => $id,
+                        'base_salary'             => $baseSalary,
+                        'allowances'              => 0,
+                        'sss_contribution'        => $ded['sss'],
+                        'philhealth_contribution' => $ded['philhealth'],
+                        'pagibig_contribution'    => $ded['pagibig'],
+                        'withholding_tax'         => $ded['withholding_tax'],
+                        'deductions'              => 0,
+                        'net_salary'              => $ded['net_salary'],
+                        'effective_from'          => date('Y-m-d'),
+                    ]);
+                }
+            }
 
             if ($isAjax) {
                 return $this->response->setJSON(['success' => true, 'message' => 'Employee updated successfully', 'csrf_hash' => csrf_hash()]);
@@ -675,10 +855,14 @@ class Employees extends BaseController
             'email'           => ['label' => 'Email',          'rules' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']'],
             'phone'           => ['label' => 'Phone',          'rules' => 'permit_empty|max_length[20]'],
             'department_id'   => ['label' => 'Department',     'rules' => 'permit_empty|integer'],
-            'position_id'     => ['label' => 'Position',       'rules' => 'permit_empty|integer'],
+            'role_id'         => ['label' => 'Role',            'rules' => 'permit_empty|integer'],
             'date_of_birth'   => ['label' => 'Date of Birth',  'rules' => 'permit_empty|valid_date'],
-            'date_of_joining' => ['label' => 'Date of Joining','rules' => 'required|valid_date'],
+            'date_of_joining' => ['label' => 'Date Hired',     'rules' => 'required|valid_date'],
             'status'          => ['label' => 'Status',         'rules' => 'permit_empty|in_list[active,inactive,suspended]'],
+            'biometric_id'    => ['label' => 'Biometric ID',   'rules' => 'permit_empty'],
+            'rate'            => ['label' => 'Salary Rate',    'rules' => 'permit_empty'],
+            'rate_type'       => ['label' => 'Rate Type',      'rules' => 'permit_empty|in_list[hourly,daily,monthly]'],
+            'employment_type' => ['label' => 'Employment Type','rules' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]'],
         ];
 
         if (!$this->validate($rules)) {
@@ -708,7 +892,7 @@ class Employees extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $specialErrors, 'csrf_hash' => csrf_hash()]);
         }
 
-        // Birthdate validation: must not be 2026 or later, and employee must be at least 18 years old
+        // Birthdate validation: employee must be at least 18 years old
         $dateOfBirth = trim($this->request->getPost('date_of_birth') ?? '');
         if ($dateOfBirth !== '') {
             $dob = \DateTime::createFromFormat('Y-m-d', $dateOfBirth);
@@ -717,26 +901,29 @@ class Employees extends BaseController
             }
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
-            if ((int)$dob->format('Y') >= 2026) {
-                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Users must be 18 years old or older to create an account.'], 'csrf_hash' => csrf_hash()]);
-            }
             if ($age < 18) {
                 return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Employee must be at least 18 years old.'], 'csrf_hash' => csrf_hash()]);
             }
         }
 
+        $dateHiredRA = trim($this->request->getPost('date_of_joining') ?? '');
         $data = [
             'first_name'      => $firstName,
             'last_name'       => $lastName,
             'email'           => trim($this->request->getPost('email')),
             'phone'           => $phone ?: null,
             'department_id'   => $this->request->getPost('department_id') ?: null,
-            'position_id'     => $this->request->getPost('position_id') ?: null,
+            'role_id'         => $this->request->getPost('role_id') ?: null,
             'date_of_birth'   => $dateOfBirth ?: null,
-            'date_of_joining' => $this->request->getPost('date_of_joining'),
+            'date_of_joining' => $dateHiredRA ?: null,
+            'date_hired'      => $dateHiredRA ?: null,
             'status'          => $this->request->getPost('status') ?? 'active',
             'account_status'  => 'pending',
             'approval_notes'  => null,
+            'biometric_id'    => $employee->employee_id,
+            'rate'            => $this->request->getPost('rate') ?: null,
+            'rate_type'       => $this->request->getPost('rate_type') ?: null,
+            'employment_type' => $this->request->getPost('employment_type') ?: null,
         ];
 
         try {
@@ -784,7 +971,7 @@ class Employees extends BaseController
             return redirect()->to('/employee');
         }
 
-        // Check access: Super Admin can delete anyone; HR Admin can only delete rejected employees
+        // Check access: Super Admin and HR Admin can delete any employee record
         $role = session()->get('role_name') ?? session()->get('role');
         $isSuperAdmin = in_array($role, ['Super Admin', 'admin']);
         $isHRAdmin    = in_array($role, ['HR Admin', 'hr']);
@@ -804,14 +991,34 @@ class Employees extends BaseController
             ]);
         }
 
-        // HR Admin may only delete employees whose account was rejected
-        if ($isHRAdmin && !$isSuperAdmin && ($employee->account_status ?? '') !== 'rejected') {
-            return redirect()->to('/employee')->with('error', 'HR Admin can only delete rejected employee records.');
-        }
-
         try {
-            $this->employeeModel->delete($id);
-            return redirect()->to('/employee')->with('success', 'Employee deleted successfully');
+            // Do NOT hard-delete the employee record — doing so would permanently destroy
+            // the employee_id and all data, making restoration impossible.
+            // Instead, only soft-delete the linked user account (is_active = 0).
+            // The $deletedAccountEmailSet filter in Employees::index() already hides
+            // employees whose user account is deactivated, and reveals them automatically
+            // when the account is restored — preserving the employee_id throughout.
+            $userDeactivated = false;
+            if (!empty($employee->email)) {
+                $db = \Config\Database::connect();
+                $affected = $db->table('users')
+                    ->where('email', $employee->email)
+                    ->where('is_active', 1)
+                    ->update([
+                        'is_active'  => 0,
+                        'deleted_at' => date('Y-m-d H:i:s'),
+                    ]);
+                $userDeactivated = ($db->affectedRows() > 0);
+            }
+
+            // For employees that have no linked user account (e.g. rejected applications),
+            // fall back to actually deleting the employee record since there is nothing to restore.
+            if (!$userDeactivated) {
+                $this->employeeModel->delete($id);
+                return redirect()->to('/employee')->with('success', 'Employee record permanently deleted.');
+            }
+
+            return redirect()->to('/users')->with('success', 'Employee account deactivated. Their record is preserved and can be fully restored from Manage Users.');
         } catch (\Exception $e) {
             log_message('error', 'Employee deletion failed: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to delete employee');
@@ -819,28 +1026,265 @@ class Employees extends BaseController
     }
 
     /**
+     * HR Admin requests deletion — notifies all Super Admins, does NOT delete
+     */
+    public function requestDelete($id)
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->to('/employee');
+        }
+
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['HR Admin', 'hr'])) {
+            return redirect()->to('/employee')->with('error', 'Access denied.');
+        }
+
+        $employee = $this->employeeModel->find($id);
+        if (!$employee) {
+            return redirect()->to('/employee')->with('error', 'Employee not found.');
+        }
+
+        $hrName  = session()->get('name') ?? session()->get('username') ?? 'HR Admin';
+        $empName = trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''));
+        $empId   = $employee->employee_id ?? "ID:{$id}";
+
+        $db = \Config\Database::connect();
+        $superAdminRole = $db->table('roles')->where('name', 'Super Admin')->get()->getRow();
+
+        if ($superAdminRole) {
+            $superAdmins = $this->userModel
+                ->where('role_id', $superAdminRole->id)
+                ->where('is_active', 1)
+                ->findAll();
+
+            foreach ($superAdmins as $superAdmin) {
+                $this->notificationModel->insert([
+                    'user_id' => $superAdmin->id,
+                    'role'    => 'Super Admin',
+                    'title'   => 'Delete Request: ' . $empName,
+                    'message' => "HR Admin {$hrName} has requested to delete employee \"{$empName}\" ({$empId}). Click to review and confirm the deletion.",
+                    'status'  => 'unread',
+                    'type'    => 'danger',
+                    'icon'    => 'fas fa-user-times',
+                    'link'    => site_url('employee/confirm-delete/' . $id),
+                    'is_read' => false,
+                ]);
+            }
+        }
+
+        return redirect()->to('/employee')->with('success', "Deletion request for \"{$empName}\" has been sent to Super Admin for approval.");
+    }
+
+    /**
+     * Super Admin confirmation page before deleting an employee requested by HR Admin
+     */
+    public function confirmDelete($id)
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['Super Admin', 'admin'])) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Only Super Admin can confirm deletions.');
+        }
+
+        $employee = $this->employeeModel->find($id);
+        if (!$employee) {
+            return redirect()->to('/employee')->with('error', 'Employee record not found — it may have already been deleted.');
+        }
+
+        $departments = $this->departmentModel->findAll();
+        $departmentMap = [];
+        foreach ($departments as $dept) {
+            $departmentMap[$dept->id] = $dept->name;
+        }
+
+        return view('employee/confirm_delete', [
+            'employee'      => $employee,
+            'departmentMap' => $departmentMap,
+        ]);
+    }
+
+    /**
+     * Super Admin rejects the HR Admin's deletion request — notifies all HR Admins, does NOT delete
+     */
+    public function rejectDelete($id)
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->to('/dashboard');
+        }
+
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['Super Admin', 'admin'])) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Only Super Admin can reject deletion requests.');
+        }
+
+        $employee = $this->employeeModel->find($id);
+        if (!$employee) {
+            return redirect()->to('/dashboard')->with('error', 'Employee record not found.');
+        }
+
+        $superAdminName = session()->get('name') ?? session()->get('username') ?? 'Super Admin';
+        $empName = trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''));
+        $empId   = $employee->employee_id ?? "ID:{$id}";
+
+        $db = \Config\Database::connect();
+        $hrAdminRole = $db->table('roles')->where('name', 'HR Admin')->get()->getRow();
+
+        if ($hrAdminRole) {
+            $hrAdmins = $this->userModel
+                ->where('role_id', $hrAdminRole->id)
+                ->where('is_active', 1)
+                ->findAll();
+
+            foreach ($hrAdmins as $hrAdmin) {
+                $this->notificationModel->insert([
+                    'user_id' => $hrAdmin->id,
+                    'role'    => 'HR Admin',
+                    'title'   => 'Delete Request Rejected: ' . $empName,
+                    'message' => "Super Admin {$superAdminName} has rejected the deletion request for employee \"{$empName}\" ({$empId}). The employee record has NOT been removed.",
+                    'status'  => 'unread',
+                    'type'    => 'warning',
+                    'icon'    => 'fas fa-user-shield',
+                    'link'    => site_url('employee'),
+                    'is_read' => false,
+                ]);
+            }
+        }
+
+        return redirect()->to('/dashboard')->with('success', "Deletion request for \"{$empName}\" has been rejected. HR Admin has been notified.");
+    }
+
+    /**
      * Display salary management page
      */
     public function salary()
     {
-        // Check if user is Super Admin
-        if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'])) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
 
         try {
-            $salaries = $this->salaryModel
-                ->select('salaries.*, employees.name, employees.employee_id')
-                ->join('employees', 'employees.id = salaries.employee_id', 'left')
-                ->orderBy('employees.name', 'ASC')
+            // ── Auto-sync: create salary records for employees who have a rate but no salaries row ──
+            $db = \Config\Database::connect();
+            $unsynced = $db->table('employees')
+                ->select('employees.id AS emp_pk, employees.rate, employees.rate_type')
+                ->join('salaries', 'salaries.employee_id = employees.id', 'left')
+                ->where('employees.status', 'active')
+                ->where('employees.rate >', 0)
+                ->where('salaries.id IS NULL', null, false)
+                ->get()->getResultObject();
+
+            foreach ($unsynced as $row) {
+                $rt = $row->rate_type ?? 'monthly';
+                $r  = (float) $row->rate;
+                if ($rt === 'hourly')    { $base = $r * 8 * 26; }
+                elseif ($rt === 'daily') { $base = $r * 26; }
+                else                     { $base = $r; }
+                $ded = PhDeductions::compute($base, 0);
+                $this->salaryModel->skipValidation(true)->insert([
+                    'employee_id'             => $row->emp_pk,
+                    'base_salary'             => $base,
+                    'allowances'              => 0,
+                    'sss_contribution'        => $ded['sss'],
+                    'philhealth_contribution' => $ded['philhealth'],
+                    'pagibig_contribution'    => $ded['pagibig'],
+                    'withholding_tax'         => $ded['withholding_tax'],
+                    'deductions'              => 0,
+                    'net_salary'              => $ded['net_salary'],
+                    'effective_from'          => date('Y-m-d'),
+                ]);
+            }
+            // Backfill statutory columns for existing salary records that predate this feature
+            $legacyRows = $this->salaryModel
+                ->where('base_salary >', 0)
+                ->where('sss_contribution', 0)
                 ->findAll();
+            foreach ($legacyRows as $lr) {
+                $allowances = (float)($lr->allowances ?? 0);
+                $extraDed   = (float)($lr->deductions ?? 0);
+                $ded = PhDeductions::compute((float)$lr->base_salary, $allowances);
+                $this->salaryModel->update($lr->id, [
+                    'sss_contribution'        => $ded['sss'],
+                    'philhealth_contribution' => $ded['philhealth'],
+                    'pagibig_contribution'    => $ded['pagibig'],
+                    'withholding_tax'         => $ded['withholding_tax'],
+                    'net_salary'              => $ded['net_salary'] - $extraDed,
+                ]);
+            }
+            // ────────────────────────────────────────────────────────────────────────────────────────
+
+            // Load ALL active employees with their salary info (left join so unsalaried employees appear too)
+            // Position resolved the same way as employee index: employees → users (by email) → roles
+            $employees = $db->table('employees')
+                ->select("employees.id AS employee_pk, employees.employee_id AS emp_code,
+                          CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
+                          employees.status,
+                          employees.rate,
+                          employees.rate_type,
+                          roles.name AS role_name,
+                          departments.name AS department_name,
+                          salaries.id AS salary_id,
+                          salaries.base_salary,
+                          salaries.allowances,
+                          salaries.deductions,
+                          salaries.sss_contribution,
+                          salaries.philhealth_contribution,
+                          salaries.pagibig_contribution,
+                          salaries.withholding_tax,
+                          salaries.net_salary,
+                          salaries.effective_from")
+                ->join('users',        'users.email = employees.email AND users.deleted_at IS NULL AND users.is_active = 1', 'left')
+                ->join('roles',        'roles.id = users.role_id AND roles.deleted_at IS NULL', 'left')
+                ->join('departments',  'departments.id = employees.department_id', 'left')
+                ->join('salaries',     'salaries.employee_id = employees.id', 'left')
+                ->where('employees.status', 'active')
+                ->orderBy('employees.first_name', 'ASC')
+                ->get()->getResultObject();
         } catch (\Exception $e) {
-            log_message('error', 'Failed to load salaries: ' . $e->getMessage());
-            $salaries = [];
+            log_message('error', 'Failed to load salary list: ' . $e->getMessage());
+            $employees = [];
         }
 
-        $data['salaries'] = $salaries;
+        $isAdmin = in_array($role, ['Super Admin', 'admin']);
+        $data['employees'] = $employees;
+        $data['isAdmin']   = $isAdmin;
         return view('salary/manage', $data);
+    }
+
+    /**
+     * Return salary data for a single employee as JSON (AJAX)
+     */
+    public function getSalary($employeeId)
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON(['success' => false]);
+        }
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['Super Admin', 'admin'])) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Access denied.']);
+        }
+
+        $salary = $this->salaryModel->getEmployeeSalary($employeeId);
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $salary ? [
+                'base_salary'             => (float) $salary->base_salary,
+                'allowances'              => (float) ($salary->allowances              ?? 0),
+                'sss_contribution'        => (float) ($salary->sss_contribution        ?? 0),
+                'philhealth_contribution' => (float) ($salary->philhealth_contribution ?? 0),
+                'pagibig_contribution'    => (float) ($salary->pagibig_contribution    ?? 0),
+                'withholding_tax'         => (float) ($salary->withholding_tax         ?? 0),
+                'deductions'              => (float) ($salary->deductions              ?? 0),
+                'net_salary'              => (float) ($salary->net_salary              ?? 0),
+                'effective_from'          => $salary->effective_from ?? '',
+            ] : null,
+        ]);
     }
 
     /**
@@ -848,47 +1292,68 @@ class Employees extends BaseController
      */
     public function updateSalary()
     {
-        // Check if user is Super Admin
-        if (session()->get('role') !== 'admin') {
+        $role = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($role, ['Super Admin', 'admin'])) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
                 'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
-        $salaryId = $this->request->getPost('salary_id');
-        $baseSalary = $this->request->getPost('base_salary');
-        $allowances = $this->request->getPost('allowances') ?? 0;
-        $deductions = $this->request->getPost('deductions') ?? 0;
+        $employeeId    = $this->request->getPost('employee_id');
+        $baseSalary    = $this->request->getPost('base_salary');
+        $allowances    = (float) ($this->request->getPost('allowances') ?? 0);
+        $deductions    = (float) ($this->request->getPost('deductions') ?? 0);
+        $effectiveFrom = $this->request->getPost('effective_from') ?: date('Y-m-d');
 
-        if (!$salaryId || !$baseSalary) {
+        if (!$employeeId || $baseSalary === null || $baseSalary === '') {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'message' => 'Salary ID and base salary are required'
+                'message' => 'Employee and base salary are required.'
             ]);
         }
 
-        $salary = $this->salaryModel->find($salaryId);
-        if (!$salary) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'success' => false,
-                'message' => 'Salary record not found'
+        // Compute statutory deductions from base salary; deductions field = extra custom deductions
+        $ded = PhDeductions::compute((float)$baseSalary, $allowances);
+        $netSalary = $ded['net_salary'] - $deductions;
+
+        $existing = $this->salaryModel->getEmployeeSalary($employeeId);
+
+        if ($existing) {
+            // Update existing record
+            $this->salaryModel->update($existing->id, [
+                'base_salary'             => (float) $baseSalary,
+                'allowances'              => $allowances,
+                'sss_contribution'        => $ded['sss'],
+                'philhealth_contribution' => $ded['philhealth'],
+                'pagibig_contribution'    => $ded['pagibig'],
+                'withholding_tax'         => $ded['withholding_tax'],
+                'deductions'              => $deductions,
+                'net_salary'              => $netSalary,
+                'effective_from'          => $effectiveFrom,
             ]);
+            $msg = 'Salary updated successfully.';
+        } else {
+            // Create new record
+            $this->salaryModel->skipValidation(true)->insert([
+                'employee_id'             => (int) $employeeId,
+                'base_salary'             => (float) $baseSalary,
+                'allowances'              => $allowances,
+                'sss_contribution'        => $ded['sss'],
+                'philhealth_contribution' => $ded['philhealth'],
+                'pagibig_contribution'    => $ded['pagibig'],
+                'withholding_tax'         => $ded['withholding_tax'],
+                'deductions'              => $deductions,
+                'net_salary'              => $netSalary,
+                'effective_from'          => $effectiveFrom,
+            ]);
+            $msg = 'Salary rate set successfully.';
         }
-
-        $grossSalary = (float)$baseSalary + (float)$allowances - (float)$deductions;
-
-        $this->salaryModel->update($salaryId, [
-            'base_salary' => $baseSalary,
-            'allowances' => $allowances,
-            'deductions' => $deductions,
-            'gross_salary' => $grossSalary,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Salary updated successfully'
+            'message' => $msg,
+            'csrf_hash' => csrf_hash(),
         ]);
     }
 
@@ -922,12 +1387,12 @@ class Employees extends BaseController
 
             // Load related information
             $department = $employee->department_id ? $this->departmentModel->find($employee->department_id) : null;
-            $position   = $employee->position_id   ? $this->positionModel->find($employee->position_id)   : null;
+            $role       = $employee->role_id        ? $this->roleModel->find($employee->role_id)            : null;
 
             return view('employee/review', [
                 'employee'   => $employee,
                 'department' => $department,
-                'position'   => $position,
+                'position'   => $role,
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to review employee: ' . $e->getMessage());
@@ -957,9 +1422,9 @@ class Employees extends BaseController
                 ]);
             }
 
-            // Generate default credentials
+            // Default password for all approved employee accounts
             $username = strtolower($employee->first_name[0] . $employee->last_name);
-            $password = $this->generatePassword();
+            $password = 'HRmanage!';
 
             // Get Employee role (employees get the 'Employee' role, not HR Admin)
             $db = \Config\Database::connect();
@@ -988,10 +1453,11 @@ class Employees extends BaseController
 
             $newUserId = $this->userModel->getInsertID();
 
-            // Update employee with user_id and approved status
+            // Update employee with user_id, approved status, and activate employment status
             $this->employeeModel->update($employeeId, [
-                'user_id' => $newUserId,
+                'user_id'        => $newUserId,
                 'account_status' => 'approved',
+                'status'         => 'active',
             ]);
 
             // Send email with credentials

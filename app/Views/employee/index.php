@@ -326,10 +326,10 @@
             <table class="admin-table">
                 <thead>
                     <tr>
-                        <th>#</th>
                         <th>Employee ID</th>
                         <th>Name</th>
                         <th>Email</th>
+                        <th>Department</th>
                         <th>Position</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -338,31 +338,39 @@
                 <tbody>
                     <?php foreach ($employees as $i => $employee): ?>
                         <tr>
-                            <td><?= $i + 1 ?></td>
                             <td><strong><?= esc($employee->employee_id) ?></strong></td>
                             <td><?= esc(trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''))) ?></td>
                             <td><?= esc($employee->email ?? '') ?></td>
-                            <td><?= esc($positionMap[$employee->position_id] ?? 'N/A') ?></td>
+                            <td><?= esc($departmentMap[$employee->department_id] ?? 'N/A') ?></td>
+                            <td><?= esc($employee->user_role_name ?? 'N/A') ?></td>
                             <td>
                                 <?php
-                                    $acctStatus = $employee->account_status ?? 'pending';
-                                    $hasUserAccount = isset($userEmailSet[$employee->email]);
-                                    if ($acctStatus === 'rejected') {
-                                        $accountBadgeClass = 'badge-rejected';
-                                        $accountBadgeText  = 'Rejected';
-                                        $accountIcon       = 'fa-times-circle';
-                                    } elseif ($hasUserAccount || $acctStatus === 'approved') {
-                                        $accountBadgeClass = 'badge-account-active';
-                                        $accountBadgeText  = 'Active';
-                                        $accountIcon       = 'fa-user-check';
+                                    $acctStatus = strtolower($employee->account_status ?? 'pending');
+                                    $empStatus  = strtolower($employee->status ?? 'inactive');
+                                    if ($acctStatus === 'pending') {
+                                        $statusBadgeClass = 'badge-pending';
+                                        $statusBadgeText  = 'Pending Approval';
+                                        $statusIcon       = 'fa-user-clock';
+                                    } elseif ($acctStatus === 'rejected') {
+                                        $statusBadgeClass = 'badge-rejected';
+                                        $statusBadgeText  = 'Rejected';
+                                        $statusIcon       = 'fa-times-circle';
+                                    } elseif ($empStatus === 'inactive') {
+                                        $statusBadgeClass = 'badge-inactive';
+                                        $statusBadgeText  = 'Inactive';
+                                        $statusIcon       = 'fa-user-slash';
+                                    } elseif ($empStatus === 'suspended') {
+                                        $statusBadgeClass = 'badge-suspended';
+                                        $statusBadgeText  = 'Suspended';
+                                        $statusIcon       = 'fa-user-lock';
                                     } else {
-                                        $accountBadgeClass = 'badge-pending';
-                                        $accountBadgeText  = 'Pending';
-                                        $accountIcon       = 'fa-user-clock';
+                                        $statusBadgeClass = 'badge-account-active';
+                                        $statusBadgeText  = 'Active';
+                                        $statusIcon       = 'fa-user-check';
                                     }
                                 ?>
-                                <span class="badge <?= $accountBadgeClass ?>">
-                                    <i class="fas <?= $accountIcon ?>"></i> <?= $accountBadgeText ?>
+                                <span class="badge <?= $statusBadgeClass ?>">
+                                    <i class="fas <?= $statusIcon ?>"></i> <?= $statusBadgeText ?>
                                 </span>
                             </td>
                             <td>
@@ -371,30 +379,32 @@
                                         <i class="fas fa-eye"></i> View
                                     </a>
                                     <?php
-                                        $currentRole     = session()->get('role_name') ?? session()->get('role');
-                                        $isSuperAdminRow = in_array($currentRole, ['Super Admin', 'admin']);
-                                        $isRejected      = ($employee->account_status ?? 'pending') === 'rejected';
+                                        $currentRole  = session()->get('role_name') ?? session()->get('role');
+                                        $isSuperAdmin = in_array($currentRole, ['Super Admin', 'admin']);
+                                        $isHRAdmin    = in_array($currentRole, ['HR Admin', 'hr']);
+                                        $isRejected   = ($employee->account_status ?? 'pending') === 'rejected';
+                                        $empFullName  = esc($employee->first_name . ' ' . $employee->last_name, 'js');
+                                        $deleteUrl    = base_url('employee/delete/' . $employee->id);
+                                        $requestUrl   = base_url('employee/request-delete/' . $employee->id);
                                     ?>
                                     <?php if ($isRejected): ?>
+                                        <!-- Rejected: both SA and HR Admin can directly delete -->
                                         <button class="btn-action btn-delete" title="Delete rejected employee"
-                                            onclick="openDeleteModal(
-                                                '<?= base_url('employee/delete/' . $employee->id) ?>',
-                                                '<?= esc($employee->first_name . ' ' . $employee->last_name, 'js') ?>',
-                                                true
-                                            )">
+                                            onclick="openDeleteModal('<?= $deleteUrl ?>', '<?= $empFullName ?>', true, false)">
                                             <i class="fas fa-trash"></i> Delete
                                         </button>
-                                    <?php else: ?>
-                                        <?php if ($isSuperAdminRow): ?>
-                                            <button class="btn-action btn-delete" title="Delete"
-                                                onclick="openDeleteModal(
-                                                    '<?= base_url('employee/delete/' . $employee->id) ?>',
-                                                    '<?= esc($employee->first_name . ' ' . $employee->last_name, 'js') ?>',
-                                                    false
-                                                )">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        <?php endif; ?>
+                                    <?php elseif ($isSuperAdmin): ?>
+                                        <!-- Super Admin: actual permanent delete -->
+                                        <button class="btn-action btn-delete" title="Delete"
+                                            onclick="openDeleteModal('<?= $deleteUrl ?>', '<?= $empFullName ?>', false, false)">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    <?php elseif ($isHRAdmin): ?>
+                                        <!-- HR Admin: request deletion (notify Super Admin) -->
+                                        <button class="btn-action btn-delete" title="Request Deletion"
+                                            onclick="openDeleteModal('<?= $requestUrl ?>', '<?= $empFullName ?>', false, true)">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -430,7 +440,7 @@
             <form id="deleteConfirmForm" method="POST">
                 <?= csrf_field() ?>
                 <div style="display:flex; gap:12px; justify-content:center;">
-                    <button type="submit" class="btn-modal btn-danger-modal">
+                    <button type="submit" id="deleteModalSubmitBtn" class="btn-modal btn-danger-modal">
                         <i class="fas fa-trash"></i> Yes, Delete
                     </button>
                     <button type="button" class="btn-modal btn-secondary" onclick="closeDeleteModal()">
@@ -500,55 +510,73 @@
                     </div>
                 </div>
 
-                <!-- Department and Position Row -->
+                <!-- Department Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="department_id" class="form-label">Department</label>
                         <select class="form-control-modal" id="department_id" name="department_id">
                             <option value="">Select Department</option>
                             <?php foreach ($departments ?? [] as $dept): ?>
-                                <option value="<?= $dept->id ?>">
-                                    <?= esc($dept->name) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group-modal">
-                        <label for="position_id" class="form-label">Position</label>
-                        <select class="form-control-modal" id="position_id" name="position_id">
-                            <option value="">Select Position</option>
-                            <?php foreach ($positions ?? [] as $pos): ?>
-                                <option value="<?= $pos->id ?>">
-                                    <?= esc($pos->name) ?>
-                                </option>
+                                <option value="<?= $dept->id ?>"><?= esc($dept->name ?? 'N/A') ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
 
-                <!-- Date of Birth and Date of Joining Row -->
+                <!-- Position and Employment Type Row -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label for="role_id" class="form-label">Position</label>
+                        <select class="form-control-modal" id="role_id" name="role_id">
+                            <option value="">Select Position</option>
+                            <?php foreach ($positions ?? [] as $pos): ?>
+                                <option value="<?= $pos->id ?>"><?= esc($pos->name) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group-modal">
+                        <label for="employment_type" class="form-label">Employment Type</label>
+                        <select class="form-control-modal" id="employment_type" name="employment_type">
+                            <option value="">Select Type</option>
+                            <option value="full_time">Full-Time</option>
+                            <option value="part_time">Part-Time</option>
+                            <option value="contractual">Contractual</option>
+                            <option value="probationary">Probationary</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Date of Birth and Date Hired Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="date_of_birth" class="form-label">Date of Birth</label>
                         <input type="date" class="form-control-modal" id="date_of_birth" name="date_of_birth">
                     </div>
                     <div class="form-group-modal">
-                        <label for="date_of_joining" class="form-label">Date of Joining <span class="required-star">*</span></label>
+                        <label for="date_of_joining" class="form-label">Date Hired <span class="required-star">*</span></label>
                         <input type="date" class="form-control-modal" id="date_of_joining" name="date_of_joining" required>
                     </div>
                 </div>
 
-                <!-- Status -->
+                <!-- Salary Rate and Rate Type Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-control-modal" id="status" name="status">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="suspended">Suspended</option>
+                        <label for="rate" class="form-label">Salary Rate</label>
+                        <input type="number" class="form-control-modal" id="rate" name="rate"
+                               placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="form-group-modal">
+                        <label for="rate_type" class="form-label">Rate Type</label>
+                        <select class="form-control-modal" id="rate_type" name="rate_type">
+                            <option value="">Select Rate Type</option>
+                            <option value="hourly">Hourly</option>
+                            <option value="daily">Daily</option>
+                            <option value="monthly">Monthly</option>
                         </select>
                     </div>
                 </div>
+
+                <!-- Status is always 'inactive' for new employees until Super Admin approves -->
 
                 <!-- Form Actions -->
                 <div class="modal-actions">
@@ -612,36 +640,66 @@
                         <span id="edit_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;">Phone cannot contain special characters.</span>
                     </div>
                 </div>
-                <!-- Department & Position -->
+                <!-- Biometric ID and Department -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label class="form-label">Department</label>
                         <select class="form-control-modal" id="edit_department_id" name="department_id">
                             <option value="">Select Department</option>
                             <?php foreach ($departments ?? [] as $dept): ?>
-                                <option value="<?= $dept->id ?>"><?= esc($dept->name) ?></option>
+                                <option value="<?= $dept->id ?>"><?= esc($dept->name ?? 'N/A') ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+                </div>
+                <!-- Position and Employment Type -->
+                <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label class="form-label">Position</label>
-                        <select class="form-control-modal" id="edit_position_id" name="position_id">
+                        <select class="form-control-modal" id="edit_role_id" name="role_id">
                             <option value="">Select Position</option>
                             <?php foreach ($positions ?? [] as $pos): ?>
                                 <option value="<?= $pos->id ?>"><?= esc($pos->name) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Employment Type</label>
+                        <select class="form-control-modal" id="edit_employment_type" name="employment_type">
+                            <option value="">Select Type</option>
+                            <option value="full_time">Full-Time</option>
+                            <option value="part_time">Part-Time</option>
+                            <option value="contractual">Contractual</option>
+                            <option value="probationary">Probationary</option>
+                        </select>
+                    </div>
                 </div>
-                <!-- DOB & Date of Joining -->
+                <!-- DOB & Date Hired -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label class="form-label">Date of Birth</label>
                         <input type="date" class="form-control-modal" id="edit_date_of_birth" name="date_of_birth">
                     </div>
                     <div class="form-group-modal">
-                        <label class="form-label">Date of Joining <span class="required-star">*</span></label>
+                        <label class="form-label">Date Hired <span class="required-star">*</span></label>
                         <input type="date" class="form-control-modal" id="edit_date_of_joining" name="date_of_joining" required>
+                    </div>
+                </div>
+                <!-- Salary Rate & Rate Type -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">Salary Rate</label>
+                        <input type="number" class="form-control-modal" id="edit_rate" name="rate"
+                               placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Rate Type</label>
+                        <select class="form-control-modal" id="edit_rate_type" name="rate_type">
+                            <option value="">Select Rate Type</option>
+                            <option value="hourly">Hourly</option>
+                            <option value="daily">Daily</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
                     </div>
                 </div>
                 <!-- Status -->
@@ -880,13 +938,27 @@
 
 <script>
     // ── Delete Confirmation Modal ──
-    function openDeleteModal(action, name, isRejected) {
-        const modal = document.getElementById('deleteConfirmModal');
+    function openDeleteModal(action, name, isRejected, isRequest) {
+        const modal     = document.getElementById('deleteConfirmModal');
+        const submitBtn = document.getElementById('deleteModalSubmitBtn');
         document.getElementById('deleteConfirmForm').action = action;
-        document.getElementById('deleteModalTitle').textContent = 'Delete "' + name + '"?';
-        document.getElementById('deleteModalMsg').textContent = isRejected
-            ? 'This employee application was rejected. Deleting will permanently remove their record. This cannot be undone.'
-            : 'Are you sure you want to permanently delete this employee? This action cannot be undone.';
+
+        if (isRequest) {
+            document.getElementById('deleteModalTitle').textContent = 'Request deletion of "' + name + '"?';
+            document.getElementById('deleteModalMsg').textContent   = 'This will send a deletion request to the Super Admin for approval. The employee record will NOT be removed until the Super Admin confirms.';
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Request';
+            submitBtn.style.background = 'linear-gradient(135deg,#e67e22,#d35400)';
+        } else if (isRejected) {
+            document.getElementById('deleteModalTitle').textContent = 'Delete "' + name + '"?';
+            document.getElementById('deleteModalMsg').textContent   = 'This employee application was rejected. Deleting will permanently remove their record. This cannot be undone.';
+            submitBtn.innerHTML = '<i class="fas fa-trash"></i> Yes, Delete';
+            submitBtn.style.background = '';
+        } else {
+            document.getElementById('deleteModalTitle').textContent = 'Delete "' + name + '"?';
+            document.getElementById('deleteModalMsg').textContent   = 'Are you sure you want to permanently delete this employee? This action cannot be undone.';
+            submitBtn.innerHTML = '<i class="fas fa-trash"></i> Yes, Delete';
+            submitBtn.style.background = '';
+        }
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -960,8 +1032,11 @@
             document.getElementById('edit_date_of_birth').value   = e.date_of_birth ?? '';
             document.getElementById('edit_date_of_joining').value = e.date_of_joining ?? '';
             document.getElementById('edit_department_id').value   = e.department_id ?? '';
-            document.getElementById('edit_position_id').value     = e.position_id   ?? '';
-            document.getElementById('edit_status').value          = e.status        ?? 'active';
+            document.getElementById('edit_role_id').value          = e.role_id       ?? '';
+            document.getElementById('edit_status').value           = e.status        ?? 'active';
+            document.getElementById('edit_employment_type').value = e.employment_type ?? '';
+            document.getElementById('edit_rate').value            = e.rate            ?? '';
+            document.getElementById('edit_rate_type').value       = e.rate_type       ?? '';
         })
         .catch(() => alert('Failed to fetch employee data.'));
 

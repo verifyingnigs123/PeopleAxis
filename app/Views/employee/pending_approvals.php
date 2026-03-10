@@ -189,7 +189,7 @@
                         </div>
                         <div class="emp-detail-row">
                             <i class="fas fa-briefcase"></i>
-                            <?= esc($positionMap[$emp->position_id] ?? 'No Position') ?>
+                            <?= esc($positionMap[$emp->role_id] ?? 'No Role') ?>
                         </div>
                         <div class="emp-detail-row">
                             <i class="fas fa-calendar-plus"></i>
@@ -257,7 +257,7 @@
                         </div>
                         <div class="emp-detail-row">
                             <i class="fas fa-briefcase"></i>
-                            <?= esc($positionMap[$emp->position_id] ?? 'No Position') ?>
+                            <?= esc($positionMap[$emp->role_id] ?? 'No Role') ?>
                         </div>
                         <?php if (!empty($emp->approval_notes)): ?>
                         <div class="rejection-reason">

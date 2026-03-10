@@ -237,8 +237,8 @@
             </div>
         </div>
 
-        <!-- Department and Position Row -->
-        <div class="form-row">
+        <!-- Department Row -->
+        <div class="form-row full">
             <div class="form-group">
                 <label for="department_id" class="form-label">Department</label>
                 <select class="form-control" id="department_id" name="department_id">
@@ -250,32 +250,34 @@
                     <?php endforeach; ?>
                 </select>
             </div>
+        </div>
+
+        <!-- Position and Employment Type Row -->
+        <div class="form-row">
             <div class="form-group">
-                <label for="position_id" class="form-label">Position</label>
-                <select class="form-control" id="position_id" name="position_id">
+                <label for="role_id" class="form-label">Position</label>
+                <select class="form-control" id="role_id" name="role_id">
                     <option value="">Select Position</option>
-                    <?php foreach ($positions as $pos): ?>
-                        <option value="<?= $pos->id ?>" <?= old('position_id') == $pos->id ? 'selected' : '' ?>>
+                    <?php foreach ($roles as $pos): ?>
+                        <option value="<?= $pos->id ?>" <?= old('role_id') == $pos->id ? 'selected' : '' ?>>
                             <?= esc($pos->name) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
-        </div>
-
-        <!-- Date of Joining Row -->
-        <div class="form-row full">
             <div class="form-group">
-                <label for="date_of_joining" class="form-label">Date of Joining <span class="required-star">*</span></label>
-                <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" 
-                       required value="<?= old('date_of_joining', date('Y-m-d')) ?>">
-                <?php if (has_error('date_of_joining')): ?>
-                    <div class="error-text"><?= error('date_of_joining') ?></div>
-                <?php endif; ?>
+                <label for="employment_type" class="form-label">Employment Type</label>
+                <select class="form-control" id="employment_type" name="employment_type">
+                    <option value="">Select Type</option>
+                    <option value="full_time" <?= old('employment_type') == 'full_time' ? 'selected' : '' ?>>Full-Time</option>
+                    <option value="part_time" <?= old('employment_type') == 'part_time' ? 'selected' : '' ?>>Part-Time</option>
+                    <option value="contractual" <?= old('employment_type') == 'contractual' ? 'selected' : '' ?>>Contractual</option>
+                    <option value="probationary" <?= old('employment_type') == 'probationary' ? 'selected' : '' ?>>Probationary</option>
+                </select>
             </div>
         </div>
 
-        <!-- Date of Birth and Status Row -->
+        <!-- Date of Birth and Date Hired Row -->
         <div class="form-row">
             <div class="form-group">
                 <label for="date_of_birth" class="form-label">Date of Birth</label>
@@ -285,6 +287,36 @@
                     <div class="error-text"><?= error('date_of_birth') ?></div>
                 <?php endif; ?>
             </div>
+            <div class="form-group">
+                <label for="date_of_joining" class="form-label">Date Hired <span class="required-star">*</span></label>
+                <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" 
+                       required value="<?= old('date_of_joining', date('Y-m-d')) ?>">
+                <?php if (has_error('date_of_joining')): ?>
+                    <div class="error-text"><?= error('date_of_joining') ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Salary Rate and Rate Type Row -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="rate" class="form-label">Salary Rate</label>
+                <input type="number" class="form-control" id="rate" name="rate"
+                       placeholder="0.00" min="0" step="0.01" value="<?= old('rate') ?>">
+            </div>
+            <div class="form-group">
+                <label for="rate_type" class="form-label">Rate Type</label>
+                <select class="form-control" id="rate_type" name="rate_type">
+                    <option value="">Select Rate Type</option>
+                    <option value="hourly" <?= old('rate_type') == 'hourly' ? 'selected' : '' ?>>Hourly</option>
+                    <option value="daily" <?= old('rate_type') == 'daily' ? 'selected' : '' ?>>Daily</option>
+                    <option value="monthly" <?= old('rate_type') == 'monthly' ? 'selected' : '' ?>>Monthly</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="form-row full">
             <div class="form-group">
                 <label for="status" class="form-label">Status</label>
                 <select class="form-control" id="status" name="status">

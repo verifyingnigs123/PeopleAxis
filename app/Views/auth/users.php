@@ -493,12 +493,10 @@
             <table class="admin-table" id="usersTable">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Employee ID#</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <th>Employee ID#</th>
-                        <th>Position</th>
                         <th>Status</th>
                         <th>Joined</th>
                         <th>Actions</th>
@@ -515,7 +513,17 @@
                             $displayName = $displayName ?: $u->name;
                         ?>
                         <tr data-user-id="<?= $u->id ?>">
-                            <td><?= $i + 1 ?></td>
+                            <td>
+                                <?php if ($linkedEmp): ?>
+                                    <span class="emp-id-chip" title="<?= esc($displayName) ?>">
+                                        <i class="fas fa-hashtag"></i><?= esc($linkedEmp['employee_id'] ?? '') ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="emp-id-none">
+                                        <i class="fas fa-minus"></i> &mdash;
+                                    </span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <div class="user-cell">
                                     <div class="avatar"><?= strtoupper(substr($displayName, 0, 1)) ?></div>
@@ -531,37 +539,6 @@
                                 <span class="badge <?= $roleClass ?>">
                                     <?= esc($roleName) ?>
                                 </span>
-                            </td>
-                            <td>
-                                <?php if ($linkedEmp): ?>
-                                    <span class="emp-id-chip" title="<?= esc($displayName) ?>">
-                                        <i class="fas fa-hashtag"></i><?= esc($linkedEmp['employee_id'] ?? '') ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="emp-id-none">
-                                        <i class="fas fa-minus"></i> &mdash;
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php
-                                    $empPos = null;
-                                    $roleLower = strtolower($roleName);
-                                    if ($roleLower === 'super admin' || $roleLower === 'admin') {
-                                        $empPos = $roleName;
-                                    } elseif ($roleLower === 'hr admin' || $roleLower === 'hr') {
-                                        $empPos = $roleName;
-                                    } else {
-                                        $empPos = $linkedEmp['position_name'] ?? null;
-                                    }
-                                ?>
-                                <?php if ($empPos): ?>
-                                    <span class="position-chip">
-                                        <i class="fas fa-briefcase"></i> <?= esc($empPos) ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="position-none">&mdash;</span>
-                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
@@ -1070,7 +1047,7 @@ function showDeleteModal(button, userId, name) {
     confirmBtn.dataset.userId = userId;
     // keep reference to source button to update UI after response
     confirmBtn._sourceButton = button;
-    const modal = new bootstrap.Modal(modalEl);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 }
 
@@ -1098,8 +1075,12 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function(e
         btn.disabled = false;
         btn.innerHTML = original;
         const modalEl = document.getElementById('deleteUserModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
 
         if (data.success) {
             // update UI: status badge and replace delete with restore
@@ -1164,7 +1145,7 @@ function showRestoreModal(userId, name) {
     const modalEl = document.getElementById('restoreUserModal');
     const msg = document.getElementById('restoreUserMessage');
     msg.innerHTML = `Are you sure you want to restore <strong>${name}</strong>?`;
-    const modal = new bootstrap.Modal(modalEl);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 }
 
@@ -1193,8 +1174,12 @@ document.getElementById('confirmRestoreBtn').addEventListener('click', function(
         btn.disabled = false;
         btn.innerHTML = original;
         const modalEl = document.getElementById('restoreUserModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
 
         if (data.success) {
             // Update status badge
@@ -1291,7 +1276,7 @@ function editUser(userId, name, email, roleId, isActive) {
     document.getElementById('editPassword').value = '';
     
     // Show the modal
-    const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    const editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal'));
     editModal.show();
 }
 
@@ -1361,15 +1346,62 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         console.log('Response data:', data);
         
         if (data.success) {
-            // Close modal first
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
-            if (modal) modal.hide();
-            
-            // Show success toast after modal closes
+            // Close modal immediately
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal'));
+            modal.hide();
+            // Remove the lingering backdrop manually in case Bootstrap leaves it
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+
+            // Update CSRF token
+            if (data.csrf_hash) {
+                const meta = document.querySelector('meta[name="<?= csrf_header() ?>"]');
+                if (meta) meta.setAttribute('content', data.csrf_hash);
+            }
+
+            // Update the table row in-place (no page reload)
+            const u = data.user;
+            const statusBadge = document.getElementById('status-' + u.id);
+            if (statusBadge) {
+                const row = statusBadge.closest('tr');
+                const cells = row.querySelectorAll('td');
+
+                // Cell 1: Name (avatar + name text) — rebuild innerHTML cleanly
+                const userCell = cells[1].querySelector('.user-cell');
+                if (userCell) {
+                    userCell.innerHTML = `<div class="avatar">${u.name.charAt(0).toUpperCase()}</div> ${u.name}`;
+                }
+
+                // Cell 2: Email
+                cells[2].textContent = u.email;
+
+                // Cell 3: Role badge
+                const roleName  = u.role_name;
+                const roleClass = (roleName.toLowerCase() === 'super admin' || roleName.toLowerCase() === 'admin')
+                    ? 'badge badge-admin' : 'badge badge-user';
+                cells[3].innerHTML = `<span class="${roleClass}">${roleName}</span>`;
+
+                // Cell 4: Status badge
+                if (u.is_active) {
+                    statusBadge.className = 'badge badge-active';
+                    statusBadge.textContent = 'ACTIVE';
+                } else {
+                    statusBadge.className = 'badge badge-inactive';
+                    statusBadge.textContent = 'INACTIVE';
+                }
+
+                // Update edit button onclick with new values so re-opening the modal reflects changes
+                const editBtn = row.querySelector('.btn-edit');
+                if (editBtn) {
+                    editBtn.setAttribute('onclick',
+                        `editUser(${u.id}, '${u.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}', '${u.email}', ${u.role_id}, ${u.is_active})`);
+                    editBtn.style.display = u.is_active ? '' : 'none';
+                }
+            }
+
             showNotification('User updated successfully!', 'success');
-            
-            // Reload page
-            setTimeout(() => location.reload(), 1200);
         } else {
             showEditModalAlert('Error: ' + (data.message || 'Failed to update user'), 'danger');
         }

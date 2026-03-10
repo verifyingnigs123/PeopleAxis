@@ -722,9 +722,6 @@
                     <a href="<?= base_url('users') ?>" class="sidebar-link">
                         <i class="fas fa-users"></i> Manage Users
                     </a>
-                    <a href="<?= base_url('roles') ?>" class="sidebar-link">
-                        <i class="fas fa-lock"></i> Assign Roles
-                    </a>
                 </div>
 
                 <!-- System Configuration Section -->
@@ -1096,7 +1093,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function connectNotificationStream() {
         if (typeof EventSource === 'undefined') {
-            startNotificationsPolling(5000);
+            // Browser doesn't support SSE — fall back to 30s polling
+            startNotificationsPolling(30000);
             return;
         }
 
@@ -1107,9 +1105,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         notificationEventSource = new EventSource('<?= base_url('/api/notifications/stream') ?>');
 
+        notificationEventSource.onopen = function() {
+            // SSE connected — stop any fallback polling
+            stopNotificationsPolling();
+        };
+
         notificationEventSource.addEventListener('notification', function() {
             fetchNotifications();
-            stopNotificationsPolling();
         });
 
         notificationEventSource.onerror = function() {
@@ -1118,8 +1120,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 notificationEventSource = null;
             }
 
-            // Fallback while stream is reconnecting.
-            startNotificationsPolling(5000);
+            // SSE dropped — fall back to 30s polling while reconnecting
+            startNotificationsPolling(30000);
 
             if (streamReconnectHandle) {
                 clearTimeout(streamReconnectHandle);
@@ -1364,10 +1366,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initial load and real-time updates
+    // Initial load and real-time updates:
+    // Fetch once immediately, then rely on SSE for real-time.
+    // Polling (30s) only kicks in when SSE is unavailable or disconnected.
     fetchNotifications();
     connectNotificationStream();
-    startNotificationsPolling(5000);
 
     window.addEventListener('beforeunload', function() {
         if (notificationEventSource) {
@@ -1424,6 +1427,154 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+/* =====================================================================
+   PJAX — Instant sidebar navigation
+   Fetches only the #mainContent area and swaps it in-place so the
+   navbar, sidebar, and notification stream are never torn down.
+   ===================================================================== */
+(function () {
+    'use strict';
+    var CONTAINER = '#mainContent';
+    var navigating = false;
+
+    /* ── thin progress bar at the very top of the screen ─────────────── */
+    var bar = document.createElement('div');
+    bar.id  = 'pjax-progress-bar';
+    bar.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;height:3px;width:0;'
+        + 'background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);'
+        + 'transition:width .3s ease,opacity .4s ease;pointer-events:none;opacity:0;'
+        + 'border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(102,126,234,.5);';
+    document.body.appendChild(bar);
+
+    function showBar()   { bar.style.opacity = '1'; bar.style.width = '65%'; }
+    function finishBar() { bar.style.width = '100%'; setTimeout(function(){ bar.style.opacity='0'; bar.style.width='0'; }, 380); }
+    function resetBar()  { bar.style.transition='none'; bar.style.width='0'; bar.style.opacity='0'; setTimeout(function(){ bar.style.transition='width .3s ease,opacity .4s ease'; }, 50); }
+
+    /* ── re-execute <script> tags (innerHTML skips them by design) ─────── */
+    function runScripts(container) {
+        container.querySelectorAll('script').forEach(function(old) {
+            var s = document.createElement('script');
+            Array.prototype.forEach.call(old.attributes, function(a){ s.setAttribute(a.name, a.value); });
+            s.textContent = old.textContent;
+            old.parentNode.replaceChild(s, old);
+        });
+    }
+
+    /* ── re-init Bootstrap tooltips on newly loaded content ────────────── */
+    function initTooltips() {
+        try {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el){
+                bootstrap.Tooltip.getOrCreateInstance(el);
+            });
+        } catch(e){}
+    }
+
+    /* ── highlight the active sidebar link ─────────────────────────────── */
+    function updateActiveLink(url) {
+        var path = new URL(url, location.origin).pathname;
+        document.querySelectorAll('.sidebar-link').forEach(function(link){
+            var href = link.getAttribute('href');
+            if (!href) return;
+            try {
+                var lp = new URL(href, location.origin).pathname;
+                var active = lp === path || (lp !== '/' && path.startsWith(lp + '/'));
+                link.classList.toggle('active', active);
+            } catch(e){}
+        });
+    }
+
+    /* ── core: fetch a page and swap only #mainContent ─────────────────── */
+    function pjaxLoad(url, push) {
+        if (navigating) return;
+        navigating = true;
+        showBar();
+
+        fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'X-PJAX': '1', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(res) {
+            /* server redirected (e.g. session expired → /login) */
+            if (res.redirected) { location.href = res.url; return null; }
+            if (!res.ok)        { location.href = url;     return null; }
+            return res.text();
+        })
+        .then(function(html) {
+            if (!html) return;
+
+            var doc     = new DOMParser().parseFromString(html, 'text/html');
+            var newMain = doc.querySelector(CONTAINER);
+
+            /* if the response has no #mainContent it's a special page — hard-navigate */
+            if (!newMain) { location.href = url; return; }
+
+            /* swap content */
+            var main = document.querySelector(CONTAINER);
+            main.innerHTML = newMain.innerHTML;
+
+            /* update page <title> */
+            document.title = doc.title;
+
+            /* refresh CSRF meta so forms / AJAX inside new page work */
+            var newMeta = doc.querySelector('meta[name="X-CSRF-TOKEN"],meta[name="csrf-token"],meta[name="csrf_token"]');
+            var curMeta = document.querySelector('meta[name="X-CSRF-TOKEN"],meta[name="csrf-token"],meta[name="csrf_token"]');
+            if (newMeta && curMeta) curMeta.setAttribute('content', newMeta.getAttribute('content'));
+
+            /* push browser history */
+            if (push) history.pushState({ pjax: true, url: url }, '', url);
+
+            /* boot the newly inserted page scripts */
+            runScripts(main);
+            initTooltips();
+            updateActiveLink(url);
+            window.scrollTo({ top: 0, behavior: 'instant' });
+
+            finishBar();
+            navigating = false;
+        })
+        .catch(function() {
+            resetBar();
+            navigating = false;
+            location.href = url;   /* network error — fall back to normal load */
+        });
+    }
+
+    /* ── intercept sidebar link clicks ─────────────────────────────────── */
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('.sidebar-link');
+        if (!link) return;
+
+        var href = link.getAttribute('href');
+        if (!href || href === '#' || href.indexOf('javascript:') === 0) return;
+        if (link.target === '_blank' || link.hasAttribute('download')) return;
+        /* skip external URLs */
+        if (/^https?:\/\//.test(href) && href.indexOf(location.origin) !== 0) return;
+
+        e.preventDefault();
+        var url = new URL(href, location.origin).href;
+
+        /* clicking the already-active link just re-highlights and scrolls up */
+        if (url === location.href) { updateActiveLink(url); window.scrollTo({top:0,behavior:'smooth'}); return; }
+
+        pjaxLoad(url, true);
+    });
+
+    /* ── browser back / forward buttons ────────────────────────────────── */
+    window.addEventListener('popstate', function(e) {
+        if (e.state && e.state.pjax) {
+            pjaxLoad(e.state.url || location.href, false);
+        } else {
+            location.reload();
+        }
+    });
+
+    /* seed the initial page into history so the first back-click has state */
+    history.replaceState({ pjax: true, url: location.href }, '', location.href);
+}());
 </script>
 
 <?php endif; ?>

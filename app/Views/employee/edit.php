@@ -237,21 +237,55 @@
             </div>
         </div>
 
-        <!-- Position and Date of Joining Row -->
+        <!-- Department Row -->
+        <div class="form-row full">
+            <div class="form-group">
+                <label for="department_id" class="form-label">Department</label>
+                <select class="form-control" id="department_id" name="department_id">
+                    <option value="">Select Department</option>
+                    <?php foreach ($departments as $dept): ?>
+                        <option value="<?= $dept->id ?>" <?= ($employee->department_id == $dept->id) ? 'selected' : '' ?>>
+                            <?= esc($dept->name ?? 'N/A') ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+
+        <!-- Position and Employment Type Row -->
         <div class="form-row">
             <div class="form-group">
-                <label for="position_id" class="form-label">Position</label>
-                <select class="form-control" id="position_id" name="position_id">
+                <label for="role_id" class="form-label">Position</label>
+                <select class="form-control" id="role_id" name="role_id">
                     <option value="">Select Position</option>
                     <?php foreach ($positions as $pos): ?>
-                        <option value="<?= $pos->id ?>" <?= $employee->position_id == $pos->id ? 'selected' : '' ?>>
+                        <option value="<?= $pos->id ?>" <?= $employee->role_id == $pos->id ? 'selected' : '' ?>>
                             <?= esc($pos->name) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="form-group">
-                <label for="date_of_joining" class="form-label">Date of Joining <span class="required-star">*</span></label>
+                <label for="employment_type" class="form-label">Employment Type</label>
+                <select class="form-control" id="employment_type" name="employment_type">
+                    <option value="">Select Type</option>
+                    <option value="full_time" <?= ($employee->employment_type ?? '') == 'full_time' ? 'selected' : '' ?>>Full-Time</option>
+                    <option value="part_time" <?= ($employee->employment_type ?? '') == 'part_time' ? 'selected' : '' ?>>Part-Time</option>
+                    <option value="contractual" <?= ($employee->employment_type ?? '') == 'contractual' ? 'selected' : '' ?>>Contractual</option>
+                    <option value="probationary" <?= ($employee->employment_type ?? '') == 'probationary' ? 'selected' : '' ?>>Probationary</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Date of Birth and Date Hired Row -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="date_of_birth" class="form-label">Date of Birth</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                       value="<?= esc($employee->date_of_birth ?? '') ?>">
+            </div>
+            <div class="form-group">
+                <label for="date_of_joining" class="form-label">Date Hired <span class="required-star">*</span></label>
                 <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" 
                        required value="<?= esc($employee->date_of_joining ?? '') ?>">
                 <?php if (service('validation')->hasError('date_of_joining')): ?>
@@ -260,13 +294,26 @@
             </div>
         </div>
 
-        <!-- Date of Birth and Status Row -->
+        <!-- Salary Rate and Rate Type Row -->
         <div class="form-row">
             <div class="form-group">
-                <label for="date_of_birth" class="form-label">Date of Birth</label>
-                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
-                       value="<?= esc($employee->date_of_birth ?? '') ?>">
+                <label for="rate" class="form-label">Salary Rate</label>
+                <input type="number" class="form-control" id="rate" name="rate"
+                       placeholder="0.00" min="0" step="0.01" value="<?= esc($employee->rate ?? '') ?>">
             </div>
+            <div class="form-group">
+                <label for="rate_type" class="form-label">Rate Type</label>
+                <select class="form-control" id="rate_type" name="rate_type">
+                    <option value="">Select Rate Type</option>
+                    <option value="hourly" <?= ($employee->rate_type ?? '') == 'hourly' ? 'selected' : '' ?>>Hourly</option>
+                    <option value="daily" <?= ($employee->rate_type ?? '') == 'daily' ? 'selected' : '' ?>>Daily</option>
+                    <option value="monthly" <?= ($employee->rate_type ?? '') == 'monthly' ? 'selected' : '' ?>>Monthly</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Status Row -->
+        <div class="form-row full">
             <div class="form-group">
                 <label for="status" class="form-label">Status</label>
                 <select class="form-control" id="status" name="status">

@@ -7,6 +7,10 @@
     <?= csrf_meta() ?>
     <title><?= $title ?? 'HR Management System' ?> - PeopleAxis</title>
     
+    <!-- Preconnect to CDN origins early so DNS/TCP/TLS are ready before assets download -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -380,7 +384,7 @@
     <?= $this->include('layout/footer') ?>
     
     <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
 
     <?= $this->renderSection('scripts') ?>
 </body>

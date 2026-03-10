@@ -12,7 +12,11 @@ class SalaryModel extends Model
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['employee_id', 'base_salary', 'allowances', 'deductions', 'net_salary', 'effective_from'];
+    protected $allowedFields    = [
+        'employee_id', 'base_salary', 'allowances', 'deductions',
+        'sss_contribution', 'philhealth_contribution', 'pagibig_contribution', 'withholding_tax',
+        'net_salary', 'effective_from',
+    ];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';

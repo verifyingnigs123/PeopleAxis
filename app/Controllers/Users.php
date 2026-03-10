@@ -80,10 +80,10 @@ class Users extends BaseController
         $data['currentUserId'] = $currentUserId;
 
         // Build employee email map so the view can show whether each user is linked to an employee record.
-        // Joins positions so we can display the employee's position in the manage-users table.
+        // Join roles so we can display the employee's role in the manage-users table.
         $employeeRows = $db->table('employees')
-            ->select('employees.email, employees.first_name, employees.last_name, employees.employee_id, employees.account_status, positions.name as position_name')
-            ->join('positions', 'positions.id = employees.position_id', 'left')
+            ->select('employees.email, employees.first_name, employees.last_name, employees.employee_id, employees.account_status, roles.name as position_name')
+            ->join('roles', 'roles.id = employees.role_id', 'left')
             ->get()
             ->getResultArray();
         $employeeEmailMap = [];
@@ -261,7 +261,23 @@ class Users extends BaseController
             $result = $this->userModel->skipValidation(true)->update($id, $updateData);
 
             if ($result) {
-                return $this->response->setJSON(['success' => true, 'message' => 'User updated successfully', 'csrf_hash' => csrf_hash()]);
+                // Fetch updated role name for DOM update
+                $roleRecord = $db->table('roles')->where('id', (int)$roleId)->get()->getRow();
+                $updatedRoleName = $roleRecord ? $roleRecord->name : 'User';
+
+                return $this->response->setJSON([
+                    'success'   => true,
+                    'message'   => 'User updated successfully',
+                    'csrf_hash' => csrf_hash(),
+                    'user'      => [
+                        'id'        => (int)$id,
+                        'name'      => $name,
+                        'email'     => $email,
+                        'role_id'   => (int)$roleId,
+                        'role_name' => $updatedRoleName,
+                        'is_active' => (int)$isActive,
+                    ],
+                ]);
             } else {
                 return $this->response->setStatusCode(500)->setJSON([
                     'success' => false,

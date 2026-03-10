@@ -228,6 +228,11 @@
         <h3 class="section-title"><i class="fas fa-briefcase"></i> Employment Information</h3>
 
         <div class="detail-row">
+            <span class="detail-label">Employee / Biometric ID</span>
+            <span class="detail-value"><strong><?= esc($employee->employee_id ?? 'N/A') ?></strong></span>
+        </div>
+
+        <div class="detail-row">
             <span class="detail-label">Department</span>
             <span class="detail-value"><?= $department ? esc($department->name) : 'N/A' ?></span>
         </div>
@@ -238,7 +243,17 @@
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Date of Joining</span>
+            <span class="detail-label">Employment Type</span>
+            <span class="detail-value">
+                <?php
+                    $empTypeMap = ['full_time'=>'Full-Time','part_time'=>'Part-Time','contractual'=>'Contractual','probationary'=>'Probationary'];
+                    echo esc($empTypeMap[$employee->employment_type ?? ''] ?? 'N/A');
+                ?>
+            </span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Date Hired</span>
             <span class="detail-value">
                 <?php if ($employee->date_of_joining): ?>
                     <?= date('F d, Y', strtotime($employee->date_of_joining)) ?>
@@ -247,6 +262,26 @@
                 <?php endif; ?>
             </span>
         </div>
+
+        <?php
+            $__viewRole    = session()->get('role_name') ?? session()->get('role');
+            $__canViewRate = in_array($__viewRole, ['HR Admin', 'Super Admin', 'hr', 'admin']);
+        ?>
+        <?php if ($__canViewRate): ?>
+        <div class="detail-row">
+            <span class="detail-label">Salary Rate</span>
+            <span class="detail-value">
+                <?php if (!empty($employee->rate)): ?>
+                    <strong style="color:#27ae60;">&#8369;<?= number_format($employee->rate, 2) ?></strong>
+                    <?php if ($employee->rate_type): ?>
+                        <span style="color:#7f8c8d;font-size:.9rem;"> / <?= esc(ucfirst($employee->rate_type)) ?></span>
+                    <?php endif; ?>
+                <?php else: ?>
+                    N/A
+                <?php endif; ?>
+            </span>
+        </div>
+        <?php endif; ?>
 
         <div class="detail-row">
             <span class="detail-label">Status</span>
@@ -260,6 +295,229 @@
         </div>
     </div>
 </div>
+
+<?php if (in_array(session()->get('role'), ['hr', 'admin']) || in_array(session()->get('role_name'), ['HR Admin', 'Super Admin'])): ?>
+<!-- ═══ Salary Slip Card ═══ -->
+<div class="detail-section" style="margin-bottom:30px;">
+
+    <?php
+        $rateTypeLabel = ['hourly' => 'Hourly', 'daily' => 'Daily', 'monthly' => 'Monthly'];
+        $empRateType   = $employee->rate_type ?? 'monthly';
+        $empRate       = (float) ($employee->rate ?? 0);
+
+        // Monthly equivalent of the base rate
+        if ($empRateType === 'hourly') {
+            $monthlyEquiv = $empRate * 8 * 26;
+        } elseif ($empRateType === 'daily') {
+            $monthlyEquiv = $empRate * 26;
+        } else {
+            $monthlyEquiv = $empRate;
+        }
+
+        $baseSal    = $salary ? (float)($salary->base_salary ?? $monthlyEquiv) : $monthlyEquiv;
+        $allowances = $salary ? (float)($salary->allowances ?? 0) : 0;
+        $sss        = $salary ? (float)($salary->sss_contribution        ?? 0) : 0;
+        $philhealth = $salary ? (float)($salary->philhealth_contribution ?? 0) : 0;
+        $pagibig    = $salary ? (float)($salary->pagibig_contribution    ?? 0) : 0;
+        $wTax       = $salary ? (float)($salary->withholding_tax         ?? 0) : 0;
+        $extraDed   = $salary ? (float)($salary->deductions              ?? 0) : 0;
+        $gross      = $baseSal + $allowances;
+        $totalDed   = $sss + $philhealth + $pagibig + $wTax + $extraDed;
+        $net        = $salary ? (float)$salary->net_salary : ($gross - $totalDed);
+        $hasSalary  = ($salary || $empRate > 0);
+    ?>
+
+    <!-- Payslip header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+        <h3 class="section-title" style="margin:0;border:none;padding:0;">
+            <i class="fas fa-file-invoice-dollar"></i> Salary Slip
+        </h3>
+        <?php if ($hasSalary && $salary && !empty($salary->effective_from)): ?>
+        <span style="font-size:0.82rem;color:#7f8c8d;background:#f8f9fa;padding:4px 10px;border-radius:20px;border:1px solid #dee2e6;">
+            <i class="fas fa-calendar-alt"></i> Effective <?= date('F d, Y', strtotime($salary->effective_from)) ?>
+        </span>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($hasSalary): ?>
+
+    <!-- Rate badge row -->
+    <?php if ($empRate > 0): ?>
+    <div style="background:#eaf4fb;border:1px solid #bee3f8;border-radius:8px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div>
+            <span style="font-size:0.78rem;color:#2980b9;font-weight:600;letter-spacing:.4px;text-transform:uppercase;">Rate</span>
+            <div style="font-size:1.35rem;font-weight:800;color:#1a5276;">
+                &#8369;<?= number_format($empRate, 2) ?>
+                <span style="font-size:0.85rem;font-weight:600;color:#5d8aa8;"> / <?= $rateTypeLabel[$empRateType] ?? ucfirst($empRateType) ?></span>
+            </div>
+        </div>
+        <?php if ($empRateType !== 'monthly' && $monthlyEquiv > 0): ?>
+        <div style="border-left:2px solid #bee3f8;padding-left:14px;">
+            <span style="font-size:0.78rem;color:#2980b9;font-weight:600;letter-spacing:.4px;text-transform:uppercase;">Monthly Equivalent</span>
+            <div style="font-size:1.1rem;font-weight:700;color:#1a5276;">&#8369;<?= number_format($monthlyEquiv, 2) ?></div>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Earnings & Deductions table -->
+    <div style="border:1px solid #e8eef5;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+
+        <!-- Earnings header -->
+        <div style="background:#f0faf4;padding:9px 18px;border-bottom:1px solid #c3e6cb;">
+            <span style="font-size:0.78rem;font-weight:700;color:#155724;letter-spacing:.5px;text-transform:uppercase;">
+                <i class="fas fa-plus-circle"></i> Earnings
+            </span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr auto;padding:12px 18px;border-bottom:1px solid #f1f3f5;font-size:0.93rem;">
+            <span style="color:#495057;">Basic Salary</span>
+            <span style="font-weight:600;color:#27ae60;">&#8369;<?= number_format($baseSal, 2) ?></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:12px 18px;border-bottom:1px solid #f1f3f5;font-size:0.93rem;">
+            <span style="color:#495057;">Allowances</span>
+            <span style="font-weight:600;color:#2980b9;">&#8369;<?= number_format($allowances, 2) ?></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:11px 18px;border-bottom:1px solid #dee2e6;background:#f8fff9;font-size:0.93rem;">
+            <span style="font-weight:700;color:#155724;">Gross Pay</span>
+            <span style="font-weight:700;color:#155724;">&#8369;<?= number_format($gross, 2) ?></span>
+        </div>
+
+        <!-- Deductions header -->
+        <div style="background:#fff5f5;padding:9px 18px;border-bottom:1px solid #f5c6ca;">
+            <span style="font-size:0.78rem;font-weight:700;color:#721c24;letter-spacing:.5px;text-transform:uppercase;">
+                <i class="fas fa-minus-circle"></i> Deductions
+            </span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
+            <span style="color:#495057;">SSS Contribution <small style="color:#aaa;">(Emp. Share 4.5%)</small></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($sss, 2) ?></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
+            <span style="color:#495057;">PhilHealth <small style="color:#aaa;">(Emp. Share 2.5%)</small></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($philhealth, 2) ?></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
+            <span style="color:#495057;">Pag-IBIG / HMDF</span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($pagibig, 2) ?></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
+            <span style="color:#495057;">Withholding Tax <small style="color:#aaa;">(BIR TRAIN Law)</small></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($wTax, 2) ?></span>
+        </div>
+        <?php if ($extraDed > 0): ?>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
+            <span style="color:#495057;">Other Deductions</span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($extraDed, 2) ?></span>
+        </div>
+        <?php endif; ?>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:11px 18px;background:#fff0f0;border-top:1px solid #f5c6ca;font-size:0.93rem;">
+            <span style="font-weight:700;color:#721c24;">Total Deductions</span>
+            <span style="font-weight:700;color:#721c24;">&#8369;<?= number_format($totalDed, 2) ?></span>
+        </div>
+
+    </div>
+
+    <!-- Net Pay footer (Monthly) -->
+    <div style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border-radius:8px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+            <div style="color:rgba(255,255,255,.75);font-size:0.78rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Monthly Net Pay (Take-Home)</div>
+            <div style="color:rgba(255,255,255,.6);font-size:0.72rem;margin-top:2px;">Full month &middot; all deductions applied</div>
+            <div style="color:#fff;font-size:1.75rem;font-weight:800;letter-spacing:-.5px;">&#8369;<?= number_format($net, 2) ?></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
+            <button onclick="openEditModalSalary()"
+                    style="font-size:0.82rem;padding:8px 16px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-pen"></i> Edit Salary Rate
+            </button>
+            <?php endif; ?>
+            <?php if (in_array(session()->get('role'), ['admin']) || in_array(session()->get('role_name'), ['Super Admin'])): ?>
+            <a href="<?= base_url('employees/salary') ?>" class="btn btn-primary"
+               style="font-size:0.85rem;padding:8px 18px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;">
+                <i class="fas fa-cog"></i> Manage Salary
+            </a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Semi-Monthly (15-day) Breakdown -->
+    <?php
+        $halfGross = $gross / 2;
+        $sm2Net    = $halfGross - $totalDed;
+    ?>
+    <div style="margin-top:14px;">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+                    background:#f0f3ff;color:#1e3c72;padding:7px 12px;border-radius:6px;margin-bottom:10px;">
+            <i class="fas fa-calendar-alt"></i> Semi-Monthly Pay &mdash;
+            <span style="font-weight:400;font-size:.68rem;">(PH standard &middot; 15th &amp; end-of-month)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+            <!-- 1st Payroll -->
+            <div style="border:1.5px solid #a9dfbf;border-radius:8px;padding:13px 15px;background:#f0faf4;">
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#1e8449;margin-bottom:8px;">
+                    1st Payroll &mdash; 15th
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#555;">
+                    <span>Gross (half)</span>
+                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
+                </div>
+                <div style="font-size:.72rem;color:#aaa;padding:2px 0;">No deductions on 15th</div>
+                <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;
+                            border-top:1.5px solid #a9dfbf;margin-top:6px;padding-top:6px;color:#1e8449;">
+                    <span>Take-Home</span>
+                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
+                </div>
+            </div>
+
+            <!-- 2nd Payroll -->
+            <div style="border:1.5px solid #f5b7b1;border-radius:8px;padding:13px 15px;background:#fdf0f0;">
+                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#a93226;margin-bottom:8px;">
+                    2nd Payroll &mdash; End of Month
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#555;">
+                    <span>Gross (half)</span>
+                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#c0392b;">
+                    <span>All Deductions</span>
+                    <span>&#8369;<?= number_format($totalDed, 2) ?></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;
+                            border-top:1.5px solid #f5b7b1;margin-top:6px;padding-top:6px;color:#a93226;">
+                    <span>Take-Home</span>
+                    <span>&#8369;<?= number_format($sm2Net, 2) ?></span>
+                </div>
+            </div>
+
+        </div>
+        <div style="font-size:.68rem;color:#999;margin-top:6px;padding:0 2px;">
+            <i class="fas fa-info-circle"></i>
+            SSS, PhilHealth, Pag-IBIG &amp; Withholding Tax are deducted in full on the 2nd payroll (common PH practice).
+        </div>
+    </div>
+
+    <?php else: ?>
+        <div style="text-align:center;padding:36px 20px;color:#95a5a6;">
+            <i class="fas fa-file-invoice-dollar" style="font-size:2.8rem;margin-bottom:14px;display:block;opacity:.4;"></i>
+            <p style="margin:0 0 6px;font-size:1rem;font-weight:600;color:#7f8c8d;">No salary information yet</p>
+            <p style="margin:0;font-size:0.88rem;">Set the salary rate via the Edit Employee form.</p>
+            <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
+            <button onclick="openEditModalSalary()" class="btn btn-primary" style="margin-top:16px;font-size:0.85rem;padding:8px 18px;">
+                <i class="fas fa-plus"></i> Set Salary Rate
+            </button>
+            <?php endif; ?>
+            <?php if (in_array(session()->get('role'), ['admin']) || in_array(session()->get('role_name'), ['Super Admin'])): ?>
+            <a href="<?= base_url('employees/salary') ?>" class="btn btn-primary" style="margin-top:16px;font-size:0.85rem;padding:8px 18px;">
+                <i class="fas fa-plus"></i> Set Up Salary
+            </a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+</div>
+<?php endif; ?>
 
 <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
 <!-- ═══ Edit Employee Modal ═══ -->
@@ -321,6 +579,7 @@
                     </div>
                 </div>
 
+                <!-- Department -->
                 <div class="edit-form-row">
                     <div class="edit-form-group">
                         <label class="edit-label">Department</label>
@@ -333,15 +592,28 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
+                </div>
+
+                <div class="edit-form-row">
                     <div class="edit-form-group">
                         <label class="edit-label">Position</label>
-                        <select class="edit-input" id="edit_position_id" name="position_id">
+                        <select class="edit-input" id="edit_role_id" name="role_id">
                             <option value="">Select Position</option>
                             <?php foreach ($positions ?? [] as $pos): ?>
-                                <option value="<?= $pos->id ?>" <?= ($employee->position_id == $pos->id) ? 'selected' : '' ?>>
+                                <option value="<?= $pos->id ?>" <?= ($employee->role_id == $pos->id) ? 'selected' : '' ?>>
                                     <?= esc($pos->name) ?>
                                 </option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-label">Employment Type</label>
+                        <select class="edit-input" id="edit_employment_type" name="employment_type">
+                            <option value="">Select Type</option>
+                            <option value="full_time" <?= ($employee->employment_type ?? '') == 'full_time' ? 'selected' : '' ?>>Full-Time</option>
+                            <option value="part_time" <?= ($employee->employment_type ?? '') == 'part_time' ? 'selected' : '' ?>>Part-Time</option>
+                            <option value="contractual" <?= ($employee->employment_type ?? '') == 'contractual' ? 'selected' : '' ?>>Contractual</option>
+                            <option value="probationary" <?= ($employee->employment_type ?? '') == 'probationary' ? 'selected' : '' ?>>Probationary</option>
                         </select>
                     </div>
                 </div>
@@ -351,11 +623,30 @@
                         <label class="edit-label">Date of Birth</label>
                         <input type="date" class="edit-input" id="edit_date_of_birth" name="date_of_birth"
                                value="<?= esc($employee->date_of_birth ?? '') ?>">
+                        <span class="edit-field-error" id="err_date_of_birth"></span>
                     </div>
                     <div class="edit-form-group">
-                        <label class="edit-label">Date of Joining <span class="edit-required">*</span></label>
+                        <label class="edit-label">Date Hired <span class="edit-required">*</span></label>
                         <input type="date" class="edit-input" id="edit_date_of_joining" name="date_of_joining"
                                value="<?= esc($employee->date_of_joining ?? '') ?>" required>
+                        <span class="edit-field-error" id="err_date_of_joining"></span>
+                    </div>
+                </div>
+
+                <div class="edit-form-row">
+                    <div class="edit-form-group">
+                        <label class="edit-label">Salary Rate</label>
+                        <input type="number" class="edit-input" id="edit_rate" name="rate"
+                               value="<?= esc($employee->rate ?? '') ?>" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="edit-form-group">
+                        <label class="edit-label">Rate Type</label>
+                        <select class="edit-input" id="edit_rate_type" name="rate_type">
+                            <option value="">Select Rate Type</option>
+                            <option value="hourly" <?= ($employee->rate_type ?? '') == 'hourly' ? 'selected' : '' ?>>Hourly</option>
+                            <option value="daily" <?= ($employee->rate_type ?? '') == 'daily' ? 'selected' : '' ?>>Daily</option>
+                            <option value="monthly" <?= ($employee->rate_type ?? '') == 'monthly' ? 'selected' : '' ?>>Monthly</option>
+                        </select>
                     </div>
                 </div>
 
@@ -606,10 +897,22 @@
     function closeEditModal() {
         document.getElementById('editEmployeeModal').classList.remove('show');
         document.body.style.overflow = 'auto';
-        clearAllFieldErrors();
-        document.getElementById('editErrors').style.display  = 'none';
-        document.getElementById('editSuccess').style.display = 'none';
     }
+
+    // Opens the edit modal and scrolls to the Salary Rate field
+    function openEditModalSalary() {
+        openEditModal(false);
+        setTimeout(function() {
+            const rateField = document.getElementById('edit_rate');
+            if (rateField) {
+                rateField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                rateField.focus();
+                rateField.style.outline = '3px solid #f39c12';
+                setTimeout(() => { rateField.style.outline = ''; }, 2000);
+            }
+        }, 200);
+    }
+
     document.getElementById('editEmployeeModal').addEventListener('click', function(e){
         if (e.target === this) closeEditModal();
     });
