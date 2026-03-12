@@ -372,15 +372,15 @@
 
         <div style="display:grid;grid-template-columns:1fr auto;padding:12px 18px;border-bottom:1px solid #f1f3f5;font-size:0.93rem;">
             <span style="color:#495057;">Basic Salary</span>
-            <span id="slip_base_salary" style="font-weight:600;color:#27ae60;">&#8369;<?= number_format($baseSal, 2) ?></span>
+            <span style="font-weight:600;color:#27ae60;">&#8369;<?= number_format($baseSal, 2) ?></span>
         </div>
         <div style="display:grid;grid-template-columns:1fr auto;padding:12px 18px;border-bottom:1px solid #f1f3f5;font-size:0.93rem;">
             <span style="color:#495057;">Allowances</span>
-            <span id="slip_allowances" style="font-weight:600;color:#2980b9;">&#8369;<?= number_format($allowances, 2) ?></span>
+            <span style="font-weight:600;color:#2980b9;">&#8369;<?= number_format($allowances, 2) ?></span>
         </div>
         <div style="display:grid;grid-template-columns:1fr auto;padding:11px 18px;border-bottom:1px solid #dee2e6;background:#f8fff9;font-size:0.93rem;">
             <span style="font-weight:700;color:#155724;">Gross Pay</span>
-            <span id="slip_gross" style="font-weight:700;color:#155724;">&#8369;<?= number_format($gross, 2) ?></span>
+            <span style="font-weight:700;color:#155724;">&#8369;<?= number_format($gross, 2) ?></span>
         </div>
 
         <!-- Deductions header -->
@@ -391,27 +391,29 @@
         </div>
         <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
             <span style="color:#495057;">SSS Contribution <small style="color:#aaa;">(Emp. Share 4.5%)</small></span>
-            <span id="slip_sss" style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($sss, 2) ?></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($sss, 2) ?></span>
         </div>
         <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
             <span style="color:#495057;">PhilHealth <small style="color:#aaa;">(Emp. Share 2.5%)</small></span>
-            <span id="slip_philhealth" style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($philhealth, 2) ?></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($philhealth, 2) ?></span>
         </div>
         <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
             <span style="color:#495057;">Pag-IBIG / HMDF</span>
-            <span id="slip_pagibig" style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($pagibig, 2) ?></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($pagibig, 2) ?></span>
         </div>
         <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
             <span style="color:#495057;">Withholding Tax <small style="color:#aaa;">(BIR TRAIN Law)</small></span>
-            <span id="slip_wtax" style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($wTax, 2) ?></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($wTax, 2) ?></span>
         </div>
-        <div id="slip_extra_ded_row" style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;<?= $extraDed > 0 ? '' : 'display:none!important;' ?>">
+        <?php if ($extraDed > 0): ?>
+        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
             <span style="color:#495057;">Other Deductions</span>
-            <span id="slip_extra_ded" style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($extraDed, 2) ?></span>
+            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($extraDed, 2) ?></span>
         </div>
+        <?php endif; ?>
         <div style="display:grid;grid-template-columns:1fr auto;padding:11px 18px;background:#fff0f0;border-top:1px solid #f5c6ca;font-size:0.93rem;">
             <span style="font-weight:700;color:#721c24;">Total Deductions</span>
-            <span id="slip_total_ded" style="font-weight:700;color:#721c24;">&#8369;<?= number_format($totalDed, 2) ?></span>
+            <span style="font-weight:700;color:#721c24;">&#8369;<?= number_format($totalDed, 2) ?></span>
         </div>
 
     </div>
@@ -421,7 +423,7 @@
         <div>
             <div style="color:rgba(255,255,255,.75);font-size:0.78rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Monthly Net Pay (Take-Home)</div>
             <div style="color:rgba(255,255,255,.6);font-size:0.72rem;margin-top:2px;">Full month &middot; all deductions applied</div>
-            <div id="slip_net" style="color:#fff;font-size:1.75rem;font-weight:800;letter-spacing:-.5px;">&#8369;<?= number_format($net, 2) ?></div>
+            <div style="color:#fff;font-size:1.75rem;font-weight:800;letter-spacing:-.5px;">&#8369;<?= number_format($net, 2) ?></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
@@ -459,13 +461,13 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#555;">
                     <span>Gross (half)</span>
-                    <span id="slip_sm_half_gross">&#8369;<?= number_format($halfGross, 2) ?></span>
+                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
                 </div>
                 <div style="font-size:.72rem;color:#aaa;padding:2px 0;">No deductions on 15th</div>
                 <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;
                             border-top:1.5px solid #a9dfbf;margin-top:6px;padding-top:6px;color:#1e8449;">
                     <span>Take-Home</span>
-                    <span id="slip_sm1_takehome">&#8369;<?= number_format($halfGross, 2) ?></span>
+                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
                 </div>
             </div>
 
@@ -476,16 +478,16 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#555;">
                     <span>Gross (half)</span>
-                    <span id="slip_sm2_half_gross">&#8369;<?= number_format($halfGross, 2) ?></span>
+                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#c0392b;">
                     <span>All Deductions</span>
-                    <span id="slip_sm2_all_ded">&#8369;<?= number_format($totalDed, 2) ?></span>
+                    <span>&#8369;<?= number_format($totalDed, 2) ?></span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;
                             border-top:1.5px solid #f5b7b1;margin-top:6px;padding-top:6px;color:#a93226;">
                     <span>Take-Home</span>
-                    <span id="slip_sm2_takehome">&#8369;<?= number_format($sm2Net, 2) ?></span>
+                    <span>&#8369;<?= number_format($sm2Net, 2) ?></span>
                 </div>
             </div>
 
@@ -897,12 +899,18 @@
         document.body.style.overflow = 'auto';
     }
 
-    // Opens the dedicated Edit Salary Rate modal
+    // Opens the edit modal and scrolls to the Salary Rate field
     function openEditModalSalary() {
-        document.getElementById('salaryRateModal').classList.add('show');
-        document.body.style.overflow = 'hidden';
-        document.getElementById('srm_alert_err').style.display  = 'none';
-        document.getElementById('srm_alert_ok').style.display   = 'none';
+        openEditModal(false);
+        setTimeout(function() {
+            const rateField = document.getElementById('edit_rate');
+            if (rateField) {
+                rateField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                rateField.focus();
+                rateField.style.outline = '3px solid #f39c12';
+                setTimeout(() => { rateField.style.outline = ''; }, 2000);
+            }
+        }, 200);
     }
 
     document.getElementById('editEmployeeModal').addEventListener('click', function(e){
@@ -987,195 +995,6 @@
                 : '<i class="fas fa-save"></i> Save Changes';
         });
     });
-</script>
-<?php endif; ?>
-
-<!-- ═══ Edit Salary Rate Modal (HR Admin) ═══ -->
-<?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
-<div id="salaryRateModal" style="display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.52);
-     align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:10px;width:92%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.22);
-                animation:emSlideIn .28s ease;">
-        <!-- Header -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 26px;
-                    background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border-radius:10px 10px 0 0;color:#fff;">
-            <h2 style="margin:0;font-size:1.15rem;font-weight:700;">
-                <i class="fas fa-money-bill-wave"></i> Edit Salary Rate
-            </h2>
-            <button id="srm_close" style="background:none;border:none;color:#fff;font-size:1.9rem;
-                    cursor:pointer;line-height:1;width:34px;height:34px;border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;" title="Close">&times;</button>
-        </div>
-        <!-- Body -->
-        <div style="padding:26px;">
-            <div id="srm_alert_err" style="display:none;background:#fadbd8;color:#c0392b;border-left:4px solid #c0392b;
-                 padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:.9rem;"></div>
-            <div id="srm_alert_ok"  style="display:none;background:#d5f5e3;color:#1e8449;border-left:4px solid #27ae60;
-                 padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:.9rem;"></div>
-            <form id="editSalaryRateForm">
-                <?= csrf_field() ?>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                    <div>
-                        <label style="font-weight:600;font-size:.9rem;color:#2c3e50;display:block;margin-bottom:5px;">
-                            Base Salary (&#8369;) <span style="color:#e74c3c;">*</span>
-                        </label>
-                        <input type="number" id="srm_base_salary" name="base_salary" min="0" step="0.01" required
-                               style="width:100%;padding:9px 11px;border:1px solid #d5dce0;border-radius:6px;
-                                      font-size:.93rem;box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-weight:600;font-size:.9rem;color:#2c3e50;display:block;margin-bottom:5px;">Allowances (&#8369;)</label>
-                        <input type="number" id="srm_allowances" name="allowances" min="0" step="0.01" value="0"
-                               style="width:100%;padding:9px 11px;border:1px solid #d5dce0;border-radius:6px;
-                                      font-size:.93rem;box-sizing:border-box;">
-                    </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                    <div>
-                        <label style="font-weight:600;font-size:.9rem;color:#2c3e50;display:block;margin-bottom:5px;">Extra Deductions (&#8369;)</label>
-                        <input type="number" id="srm_deductions" name="deductions" min="0" step="0.01" value="0"
-                               style="width:100%;padding:9px 11px;border:1px solid #d5dce0;border-radius:6px;
-                                      font-size:.93rem;box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-weight:600;font-size:.9rem;color:#2c3e50;display:block;margin-bottom:5px;">Effective From</label>
-                        <input type="date" id="srm_effective_from" name="effective_from"
-                               style="width:100%;padding:9px 11px;border:1px solid #d5dce0;border-radius:6px;
-                                      font-size:.93rem;box-sizing:border-box;">
-                    </div>
-                </div>
-                <p style="font-size:.78rem;color:#7f8c8d;margin:0 0 18px;">
-                    <i class="fas fa-info-circle"></i>
-                    SSS, PhilHealth, Pag-IBIG &amp; Withholding Tax are computed automatically from the base salary.
-                </p>
-                <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e8eef5;padding-top:16px;">
-                    <button type="button" onclick="document.getElementById('salaryRateModal').classList.remove('show');document.body.style.overflow='auto';"
-                            style="padding:9px 20px;border:1px solid #d5dce0;border-radius:6px;background:#fff;
-                                   font-size:.9rem;cursor:pointer;">Cancel</button>
-                    <button type="submit" id="srm_save_btn"
-                            style="padding:9px 22px;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;
-                                   border:none;border-radius:6px;font-size:.9rem;font-weight:600;cursor:pointer;">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-<script>
-    /* ── Edit Salary Rate Modal wiring (runs after modal HTML exists in DOM) ── */
-    (function () {
-        const SALARY_UPDATE_URL = '<?= base_url('employees/salary/update') ?>';
-        const EMP_ID            = <?= (int)$employee->id ?>;
-
-        // Show/hide via MutationObserver (inline style starts as 'none')
-        const _srmEl = document.getElementById('salaryRateModal');
-        const _srmObs = new MutationObserver(function() {
-            _srmEl.style.display = _srmEl.classList.contains('show') ? 'flex' : 'none';
-        });
-        _srmObs.observe(_srmEl, { attributes: true, attributeFilter: ['class'] });
-
-        // Pre-fill current values
-        document.getElementById('srm_base_salary').value    = '<?= number_format((float)($salary->base_salary ?? ($salary ? 0 : $monthlyEquiv)), 2, '.', '') ?>';
-        document.getElementById('srm_allowances').value     = '<?= number_format((float)($salary->allowances  ?? 0), 2, '.', '') ?>';
-        document.getElementById('srm_deductions').value     = '<?= number_format((float)($salary->deductions  ?? 0), 2, '.', '') ?>';
-        document.getElementById('srm_effective_from').value = '<?= esc($salary->effective_from ?? date('Y-m-d')) ?>';
-
-        function closeSRM() {
-            _srmEl.classList.remove('show');
-            document.body.style.overflow = 'auto';
-        }
-        document.getElementById('srm_close').addEventListener('click', closeSRM);
-        _srmEl.addEventListener('click', function(e) { if (e.target === this) closeSRM(); });
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && _srmEl.classList.contains('show')) closeSRM();
-        });
-
-        document.getElementById('editSalaryRateForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const errDiv  = document.getElementById('srm_alert_err');
-            const okDiv   = document.getElementById('srm_alert_ok');
-            const saveBtn = document.getElementById('srm_save_btn');
-
-            errDiv.style.display = 'none';
-            okDiv.style.display  = 'none';
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving&hellip;';
-
-            const fd = new FormData(this);
-            fd.set('employee_id', EMP_ID);
-
-            fetch(SALARY_UPDATE_URL, { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        okDiv.textContent = res.message || 'Salary updated successfully.';
-                        okDiv.style.display = 'block';
-
-                        // Update CSRF token
-                        if (res.csrf_hash) {
-                            const tokenInput = document.querySelector('#editSalaryRateForm input[name="<?= csrf_token() ?>"]');
-                            if (tokenInput) tokenInput.value = res.csrf_hash;
-                        }
-
-                        // Update salary slip in-place
-                        if (res.data) {
-                            const d = res.data;
-                            const fmt = n => '\u20b1' + parseFloat(n).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
-                            const halfGross = (d.gross / 2);
-
-                            document.getElementById('slip_base_salary').textContent  = fmt(d.base_salary);
-                            document.getElementById('slip_allowances').textContent   = fmt(d.allowances);
-                            document.getElementById('slip_gross').textContent        = fmt(d.gross);
-                            document.getElementById('slip_sss').textContent          = fmt(d.sss);
-                            document.getElementById('slip_philhealth').textContent   = fmt(d.philhealth);
-                            document.getElementById('slip_pagibig').textContent      = fmt(d.pagibig);
-                            document.getElementById('slip_wtax').textContent         = fmt(d.withholding_tax);
-                            document.getElementById('slip_total_ded').textContent    = fmt(d.total_deductions);
-                            document.getElementById('slip_net').textContent          = fmt(d.net_salary);
-
-                            // Other deductions row — show/hide
-                            const extraRow = document.getElementById('slip_extra_ded_row');
-                            if (d.extra_deductions > 0) {
-                                document.getElementById('slip_extra_ded').textContent = fmt(d.extra_deductions);
-                                extraRow.style.removeProperty('display');
-                            } else {
-                                extraRow.style.setProperty('display', 'none', 'important');
-                            }
-
-                            // Semi-monthly breakdown
-                            document.getElementById('slip_sm_half_gross').textContent  = fmt(halfGross);
-                            document.getElementById('slip_sm1_takehome').textContent   = fmt(halfGross);
-                            document.getElementById('slip_sm2_half_gross').textContent = fmt(halfGross);
-                            document.getElementById('slip_sm2_all_ded').textContent    = fmt(d.total_deductions);
-                            document.getElementById('slip_sm2_takehome').textContent   = fmt(halfGross - d.total_deductions);
-
-                            // Sync pre-fill values for next open
-                            document.getElementById('srm_base_salary').value    = parseFloat(d.base_salary).toFixed(2);
-                            document.getElementById('srm_allowances').value     = parseFloat(d.allowances).toFixed(2);
-                            document.getElementById('srm_deductions').value     = parseFloat(d.extra_deductions).toFixed(2);
-                        }
-
-                        // Close modal after short delay
-                        setTimeout(() => {
-                            closeSRM();
-                            okDiv.style.display = 'none';
-                        }, 1000);
-                    } else {
-                        errDiv.textContent = res.message || 'Failed to update salary.';
-                        errDiv.style.display = 'block';
-                    }
-                })
-                .catch(() => {
-                    errDiv.textContent = 'Network error. Please try again.';
-                    errDiv.style.display = 'block';
-                })
-                .finally(() => {
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-                });
-        });
-    })();
 </script>
 <?php endif; ?>
 

@@ -96,16 +96,16 @@
     }
 
     .sidebar-link:hover {
-        background: rgba(102, 126, 234, 0.06);
+        background: #f1f3ff;
         color: #667eea;
-        border-left-color: rgba(102, 126, 234, 0.35);
+        border-left-color: #667eea;
     }
 
     .sidebar-link.active {
-        background: #e8ecff;
-        color: #4a5cc7;
-        border-left-color: #4a5cc7;
-        font-weight: 700;
+        background: #f1f3ff;
+        color: #667eea;
+        border-left-color: #667eea;
+        font-weight: 600;
     }
 
     .sidebar-link i {
@@ -208,11 +208,25 @@
         text-align: center;
     }
 
+    /* ===== Active Link State ===== */
     .sidebar-link.active {
-        background: #e8ecff;
-        color: #4a5cc7;
-        border-left-color: #4a5cc7;
-        font-weight: 700;
+        background: #f1f3ff;
+        color: #667eea;
+        border-left-color: #667eea;
+        font-weight: 600;
+        position: relative;
+    }
+
+    .sidebar-link.active::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        background: #667eea;
+        border-radius: 3px 0 0 3px;
     }
 
     /* ===== Link Transition ===== */
@@ -875,11 +889,6 @@
     <div class="content-area" id="mainContent">
 
 <script>
-(function() {
-    // Guard: only initialize once even if PJAX re-injects this script
-    if (window.__headerInitialized) return;
-    window.__headerInitialized = true;
-
 document.addEventListener('DOMContentLoaded', function() {
     const currentUrl = window.location.pathname;
     const role = '<?= $role ?>';
@@ -888,68 +897,34 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== Highlight Active Navigation Links =====
     function setActiveLink() {
         const sidebarLinks = document.querySelectorAll('.sidebar-link');
-        const currentPath = window.location.pathname;
         
-        if (sidebarLinks.length === 0) return;
-
-        // Step 1: Clear ALL active classes from all sidebar links
         sidebarLinks.forEach(link => {
-            link.classList.remove('active');
-        });
-
-        // Step 2: Parse all links and find candidates
-        const linkCandidates = [];
-        sidebarLinks.forEach((link, index) => {
             const href = link.getAttribute('href');
-            if (!href) return;
             
-            try {
-                const linkPath = new URL(href, window.location.origin).pathname;
-                linkCandidates.push({ index, link, path: linkPath });
-            } catch (e) {
-                // Invalid URL, skip
-            }
-        });
-
-        if (linkCandidates.length === 0) return;
-
-        // Step 3: Sort by path length (longest first) for specificity
-        linkCandidates.sort((a, b) => b.path.length - a.path.length);
-
-        // Step 4: Find THE single best match
-        let bestMatchIndex = -1;
-
-        // Try exact match first
-        for (let i = 0; i < linkCandidates.length; i++) {
-            if (linkCandidates[i].path === currentPath) {
-                bestMatchIndex = linkCandidates[i].index;
-                break;
-            }
-        }
-
-        // If no exact match, try longest prefix match
-        if (bestMatchIndex === -1) {
-            for (let i = 0; i < linkCandidates.length; i++) {
-                const candidate = linkCandidates[i];
-                if (currentPath === candidate.path || 
-                    (currentPath.startsWith(candidate.path) && 
-                     (currentPath[candidate.path.length] === '/' || currentPath[candidate.path.length] === undefined))) {
-                    bestMatchIndex = candidate.index;
-                    break;
-                }
-            }
-        }
-
-        // Step 5: Apply active class ONLY to the best match
-        if (bestMatchIndex !== -1) {
-            sidebarLinks[bestMatchIndex].classList.add('active');
-        }
-
-        // Step 6: Verify - remove active from any other links (safety check)
-        sidebarLinks.forEach((link, index) => {
-            if (index !== bestMatchIndex) {
+            // Normalize URLs for comparison
+            const linkPath = href ? new URL(href, window.location.origin).pathname : '';
+            
+            if (linkPath === currentUrl || currentUrl.startsWith(linkPath + '/')) {
+                link.classList.add('active');
+            } else {
                 link.classList.remove('active');
             }
+        });
+    }
+
+    // ===== Dashboard Navigation =====
+    function setupSidebarNavigation() {
+        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Allow form submissions
+                if (this.tagName === 'FORM') return;
+                
+                // For regular links, add active class
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
         });
     }
 
@@ -1016,8 +991,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== Setup All Functionality =====
-    // Call setActiveLink first before anything else
     setActiveLink();
+    setupSidebarNavigation();
     setupMobileToggle();
     setupFormHandlers();
     initializeTooltips();
@@ -1029,43 +1004,22 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('popstate', function() {
         setActiveLink();
     });
+});
 
-    // ===== Handle Sidebar Form Submissions =====
-    const sidebarForms = document.querySelectorAll('.sidebar-sync-form');
-    sidebarForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const btn = this.querySelector('button[type="submit"]');
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-            
-            const formData = new FormData(this);
-            fetch(this.getAttribute('action'), {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                if (data.status === 'success') {
-                    alert(data.message || 'Sync completed successfully!');
-                } else {
-                    alert(data.message || 'Sync failed. Please try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                alert('An error occurred during sync. Please try again.');
-            });
-        });
-    });
+// ===== Global Navigation Function =====
+function navigateTo(url) {
+    window.location.href = url;
+}
 
-    // ===== Initialize Notification System =====
+// ===== Logout Confirmation =====
+function confirmLogout() {
+    if (confirm('Are you sure you want to log out?')) {
+        window.location.href = '<?= base_url('logout') ?>';
+    }
+}
+
+// ===== Initialize Notification System =====
+document.addEventListener('DOMContentLoaded', function() {
     const notificationBell = document.getElementById('notificationBell');
     const notificationBadge = document.getElementById('notificationBadge');
     const notificationMenu = document.getElementById('notificationMenu');
@@ -1429,7 +1383,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-})(); // end one-time guard
+// ===== Handle Sidebar Form Submissions =====
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarForms = document.querySelectorAll('.sidebar-sync-form');
+    
+    sidebarForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = this.querySelector('button[type="submit"]');
+            const originalHtml = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+            
+            // Submit the form
+            const formData = new FormData(this);
+            
+            fetch(this.getAttribute('action'), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                
+                if (data.status === 'success') {
+                    alert(data.message || 'Sync completed successfully!');
+                } else {
+                    alert(data.message || 'Sync failed. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                alert('An error occurred during sync. Please try again.');
+            });
+        });
+    });
+});
 </script>
 
 <script>
@@ -1440,10 +1437,6 @@ document.addEventListener('DOMContentLoaded', function() {
    ===================================================================== */
 (function () {
     'use strict';
-    // Guard: only initialize PJAX once even if PJAX re-injects this script block
-    if (window.__pjaxInitialized) return;
-    window.__pjaxInitialized = true;
-
     var CONTAINER = '#mainContent';
     var navigating = false;
 
@@ -1482,57 +1475,15 @@ document.addEventListener('DOMContentLoaded', function() {
     /* ── highlight the active sidebar link ─────────────────────────────── */
     function updateActiveLink(url) {
         var path = new URL(url, location.origin).pathname;
-        var sidebarLinks = document.querySelectorAll('.sidebar-link');
-        
-        // Step 1: Clear all active
-        sidebarLinks.forEach(function(link) {
-            link.classList.remove('active');
-        });
-
-        // Step 2: Parse all links
-        var candidates = [];
-        sidebarLinks.forEach(function(link, index) {
+        document.querySelectorAll('.sidebar-link').forEach(function(link){
             var href = link.getAttribute('href');
             if (!href) return;
             try {
-                var linkPath = new URL(href, location.origin).pathname;
-                candidates.push({ index: index, link: link, path: linkPath });
-            } catch(e) {}
+                var lp = new URL(href, location.origin).pathname;
+                var active = lp === path || (lp !== '/' && path.startsWith(lp + '/'));
+                link.classList.toggle('active', active);
+            } catch(e){}
         });
-
-        if (candidates.length === 0) return;
-
-        // Step 3: Sort by length descending
-        candidates.sort(function(a, b) { return b.path.length - a.path.length; });
-
-        // Step 4: Find best match
-        var bestIndex = -1;
-        
-        // Try exact match
-        for (var i = 0; i < candidates.length; i++) {
-            if (candidates[i].path === path) {
-                bestIndex = candidates[i].index;
-                break;
-            }
-        }
-        
-        // Try prefix match if no exact
-        if (bestIndex === -1) {
-            for (var i = 0; i < candidates.length; i++) {
-                var cand = candidates[i];
-                if (path === cand.path || 
-                    (path.startsWith(cand.path) && 
-                     (path[cand.path.length] === '/' || path[cand.path.length] === undefined))) {
-                    bestIndex = cand.index;
-                    break;
-                }
-            }
-        }
-
-        // Step 5: Apply active to only best match
-        if (bestIndex !== -1) {
-            sidebarLinks[bestIndex].classList.add('active');
-        }
     }
 
     /* ── core: fetch a page and swap only #mainContent ─────────────────── */

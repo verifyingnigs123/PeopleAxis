@@ -62,7 +62,7 @@ class Leaves extends BaseController
             }
 
             $leaves = $this->leaveModel
-                ->where('employee_id', $employee->id)
+                ->where('employee_id', $employee['id'])
                 ->orderBy('start_date', 'DESC')
                 ->paginate(20);
         }
@@ -138,7 +138,7 @@ class Leaves extends BaseController
         $days = $to->diff($from)->days + 1;
 
         $data = [
-            'employee_id' => $employee->id,
+            'employee_id' => $employee['id'],
             'leave_type' => $this->request->getPost('leave_type'),
             'start_date' => $fromDate,
             'end_date' => $toDate,
