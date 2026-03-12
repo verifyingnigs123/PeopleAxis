@@ -18,6 +18,26 @@ class App extends BaseConfig
      */
     public string $baseURL = 'http://localhost/PeopleAxis/';
 
+    public function __construct()
+    {
+        parent::__construct();
+
+        // On Railway production, force a canonical HTTPS host to match certificate CN/SAN.
+        $railwayDomain = getenv('RAILWAY_PUBLIC_DOMAIN');
+        $requestHost   = $_SERVER['HTTP_HOST'] ?? '';
+
+        $host = $railwayDomain ?: $requestHost;
+
+        if (ENVIRONMENT === 'production' && $host !== '') {
+            $host = rtrim($host, '/');
+            $host = preg_replace('#^https?://#i', '', $host) ?? $host;
+
+            $this->baseURL = 'https://' . $host . '/';
+            $this->allowedHostnames = [$host];
+            $this->forceGlobalSecureRequests = true;
+        }
+    }
+
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
      * If you want to accept multiple Hostnames, set this.

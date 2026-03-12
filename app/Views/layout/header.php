@@ -1226,12 +1226,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Mark as read, then navigate
                 markNotificationRead(notifId, function() {
                     if (!link) return;
-                    // Handle both full URLs (new) and bare paths (old notifications in DB)
-                    if (link.startsWith('http://') || link.startsWith('https://')) {
-                        window.location.href = link;
-                    } else {
-                        window.location.href = '<?= rtrim(base_url(), '/') ?>/' + link.replace(/^\//, '');
+
+                    const rawLink = String(link).trim();
+                    let targetUrl = '';
+
+                    // Full absolute URL already present
+                    if (/^https?:\/\//i.test(rawLink)) {
+                        targetUrl = rawLink;
                     }
+                    // Host-only or host+path without scheme (e.g. peopleaxis-production.up.railway.app/foo)
+                    else if (/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(rawLink)) {
+                        targetUrl = 'https://' + rawLink.replace(/^\/+/, '');
+                    }
+                    // Relative path from app root
+                    else {
+                        targetUrl = new URL(rawLink, '<?= rtrim(base_url(), '/') ?>/').href;
+                    }
+
+                    window.location.href = targetUrl;
                 });
             });
         });
