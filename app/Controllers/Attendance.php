@@ -33,13 +33,30 @@ class Attendance extends BaseController
                 return redirect()->back()->with('error', 'Employee profile not found');
             }
 
-            $attendance = $this->attendanceModel
-                ->where('employee_id', $employee['id'])
+            $month = $this->request->getGet('month') ?? date('Y-m');
+
+            $records = $this->attendanceModel
+                ->where('employee_id', $employee->id)
+                ->like('date', $month, 'after')
                 ->orderBy('date', 'DESC')
                 ->paginate(20);
 
-            $data['attendance'] = $attendance;
-            $data['pager'] = $this->attendanceModel->pager;
+            // Compute stats across all records for the selected month
+            $allRecords = $this->attendanceModel
+                ->where('employee_id', $employee->id)
+                ->like('date', $month, 'after')
+                ->findAll();
+
+            $stats = [
+                'total_days'   => count($allRecords),
+                'present_days' => count(array_filter($allRecords, fn($r) => strtolower($r->status ?? '') === 'present')),
+                'absent_days'  => count(array_filter($allRecords, fn($r) => strtolower($r->status ?? '') === 'absent')),
+                'late_days'    => count(array_filter($allRecords, fn($r) => strtolower($r->status ?? '') === 'late')),
+            ];
+
+            $data['records'] = $records;
+            $data['stats']   = $stats;
+            $data['pager']   = $this->attendanceModel->pager;
 
             return view('attendance/view', $data);
         } catch (\Exception $e) {

@@ -1244,6 +1244,7 @@ class Employees extends BaseController
                 ->join('departments',  'departments.id = employees.department_id', 'left')
                 ->join('salaries',     'salaries.employee_id = employees.id', 'left')
                 ->where('employees.status', 'active')
+                ->whereIn('roles.name', ['Employee', 'Manager'])
                 ->orderBy('employees.first_name', 'ASC')
                 ->get()->getResultObject();
         } catch (\Exception $e) {
@@ -1293,10 +1294,10 @@ class Employees extends BaseController
     public function updateSalary()
     {
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['Super Admin', 'admin'])) {
+        if (!in_array($role, ['Super Admin', 'HR Admin', 'admin', 'hr'])) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied.'
             ]);
         }
 
@@ -1350,10 +1351,25 @@ class Employees extends BaseController
             $msg = 'Salary rate set successfully.';
         }
 
+        $gross          = (float)$baseSalary + $allowances;
+        $totalDeductions = $ded['sss'] + $ded['philhealth'] + $ded['pagibig'] + $ded['withholding_tax'] + $deductions;
+
         return $this->response->setJSON([
-            'success' => true,
-            'message' => $msg,
+            'success'   => true,
+            'message'   => $msg,
             'csrf_hash' => csrf_hash(),
+            'data'      => [
+                'base_salary'      => (float) $baseSalary,
+                'allowances'       => $allowances,
+                'gross'            => $gross,
+                'sss'              => $ded['sss'],
+                'philhealth'       => $ded['philhealth'],
+                'pagibig'          => $ded['pagibig'],
+                'withholding_tax'  => $ded['withholding_tax'],
+                'extra_deductions' => $deductions,
+                'total_deductions' => $totalDeductions,
+                'net_salary'       => $netSalary,
+            ],
         ]);
     }
 

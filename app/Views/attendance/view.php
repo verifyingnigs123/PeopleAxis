@@ -206,7 +206,7 @@
 <!-- Month Selector -->
 <div class="month-selector">
     <span style="color: #2c3e50; font-weight: 600;">Filter by Month:</span>
-    <form action="<?= base_url('attendance/view') ?>" method="GET" style="display: flex; gap: 10px;">
+    <form action="<?= base_url('attendance') ?>" method="GET" style="display: flex; gap: 10px;">
         <input type="month" name="month" class="btn-month" value="<?= isset($_GET['month']) ? esc($_GET['month']) : date('Y-m') ?>">
         <button type="submit" class="btn-month active">Apply</button>
         <a href="<?= base_url('attendance/view') ?>" class="btn-month">Reset</a>
@@ -237,20 +237,20 @@
                         <tr>
                             <td><?= $i + 1 ?></td>
                             <td>
-                                <strong><?= date('M d, Y', strtotime($record->attendance_date ?? now())) ?></strong>
+                                <strong><?= date('M d, Y', strtotime($record->date)) ?></strong>
                                 <br>
-                                <small style="color: #7f8c8d;"><?= date('l', strtotime($record->attendance_date ?? now())) ?></small>
+                                <small style="color: #7f8c8d;"><?= date('l', strtotime($record->date)) ?></small>
                             </td>
                             <td>
-                                <?php if ($record->check_in_time): ?>
-                                    <span class="time-badge"><?= date('H:i', strtotime($record->check_in_time)) ?></span>
+                                <?php if (!empty($record->time_in)): ?>
+                                    <span class="time-badge"><?= date('H:i', strtotime($record->time_in)) ?></span>
                                 <?php else: ?>
                                     <span style="color: #95a5a6;">-</span>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if ($record->check_out_time): ?>
-                                    <span class="time-badge"><?= date('H:i', strtotime($record->check_out_time)) ?></span>
+                                <?php if (!empty($record->time_out)): ?>
+                                    <span class="time-badge"><?= date('H:i', strtotime($record->time_out)) ?></span>
                                 <?php else: ?>
                                     <span style="color: #95a5a6;">-</span>
                                 <?php endif; ?>
@@ -269,9 +269,9 @@
                             </td>
                             <td>
                                 <?php
-                                    if ($record->check_in_time && $record->check_out_time) {
-                                        $start = strtotime($record->check_in_time);
-                                        $end = strtotime($record->check_out_time);
+                                    if (!empty($record->time_in) && !empty($record->time_out)) {
+                                        $start = strtotime($record->time_in);
+                                        $end = strtotime($record->time_out);
                                         $duration = round(($end - $start) / 3600, 1);
                                         echo '<strong>' . $duration . ' hrs</strong>';
                                     } else {
