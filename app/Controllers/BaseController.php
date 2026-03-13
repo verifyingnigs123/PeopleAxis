@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\EmployeeModel;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
@@ -54,5 +55,98 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
 
         // E.g.: $this->session = service('session');
+    }
+
+    protected function isManagerUser(): bool
+    {
+        $role     = strtolower((string) session()->get('role'));
+        $roleName = strtolower((string) session()->get('role_name'));
+
+        return $role === 'manager' || $roleName === 'manager';
+    }
+
+    /**
+     * Returns the departments and employees the logged-in manager is responsible for.
+     *
+     * @return array<string, array<int, array<string, mixed>>|array<int, int>>
+     */
+    protected function getManagedTeamContext(): array
+    {
+        $managerId = (int) session()->get('user_id');
+
+        if ($managerId <= 0) {
+            return [
+                'departments'   => [],
+                'departmentIds' => [],
+                'teamMembers'   => [],
+                'employeeIds'   => [],
+            ];
+        }
+
+        $db = \Config\Database::connect();
+
+        $departments = $db->table('departments')
+            ->select('id, name')
+            ->where('manager_id', $managerId)
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $departmentIds = array_map('intval', array_column($departments, 'id'));
+        $teamMembers   = [];
+
+        if ($departmentIds !== []) {
+            $teamMembers = $db->table('employees')
+                ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
+                ->join('departments', 'departments.id = employees.department_id', 'left')
+                ->whereIn('employees.department_id', $departmentIds)
+                ->orderBy('employees.first_name', 'ASC')
+                ->orderBy('employees.last_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        $employeeIds = array_map('intval', array_column($teamMembers, 'id'));
+
+        return [
+            'departments'   => $departments,
+            'departmentIds' => $departmentIds,
+            'teamMembers'   => $teamMembers,
+            'employeeIds'   => $employeeIds,
+        ];
+    }
+
+    protected function getCurrentEmployeeRecord(): ?object
+    {
+        $userId = (int) session()->get('user_id');
+        $email = (string) session()->get('email');
+
+        if ($userId <= 0 && $email === '') {
+            return null;
+        }
+
+        $employeeModel = new EmployeeModel();
+
+        if ($userId > 0) {
+            $employee = $employeeModel->where('user_id', $userId)->first();
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($email !== '') {
+            $employee = $employeeModel->where('email', $email)->first();
+
+            if ($employee && (int) ($employee->user_id ?? 0) !== $userId && $userId > 0) {
+                $employeeModel->update($employee->id, ['user_id' => $userId]);
+                $employee->user_id = $userId;
+            }
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        return null;
     }
 }

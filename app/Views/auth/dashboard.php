@@ -982,7 +982,7 @@
     <div class="admin-header">
         <div>
             <h1><i class="fas fa-users-cog"></i> Manager Dashboard</h1>
-            <p>Team attendance and approvals</p>
+            <p>Operational overview across <?= $managedDepartmentCount ?? 0 ?> managed departments</p>
         </div>
     </div>
 
@@ -995,6 +995,13 @@
             </div>
         </div>
         <div class="stat-box">
+            <i class="fas fa-building"></i>
+            <div class="stat-info">
+                <h5>Departments</h5>
+                <h3><?= $managedDepartmentCount ?? 0 ?></h3>
+            </div>
+        </div>
+        <div class="stat-box">
             <i class="fas fa-clock"></i>
             <div class="stat-info">
                 <h5>Present Today</h5>
@@ -1002,17 +1009,10 @@
             </div>
         </div>
         <div class="stat-box">
-            <i class="fas fa-chart-line"></i>
+            <i class="fas fa-calendar-check"></i>
             <div class="stat-info">
-                <h5>Absent Today</h5>
-                <h3><?= $teamAttendance['absent'] ?? 0 ?></h3>
-            </div>
-        </div>
-        <div class="stat-box">
-            <i class="fas fa-hourglass-end"></i>
-            <div class="stat-info">
-                <h5>On Leave</h5>
-                <h3><?= $teamAttendance['leave'] ?? 0 ?></h3>
+                <h5>Pending Leave Reviews</h5>
+                <h3><?= $pendingTeamLeaves ?? 0 ?></h3>
             </div>
         </div>
     </div>
@@ -1021,20 +1021,20 @@
         <div class="action-card">
             <i class="fas fa-eye"></i>
             <h3>View Team Attendance</h3>
-            <p>Only team-level attendance data</p>
+            <p><?= $teamAttendance['late'] ?? 0 ?> late or partial logs need attention today.</p>
             <a href="<?= base_url('attendance/team') ?>" class="btn btn-outline-primary">Team Attendance</a>
         </div>
         <div class="action-card">
             <i class="fas fa-check"></i>
             <h3>Approve Team Leaves</h3>
-            <p>Approve team leave requests</p>
-            <a href="<?= base_url('leaves/team') ?>" class="btn btn-outline-primary">Approve</a>
+            <p><?= $pendingTeamLeaves ?? 0 ?> requests are waiting for your decision.</p>
+            <a href="<?= base_url('leaves/team') ?>" class="btn btn-outline-primary">Open Queue</a>
         </div>
         <div class="action-card">
             <i class="fas fa-chart-pie"></i>
             <h3>Team Performance</h3>
-            <p>View performance metrics</p>
-            <a href="<?= base_url('reports/team') ?>" class="btn btn-outline-primary">Performance</a>
+            <p>Review monthly attendance trends and identify at-risk team members.</p>
+            <a href="<?= base_url('reports/team') ?>" class="btn btn-outline-primary">View Dashboard</a>
         </div>
     </div>
 
@@ -1107,7 +1107,7 @@
                         <i class="fas fa-clock"></i> Attendance
                     </div>
                     <div class="card-body">
-                        <a href="<?= base_url('attendance/mark') ?>" class="btn btn-outline-primary">Mark Attendance</a>
+                        <a href="<?= base_url('attendance') ?>" class="btn btn-outline-primary">Attendance Dashboard</a>
                         <a href="<?= base_url('attendance') ?>" class="btn btn-outline-primary">View History</a>
                     </div>
                 </div>
@@ -1119,7 +1119,7 @@
                     </div>
                     <div class="card-body">
                         <a href="<?= base_url('leaves/create') ?>" class="btn btn-outline-primary">Request Leave</a>
-                        <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary">My Requests</a>
+                        <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary">Leave Status Dashboard</a>
                     </div>
                 </div>
             </div>

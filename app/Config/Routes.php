@@ -18,7 +18,7 @@ $routes->get('/dashboard', 'Dashboard::index');
 
 // Leaves
 $routes->get('/leaves', 'Leaves::index');
-$routes->get('/leaves/team', 'Leaves::index');
+$routes->get('/leaves/team', 'Leaves::team');
 $routes->get('/leaves/create', 'Leaves::create');
 $routes->post('/leaves/store', 'Leaves::store');
 $routes->post('/leaves/submit', 'Leaves::submit');
@@ -94,6 +94,7 @@ $routes->get('/audit', 'Audit::index');
 // Reports routes
 $routes->get('/reports', 'Reports::index');
 $routes->get('/reports/attendance', 'Reports::attendance');
+$routes->get('/reports/team', 'Reports::team');
 $routes->get('/reports/(:any)', 'Reports::view/$1');
 $routes->post('/reports/generate', 'Reports::generate');
 $routes->post('/reports/generate/attendance', 'Reports::attendance');

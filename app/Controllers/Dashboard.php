@@ -41,31 +41,86 @@ class Dashboard extends BaseController
                 break;
 
             case 'Manager':
-                // Show team metrics — assume departments have manager_id field
-                $managerId = $session->get('user_id');
                 try {
-                    // Get departments managed by this user
-                    $db = \Config\Database::connect();
-                    $departmentIds = $db->table('departments')
-                        ->where('manager_id', $managerId)
-                        ->select('id')
-                        ->get()
-                        ->getResultArray();
-                    
-                    // Get employees in those departments
-                    if (!empty($departmentIds)) {
-                        $deptIds = array_column($departmentIds, 'id');
-                        $teamEmployees = $employeeModel->whereIn('department_id', $deptIds)->findAll();
-                        $data['teamCount'] = count($teamEmployees);
-                        $data['teamAttendance'] = $attendanceModel->getTeamAttendance($teamEmployees);
-                    } else {
-                        $data['teamCount'] = 0;
-                        $data['teamAttendance'] = [];
+                    $teamContext = $this->getManagedTeamContext();
+
+                    $data['managedDepartments'] = $teamContext['departments'];
+                    $data['managedDepartmentCount'] = count($teamContext['departments']);
+                    $data['teamCount'] = count($teamContext['teamMembers']);
+                    $data['pendingTeamLeaves'] = 0;
+                    $data['teamAttendance'] = [
+                        'present' => 0,
+                        'late'    => 0,
+                        'absent'  => 0,
+                        'leave'   => 0,
+                    ];
+
+                    if ($teamContext['employeeIds'] !== []) {
+                        $db = \Config\Database::connect();
+                        $today = date('Y-m-d');
+
+                        $todayAttendance = $db->table('attendance_logs')
+                            ->select('employee_id, status')
+                            ->whereIn('employee_id', $teamContext['employeeIds'])
+                            ->where('date', $today)
+                            ->get()
+                            ->getResultArray();
+
+                        $recordedEmployees = [];
+                        $presentCount = 0;
+                        $lateCount = 0;
+                        $explicitAbsentCount = 0;
+
+                        foreach ($todayAttendance as $row) {
+                            $employeeId = (int) ($row['employee_id'] ?? 0);
+                            $status = strtolower((string) ($row['status'] ?? ''));
+
+                            $recordedEmployees[$employeeId] = true;
+
+                            if (in_array($status, ['late', 'half-day', 'half day'], true)) {
+                                $lateCount++;
+                            } elseif ($status === 'absent') {
+                                $explicitAbsentCount++;
+                            } else {
+                                $presentCount++;
+                            }
+                        }
+
+                        $leaveCount = (int) ($db->table('leave_requests')
+                            ->select('COUNT(DISTINCT employee_id) AS total', false)
+                            ->whereIn('employee_id', $teamContext['employeeIds'])
+                            ->whereIn('status', ['manager_approved', 'approved'])
+                            ->where('start_date <=', $today)
+                            ->where('end_date >=', $today)
+                            ->get()
+                            ->getRow('total') ?? 0);
+
+                        $missingCount = max($data['teamCount'] - count($recordedEmployees) - $leaveCount, 0);
+
+                        $data['teamAttendance'] = [
+                            'present' => $presentCount,
+                            'late'    => $lateCount,
+                            'absent'  => $explicitAbsentCount + $missingCount,
+                            'leave'   => $leaveCount,
+                        ];
+
+                        $data['pendingTeamLeaves'] = $db->table('leave_requests')
+                            ->whereIn('employee_id', $teamContext['employeeIds'])
+                            ->where('status', 'pending')
+                            ->countAllResults();
                     }
                 } catch (\Exception $e) {
                     log_message('error', 'Manager Dashboard Error: ' . $e->getMessage());
+                    $data['managedDepartments'] = [];
+                    $data['managedDepartmentCount'] = 0;
                     $data['teamCount'] = 0;
-                    $data['teamAttendance'] = [];
+                    $data['pendingTeamLeaves'] = 0;
+                    $data['teamAttendance'] = [
+                        'present' => 0,
+                        'late'    => 0,
+                        'absent'  => 0,
+                        'leave'   => 0,
+                    ];
                 }
                 break;
 
