@@ -151,6 +151,16 @@
         color: #721c24;
     }
 
+    .badge-primary {
+        background: #d1d9f8;
+        color: #004085;
+    }
+
+    .badge-secondary {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
     .timestamp {
         font-size: 0.85rem;
         color: #7f8c8d;
@@ -261,11 +271,9 @@
                     <tr>
                         <th>#</th>
                         <th>Timestamp</th>
-                        <th>User</th>
+                        <th>Admin User</th>
                         <th>Action</th>
-                        <th>Entity</th>
                         <th>Details</th>
-                        <th>IP Address</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -273,31 +281,30 @@
                         <tr>
                             <td><?= $i + 1 ?></td>
                             <td>
-                                <div class="timestamp"><?= date('M d, Y H:i:s', strtotime($log->created_at ?? now())) ?></div>
+                                <div class="timestamp"><?= date('M d, Y H:i:s', strtotime($log->timestamp ?? now())) ?></div>
                             </td>
                             <td>
-                                <strong><?= esc($log->user_id ?? 'System') ?></strong>
+                                <strong><?= esc($log->admin_name ?? 'System') ?></strong><br>
+                                <small style="opacity:0.7;">(ID: <?= esc($log->user_id ?? 'N/A') ?>)</small>
                             </td>
                             <td>
                                 <?php 
-                                    $actionBadge = match(strtolower($log->action ?? '')) {
+                                    $action = strtoupper($log->action ?? '');
+                                    $actionBadge = match(strtolower($action)) {
                                         'create' => 'badge-success',
                                         'update' => 'badge-info',
                                         'delete' => 'badge-danger',
-                                        'restore' => 'badge-success',
+                                        'restore' => 'badge-warning',
+                                        'sync' => 'badge-primary',
                                         'login' => 'badge-info',
-                                        'logout' => 'badge-warning',
-                                        default => 'badge-info'
+                                        'logout' => 'badge-secondary',
+                                        default => 'badge-secondary'
                                     };
                                 ?>
-                                <span class="badge <?= $actionBadge ?>"><?= esc(ucfirst($log->action ?? 'Unknown')) ?></span>
-                            </td>
-                            <td><?= esc($log->entity_type ?? 'N/A') ?></td>
-                            <td>
-                                <small><?= esc($log->details ?? 'N/A') ?></small>
+                                <span class="badge <?= $actionBadge ?>"><?= esc($action) ?></span>
                             </td>
                             <td>
-                                <code style="font-size:0.75rem;"><?= esc($log->ip_address ?? 'N/A') ?></code>
+                                <small><?= esc($log->description ?? 'N/A') ?></small>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -314,7 +321,7 @@
     <!-- Pagination -->
     <?php if (isset($pager) && $pager): ?>
         <div class="pagination">
-            <?= $pager->links('default', 'bootstrap_pagination') ?>
+            <?= $pager->links('default', 'default_full') ?>
         </div>
     <?php endif; ?>
 </div>

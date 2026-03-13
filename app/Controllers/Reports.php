@@ -5,13 +5,32 @@ namespace App\Controllers;
 class Reports extends BaseController
 {
     /**
+     * Generate attendance report (HR Admin only)
+     */
+    public function attendance()
+    {
+        // Check if user is HR Admin or Super Admin
+        $roleName = session()->get('role_name');
+        $role = session()->get('role');
+        
+        if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+        }
+
+        return view('reports/attendance');
+    }
+
+    /**
      * Display available reports
      */
     public function index()
     {
-        // Check if user is Super Admin
-        if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        // Check if user is Super Admin or HR Admin
+        $roleName = session()->get('role_name');
+        $role = session()->get('role');
+        
+        if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
 
         $reports = [

@@ -18,16 +18,13 @@ $routes->get('/dashboard', 'Dashboard::index');
 
 // Leaves
 $routes->get('/leaves', 'Leaves::index');
+$routes->get('/leaves/team', 'Leaves::index');
 $routes->get('/leaves/create', 'Leaves::create');
 $routes->post('/leaves/store', 'Leaves::store');
 $routes->post('/leaves/submit', 'Leaves::submit');
 $routes->post('/leaves/approve-manager/(:num)', 'Leaves::approveByManager/$1');
 $routes->post('/leaves/approve-hr/(:num)', 'Leaves::approveByHR/$1');
 $routes->post('/leaves/reject/(:num)', 'Leaves::reject/$1');
-
-// Biometric
-$routes->get('/biometric/connect', 'Biometric::connect');
-$routes->post('/biometric/manual-sync', 'Biometric::manualSync');
 
 // Users routes - CRUD Operations
 $routes->get('/users', 'Users::index');
@@ -85,14 +82,21 @@ $routes->get('/attendance', 'Attendance::index');
 $routes->get('/attendance/logs', 'Attendance::logs');
 $routes->get('/attendance/team', 'Attendance::team');
 
+// Biometric routes
+$routes->get('/biometric/logs', 'Biometric::logs');
+$routes->get('/biometric/connect', 'Biometric::connect');
+$routes->post('/biometric/manual-sync', 'Biometric::manualSync');
+
 // Activity Logs / Audit routes
 $routes->get('/activity-logs', 'Audit::index');
 $routes->get('/audit', 'Audit::index');
 
 // Reports routes
 $routes->get('/reports', 'Reports::index');
+$routes->get('/reports/attendance', 'Reports::attendance');
 $routes->get('/reports/(:any)', 'Reports::view/$1');
 $routes->post('/reports/generate', 'Reports::generate');
+$routes->post('/reports/generate/attendance', 'Reports::attendance');
 
 // Notification routes (API)
 $routes->get('/api/notifications', 'Notification::getNotifications');

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\LeaveModel;
 use App\Models\AuditModel;
 use App\Models\EmployeeModel;
+use App\Controllers\Audit;
 
 class Leaves extends BaseController
 {
@@ -45,14 +46,27 @@ class Leaves extends BaseController
         }
 
         $role = session()->get('role');
+        $roleName = session()->get('role_name');
         
-        if ($role === 'admin') {
+        if ($role === 'admin' || $roleName === 'Super Admin') {
             // Super Admin - show all leaves
             $leaves = $this->leaveModel
-                ->select('leaves.*, employees.name, employees.employee_id')
-                ->join('employees', 'employees.id = leaves.employee_id', 'left')
-                ->orderBy('leaves.start_date', 'DESC')
+                ->select("leave_requests.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id")
+                ->join('employees', 'employees.id = leave_requests.employee_id', 'left')
+                ->orderBy('leave_requests.start_date', 'DESC')
                 ->paginate(20);
+            $data['canApprove'] = true;
+            $data['isHRAdmin'] = false;
+        } else if (in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin'])) {
+            // HR Admin - show pending & manager approved leaves for approval
+            $leaves = $this->leaveModel
+                ->select("leave_requests.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id")
+                ->join('employees', 'employees.id = leave_requests.employee_id', 'left')
+                ->whereIn('leave_requests.status', ['pending', 'manager_approved'])
+                ->orderBy('leave_requests.start_date', 'DESC')
+                ->paginate(20);
+            $data['canApprove'] = true;
+            $data['isHRAdmin'] = true;
         } else {
             // Employees and others - show own leaves
             $employee = $this->employeeModel->where('user_id', session()->get('user_id'))->first();
@@ -65,6 +79,8 @@ class Leaves extends BaseController
                 ->where('employee_id', $employee['id'])
                 ->orderBy('start_date', 'DESC')
                 ->paginate(20);
+            $data['canApprove'] = false;
+            $data['isHRAdmin'] = false;
         }
 
         $data['leaves'] = $leaves;
@@ -173,6 +189,13 @@ class Leaves extends BaseController
     {
         $session = session();
         $userId = $session->get('user_id');
+        $role = $session->get('role');
+        $roleName = $session->get('role_name');
+
+        // Check if user is HR Admin or Super Admin
+        if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+            return redirect()->back()->with('error', 'Access denied. HR Admin only.');
+        }
 
         $this->leaveModel->update($id, [
             'approved_by_hr' => $userId,
@@ -187,6 +210,13 @@ class Leaves extends BaseController
     {
         $session = session();
         $userId = $session->get('user_id');
+        $role = $session->get('role');
+        $roleName = $session->get('role_name');
+
+        // Check if user is HR Admin or Super Admin
+        if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+            return redirect()->back()->with('error', 'Access denied. HR Admin only.');
+        }
 
         $this->leaveModel->update($id, [
             'status' => 'rejected',

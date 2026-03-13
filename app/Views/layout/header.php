@@ -93,6 +93,9 @@
         border-left: 3px solid transparent;
         transition: all 0.3s ease;
         font-size: 0.95rem;
+        position: relative;
+        z-index: 10;
+        cursor: pointer;
     }
 
     .sidebar-link:hover {
@@ -797,26 +800,26 @@
                     </a>
                 </div>
 
-                <!-- Attendance Section -->
+                <!-- Attendance Section - BIOMETRIC LOGS LINK -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Attendance</div>
-                    <a href="<?= base_url('attendance/logs') ?>" class="sidebar-link">
-                        <i class="fas fa-clock"></i> View Biometric Attendance Logs
+                    <a class="sidebar-link" href="<?= base_url('biometric/logs') ?>">
+                        <i class="fas fa-fingerprint"></i> View Biometric Logs
                     </a>
                 </div>
 
                 <!-- Leave Approvals Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Leave Requests</div>
-                    <a href="<?= base_url('leaves') ?>" class="sidebar-link">
-                        <i class="fas fa-calendar-check"></i> Approve Leave Requests
+                    <a class="sidebar-link" href="<?= base_url('leaves') ?>">
+                        <i class="fas fa-calendar-check"></i> Approve & Manage Leaves
                     </a>
                 </div>
 
-                <!-- Reports & Sync Section -->
+                <!-- Reports Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Reports</div>
-                    <a href="<?= base_url('reports/attendance') ?>" class="sidebar-link">
+                    <a class="sidebar-link" href="<?= base_url('reports/attendance') ?>">
                         <i class="fas fa-file-alt"></i> Generate Attendance Reports
                     </a>
                 </div>
@@ -854,7 +857,7 @@
                 <!-- Team Attendance Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Attendance</div>
-                    <a href="<?= base_url('attendance/team') ?>" class="sidebar-link">
+                    <a class="sidebar-link" href="<?= base_url('attendance/team') ?>">
                         <i class="fas fa-calendar"></i> View Team Attendance (Only)
                     </a>
                 </div>
@@ -862,7 +865,7 @@
                 <!-- Team Leave Approvals Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Leave Requests</div>
-                    <a href="<?= base_url('leaves/team') ?>" class="sidebar-link">
+                    <a class="sidebar-link" href="<?= base_url('leaves/team') ?>">
                         <i class="fas fa-calendar-check"></i> Approve Team Leave Requests
                     </a>
                 </div>
@@ -870,7 +873,7 @@
                 <!-- Team Performance Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Performance</div>
-                    <a href="<?= base_url('reports/team') ?>" class="sidebar-link">
+                    <a class="sidebar-link" href="<?= base_url('reports/team') ?>">
                         <i class="fas fa-chart-line"></i> View Team Performance
                     </a>
                 </div>

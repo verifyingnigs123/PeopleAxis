@@ -340,7 +340,7 @@
     <!-- Pagination -->
     <?php if (isset($pager) && $pager): ?>
         <div class="pagination">
-            <?= $pager->links('default', 'bootstrap_pagination') ?>
+            <?= $pager->links('default', 'default_full') ?>
         </div>
     <?php endif; ?>
 </div>

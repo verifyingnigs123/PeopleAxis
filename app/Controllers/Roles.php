@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\RoleModel;
+use App\Controllers\Audit;
 
 class Roles extends BaseController
 {

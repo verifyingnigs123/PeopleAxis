@@ -183,18 +183,20 @@
 <!-- Breadcrumbs -->
 <div style="margin-bottom: 20px;">
     <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> /
-    <span>Leave Requests</span>
+    <span><?= isset($isHRAdmin) && $isHRAdmin ? 'Approve Leave' : 'Leave Requests' ?></span>
 </div>
 
 <!-- Page Header -->
 <div class="page-header">
     <div>
-        <h1><i class="fas fa-calendar-times"></i> Leave Requests</h1>
-        <p>Manage employee leave requests</p>
+        <h1><i class="fas fa-calendar-times"></i> <?= isset($isHRAdmin) && $isHRAdmin ? 'Approve Leave Requests' : 'Leave Requests' ?></h1>
+        <p><?= isset($isHRAdmin) && $isHRAdmin ? 'Review and approve pending leave requests' : 'Manage employee leave requests' ?></p>
     </div>
-    <a href="<?= base_url('leaves/create') ?>" class="btn-add">
-        <i class="fas fa-plus"></i> Apply for Leave
-    </a>
+    <?php if (!isset($isHRAdmin) || !$isHRAdmin): ?>
+        <a href="<?= base_url('leaves/create') ?>" class="btn-add">
+            <i class="fas fa-plus"></i> Apply for Leave
+        </a>
+    <?php endif; ?>
 </div>
 
 <!-- Flash Messages -->
@@ -236,12 +238,12 @@
                     <?php foreach ($leaves as $i => $leave): ?>
                         <tr>
                             <td><?= $i + 1 ?></td>
-                            <td><?= esc($leave->employee_name ?? 'N/A') ?></td>
-                            <td><?= date('M d, Y', strtotime($leave->from_date ?? now())) ?></td>
-                            <td><?= date('M d, Y', strtotime($leave->to_date ?? now())) ?></td>
+                            <td><?= esc($leave->name ?? 'N/A') ?></td>
+                            <td><?= date('M d, Y', strtotime($leave->start_date ?? now())) ?></td>
+                            <td><?= date('M d, Y', strtotime($leave->end_date ?? now())) ?></td>
                             <td><?= esc($leave->leave_type ?? 'N/A') ?></td>
                             <td>
-                                <strong><?= $leave->days ?? 0 ?> days</strong>
+                                <strong><?= $leave->number_of_days ?? 0 ?> days</strong>
                             </td>
                             <td>
                                 <?php 
@@ -258,24 +260,25 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <?php if (($leave->status ?? 'pending') === 'pending'): ?>
-                                        <?php if (auth()->user()->role_id === 1): // Super Admin ?>
-                                            <form action="<?= base_url('leaves/approve/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
-                                                <?= csrf_field() ?>
-                                                <button type="submit" class="btn-action btn-approve">
-                                                    <i class="fas fa-check"></i> Approve
-                                                </button>
-                                            </form>
-                                            <form action="<?= base_url('leaves/reject/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
-                                                <?= csrf_field() ?>
-                                                <button type="submit" class="btn-action btn-reject">
-                                                    <i class="fas fa-times"></i> Reject
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
+                                    <?php 
+                                        $canApproveLeave = isset($canApprove) && $canApprove;
+                                        $isApprovalRequired = in_array($leave->status ?? 'pending', ['pending', 'manager_approved']);
+                                    ?>
                                     
-                                    <?php if (auth()->user()->role_id !== 1 && (($leave->status ?? 'pending') === 'pending')): ?>
+                                    <?php if ($canApproveLeave && $isApprovalRequired): ?>
+                                        <form action="<?= base_url('leaves/approveByHR/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn-action btn-approve" title="Approve this leave request">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form action="<?= base_url('leaves/reject/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn-action btn-reject" title="Reject this leave request">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </form>
+                                    <?php elseif (!$canApproveLeave && (($leave->status ?? 'pending') === 'pending')): ?>
                                         <a href="<?= base_url('leaves/edit/' . ($leave->id ?? 0)) ?>" class="btn-action btn-edit">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\AttendanceModel;
 use App\Models\EmployeeModel;
 use App\Models\AuditModel;
+use App\Controllers\Audit;
 
 class Biometric extends BaseController
 {
@@ -28,8 +29,8 @@ class Biometric extends BaseController
         // Example: fetch logs from external API (not implemented)
         // $logs = $this->fetchFromDevice();
 
-        // For now, record audit entry
-        $this->auditModel->log($userId, 'Biometric Manual Sync', 'Manual sync triggered');
+        // Log audit entry
+        Audit::log($userId, 'SYNC', 'Biometric', 'Manual biometric sync triggered');
 
         return redirect()->back()->with('success', 'Biometric sync started (stub)');
     }
@@ -50,8 +51,39 @@ class Biometric extends BaseController
             'lastSync' => null,
             'records' => 0
         ];
+        
+        // Pass lastSync separately for view compatibility
+        $data['lastSync'] = $data['deviceStatus']['lastSync'];
 
         return view('biometric/connect', $data);
+    }
+
+    /**
+     * Display biometric attendance logs
+     */
+    public function logs()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        try {
+            // Get biometric attendance logs with employee details
+            $logs = $this->attendanceModel
+                ->select("attendance_logs.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id")
+                ->join('employees', 'employees.id = attendance_logs.employee_id', 'left')
+                ->orderBy('attendance_logs.date', 'DESC')
+                ->orderBy('attendance_logs.time_in', 'DESC')
+                ->paginate(50);
+
+            $data['logs'] = $logs;
+            $data['pager'] = $this->attendanceModel->pager;
+
+            return view('biometric/logs', $data);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Unable to load biometric logs: ' . $e->getMessage());
+        }
     }
 
     // Helper to map biometric logs into attendance records

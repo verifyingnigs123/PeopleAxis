@@ -27,16 +27,18 @@ class Audit extends BaseController
         $perPage = 20;
         $page = $this->request->getVar('page') ?? 1;
 
-        // Get total count
-        $total = $this->auditModel->countAll();
-
-        // Get logs with pagination
+        // Get logs with admin name joined from users table using model's paginate
         $logs = $this->auditModel
-            ->orderBy('created_at', 'DESC')
+            ->select('audit_logs.*, users.name as admin_name')
+            ->join('users', 'users.id = audit_logs.user_id', 'left')
+            ->orderBy('audit_logs.timestamp', 'DESC')
             ->paginate($perPage, 'default', $page);
 
+        $pager = $this->auditModel->pager;
+        $total = $this->auditModel->countAll();
+
         $data['logs'] = $logs;
-        $data['pager'] = $this->auditModel->pager;
+        $data['pager'] = $pager;
         $data['total'] = $total;
 
         return view('audit/logs', $data);
@@ -51,12 +53,8 @@ class Audit extends BaseController
         $auditModel->insert([
             'user_id' => $userId,
             'action' => $action,
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'details' => $details,
-            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
-            'created_at' => date('Y-m-d H:i:s')
+            'description' => $details ?? $entityType,
+            'timestamp' => date('Y-m-d H:i:s')
         ]);
     }
 }

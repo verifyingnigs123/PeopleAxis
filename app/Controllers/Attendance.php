@@ -60,7 +60,7 @@ class Attendance extends BaseController
 
         try {
             $attendance = $this->attendanceModel
-                ->select('attendance.*, employees.name, employees.employee_id')
+                ->select("attendance.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id")
                 ->join('employees', 'employees.id = attendance.employee_id', 'left')
                 ->orderBy('attendance.date', 'DESC')
                 ->orderBy('attendance.time_in', 'DESC')
@@ -106,7 +106,7 @@ class Attendance extends BaseController
 
             // Get team members' attendance
             $attendance = $this->attendanceModel
-                ->select('attendance.*, employees.name, employees.employee_id, departments.name as department')
+                ->select("attendance.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id, departments.name as department")
                 ->join('employees', 'employees.id = attendance.employee_id', 'left')
                 ->join('departments', 'departments.id = employees.department_id', 'left')
                 ->whereIn('employees.department_id', $deptIds)

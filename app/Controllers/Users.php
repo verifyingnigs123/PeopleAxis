@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Controllers\Audit;
 
 class Users extends BaseController
 {
@@ -141,6 +142,10 @@ class Users extends BaseController
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        // Log audit
+        $userId = session()->get('user_id');
+        Audit::log($userId, 'CREATE', 'User', 'Created user: ' . esc($name) . ' (' . esc($this->request->getPost('email')) . ')');
+
         return redirect()->to('/users')->with('success', 'User created successfully!');
     }
 
@@ -265,6 +270,10 @@ class Users extends BaseController
                 $roleRecord = $db->table('roles')->where('id', (int)$roleId)->get()->getRow();
                 $updatedRoleName = $roleRecord ? $roleRecord->name : 'User';
 
+                // Log audit
+                $userId = session()->get('user_id');
+                Audit::log($userId, 'UPDATE', 'User', 'Updated user: ' . esc($name) . ' (ID: ' . $id . ')');
+
                 return $this->response->setJSON([
                     'success'   => true,
                     'message'   => 'User updated successfully',
@@ -317,6 +326,11 @@ class Users extends BaseController
             }
 
             if ($this->userModel->activateUser($id)) {
+                // Log audit
+                $userId = session()->get('user_id');
+                $user = $this->userModel->find($id);
+                Audit::log($userId, 'UPDATE', 'User', 'Activated user: ' . esc($user->name ?? 'Unknown') . ' (ID: ' . $id . ')');
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'User activated successfully',
@@ -370,6 +384,11 @@ class Users extends BaseController
             }
 
             if ($this->userModel->deactivateUser($id)) {
+                // Log audit
+                $userId = session()->get('user_id');
+                $user = $this->userModel->find($id);
+                Audit::log($userId, 'UPDATE', 'User', 'Deactivated user: ' . esc($user->name ?? 'Unknown') . ' (ID: ' . $id . ')');
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'User deactivated successfully',
@@ -396,11 +415,12 @@ class Users extends BaseController
      */
     public function delete($id)
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Admin only.'
+                'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
@@ -428,6 +448,10 @@ class Users extends BaseController
             ]);
 
             if ($result) {
+                // Log audit
+                $userId = session()->get('user_id');
+                Audit::log($userId, 'DELETE', 'User', 'Deleted user: ' . esc($user->name ?? 'Unknown') . ' (ID: ' . $id . ')');
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'User deleted (soft) successfully',
@@ -454,11 +478,12 @@ class Users extends BaseController
      */
     public function restore($id)
     {
-        // Check if user is admin
-        if (session()->get('role') !== 'admin') {
+        // Check if user is Super Admin
+        $roleName = session()->get('role_name');
+        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Admin only.'
+                'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
@@ -472,6 +497,11 @@ class Users extends BaseController
             }
 
             if ($this->userModel->update($id, ['is_active' => 1, 'deleted_at' => null])) {
+                // Log audit
+                $userId = session()->get('user_id');
+                $user = $this->userModel->find($id);
+                Audit::log($userId, 'RESTORE', 'User', 'Restored user: ' . esc($user->name ?? 'Unknown') . ' (ID: ' . $id . ')');
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'User restored successfully',
