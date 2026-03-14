@@ -149,4 +149,44 @@ abstract class BaseController extends Controller
 
         return null;
     }
+
+    protected function invalidateUserSessions(int $targetUserId): void
+    {
+        if ($targetUserId <= 0) {
+            return;
+        }
+
+        $sessionConfig = config('Session');
+        $savePath = (string) ($sessionConfig->savePath ?? '');
+
+        if ($savePath === '' || !is_dir($savePath) || !is_readable($savePath)) {
+            return;
+        }
+
+        $sessionFiles = glob(rtrim($savePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*');
+        if (!is_array($sessionFiles) || $sessionFiles === []) {
+            return;
+        }
+
+        $needleInt = 'user_id|i:' . $targetUserId . ';';
+        $needleStringPattern = '/user_id\|s:\d+:"' . preg_quote((string) $targetUserId, '/') . '";/';
+
+        foreach ($sessionFiles as $filePath) {
+            if (!is_file($filePath) || !is_readable($filePath)) {
+                continue;
+            }
+
+            $content = @file_get_contents($filePath);
+            if ($content === false) {
+                continue;
+            }
+
+            $containsUserId = strpos($content, $needleInt) !== false
+                || preg_match($needleStringPattern, $content) === 1;
+
+            if ($containsUserId) {
+                @unlink($filePath);
+            }
+        }
+    }
 }

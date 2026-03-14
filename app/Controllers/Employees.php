@@ -1002,7 +1002,15 @@ class Employees extends BaseController
             $userDeactivated = false;
             if (!empty($employee->email)) {
                 $db = \Config\Database::connect();
-                $affected = $db->table('users')
+                $linkedUserRows = $db->table('users')
+                    ->select('id')
+                    ->where('email', $employee->email)
+                    ->where('is_active', 1)
+                    ->get()
+                    ->getResultArray();
+                $linkedUserIds = array_map('intval', array_column($linkedUserRows, 'id'));
+
+                $db->table('users')
                     ->where('email', $employee->email)
                     ->where('is_active', 1)
                     ->update([
@@ -1010,6 +1018,12 @@ class Employees extends BaseController
                         'deleted_at' => date('Y-m-d H:i:s'),
                     ]);
                 $userDeactivated = ($db->affectedRows() > 0);
+
+                if ($userDeactivated) {
+                    foreach ($linkedUserIds as $linkedUserId) {
+                        $this->invalidateUserSessions($linkedUserId);
+                    }
+                }
             }
 
             // For employees that have no linked user account (e.g. rejected applications),
