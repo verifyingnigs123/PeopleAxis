@@ -3,36 +3,20 @@
 <?= $this->section('content') ?>
 
 <style>
-    /* ===== Page Header ===== */
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        flex-wrap: wrap;
-        gap: 20px;
+    .users-shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 8px 0 18px;
     }
 
-    .page-header h1 {
-        color: #1e3c72;
-        font-weight: 700;
-        margin: 0;
-    }
-
-    .page-header p {
-        color: #95a5a6;
-        margin: 5px 0 0 0;
-    }
-
-    /* ===== Breadcrumbs ===== */
     .breadcrumbs {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
+        font-size: 0.9rem;
     }
 
     .breadcrumbs a {
-        color: #2a5298;
+        color: #6ea988;
         text-decoration: none;
-        font-size: 0.9rem;
     }
 
     .breadcrumbs a:hover {
@@ -40,106 +24,153 @@
     }
 
     .breadcrumbs span {
-        color: #95a5a6;
-        margin: 0 5px;
+        color: #6f8192;
+        margin: 0 6px;
     }
 
-    /* ===== Add User Button ===== */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        color: #2f5f45;
+        font-weight: 700;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .page-header p {
+        margin: 6px 0 0;
+        color: #6f8192;
+        font-size: 0.92rem;
+    }
+
     .btn-add-user {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        border: none;
-        padding: 10px 22px;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        font-weight: 600;
+        background: #6ea988;
+        color: #ffffff;
+        border: 1px solid #6ea988;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 700;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: background 0.2s ease, border-color 0.2s ease;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
+        line-height: 1;
     }
 
     .btn-add-user:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(30, 60, 114, 0.4);
+        background: #21437c;
+        border-color: #21437c;
     }
 
-    /* ===== Panel ===== */
-    .admin-panel {
-        background: white;
+    .alert {
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: none;
+        margin-bottom: 14px;
+        padding: 12px 14px;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .admin-panel {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
         overflow: hidden;
     }
 
     .panel-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 20px 25px;
+        padding: 14px 16px;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        gap: 20px;
+        gap: 12px;
         flex-wrap: wrap;
+        border-bottom: 1px solid #e7edf4;
+        background: #ffffff;
     }
 
     .panel-header h2 {
         margin: 0;
+        color: #1f3550;
         font-weight: 700;
-        font-size: 1.3rem;
-    }
-
-    .panel-header i {
-        margin-right: 8px;
+        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
     }
 
     .search-box {
-        flex: 1;
-        min-width: 200px;
+        margin-left: auto;
+        width: 100%;
+        max-width: 360px;
     }
 
     .search-box input {
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 0.9rem;
         width: 100%;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        padding: 9px 11px;
+        font-size: 0.9rem;
+        outline: none;
     }
 
-    /* ===== Table ===== */
+    .search-box input:focus {
+        border-color: #6ea988;
+        box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+    }
+
     .table-responsive {
         overflow-x: auto;
     }
 
     .admin-table {
         width: 100%;
+        min-width: 920px;
         border-collapse: collapse;
     }
 
     .admin-table thead th {
-        background: #f8f9fa;
-        color: #1e3c72;
-        font-weight: 600;
-        padding: 14px 20px;
+        background: #f7f9fc;
+        color: #445b72;
+        font-weight: 700;
+        padding: 12px 16px;
         text-align: left;
-        border-bottom: 2px solid #dee2e6;
-        font-size: 0.85rem;
+        border-bottom: 1px solid #e1e9f2;
+        font-size: 0.77rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.38px;
+        white-space: nowrap;
     }
 
     .admin-table tbody td {
-        padding: 14px 20px;
-        border-bottom: 1px solid #f1f3f5;
-        font-size: 0.95rem;
-        color: #495057;
+        padding: 12px 16px;
+        border-bottom: 1px solid #edf2f7;
+        font-size: 0.9rem;
+        color: #42586e;
         vertical-align: middle;
-    }
-
-    .admin-table tbody td:last-child {
-        white-space: nowrap;
-        width: 1%;
     }
 
     .admin-table tbody tr:last-child td {
@@ -147,84 +178,117 @@
     }
 
     .admin-table tbody tr:hover {
-        background: #f8f9ff;
+        background: #fbfdff;
     }
 
-    /* ===== Badges ===== */
+    .admin-table tbody td:last-child {
+        white-space: nowrap;
+        width: 1%;
+    }
+
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 180px;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #edf3ff;
+        color: #6ea988;
+        border: 1px solid #d3e0f4;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+
     .badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.78rem;
-        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
         text-transform: capitalize;
+        border: 1px solid transparent;
     }
 
     .badge-admin {
-        background: #e8ecff;
-        color: #2a5298;
+        background: #ecf2ff;
+        color: #2b4f8b;
+        border-color: #d2dff6;
     }
 
     .badge-user {
-        background: #e8f5e9;
-        color: #28a745;
+        background: #e9f7ec;
+        color: #1d7a3f;
+        border-color: #cfead8;
     }
 
     .badge-active {
-        background: #d4edda;
-        color: #155724;
+        background: #e9f7ec;
+        color: #1d7a3f;
+        border-color: #cfead8;
     }
 
     .badge-inactive {
-        background: #f8d7da;
-        color: #721c24;
+        background: #fdecec;
+        color: #b43a3a;
+        border-color: #f4d3d3;
     }
 
     .badge-employee {
         background: #e8f4fd;
         color: #1e6fa5;
+        border-color: #c7dff1;
     }
 
     .badge-no-employee {
-        background: #f5f5f5;
-        color: #95a5a6;
+        background: #f5f7fa;
+        color: #778899;
+        border-color: #dce5ee;
     }
 
     .emp-id-chip {
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: #fff;
-        border-radius: 20px;
-        padding: 4px 12px;
-        font-size: 0.78rem;
+        background: #f1f6ff;
+        color: #6ea988;
+        border: 1px solid #d3e0f4;
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 0.76rem;
         font-weight: 700;
-        letter-spacing: 0.5px;
         white-space: nowrap;
     }
 
     .emp-id-chip i {
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         opacity: 0.85;
     }
 
     .emp-id-none {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        color: #bdc3c7;
-        font-size: 0.85rem;
-        font-style: italic;
+        gap: 5px;
+        color: #97a7b6;
+        font-size: 0.84rem;
     }
 
     .position-chip {
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        background: #f0f4ff;
-        color: #2a5298;
-        border: 1px solid #c5d3f5;
+        background: #f8f9fb;
+        color: #486076;
+        border: 1px solid #dce4ed;
         border-radius: 20px;
         padding: 3px 10px;
         font-size: 0.78rem;
@@ -233,80 +297,130 @@
     }
 
     .position-chip i {
-        font-size: 0.72rem;
-        opacity: 0.8;
+        font-size: 0.7rem;
+        opacity: 0.78;
     }
 
     .position-none {
-        color: #bdc3c7;
-        font-size: 0.85rem;
+        color: #9badbd;
+        font-size: 0.84rem;
         font-style: italic;
     }
 
-    /* ===== Avatar ===== */
-    .avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
+    .action-buttons {
+        display: inline-flex;
+        gap: 6px;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .btn-edit,
+    .btn-delete,
+    .btn-activate,
+    .btn-deactivate,
+    .btn-restore,
+    .btn-disabled {
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        border-radius: 7px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.85rem;
-        margin-right: 10px;
-        flex-shrink: 0;
+        gap: 5px;
+        text-align: center;
+        white-space: nowrap;
+        line-height: 1.1;
     }
 
-    .user-cell {
-        display: flex;
-        align-items: center;
+    .btn-edit {
+        background: #e9f3ff;
+        color: #1f5ea8;
+        border-color: #c9dcf6;
     }
 
-    /* ===== Alerts ===== */
-    .alert {
-        border-radius: 6px;
-        border: none;
-        margin-bottom: 20px;
-        padding: 15px 20px;
+    .btn-edit:hover {
+        background: #dbeafd;
+        border-color: #b8d2f2;
     }
 
-    .alert-success {
-        background: #d4edda;
-        color: #155724;
-        border-left: 4px solid #28a745;
+    .btn-delete {
+        background: #feecec;
+        color: #ba3939;
+        border-color: #f4cccc;
     }
 
-    .alert-danger {
-        background: #f8d7da;
-        color: #721c24;
-        border-left: 4px solid #dc3545;
+    .btn-delete:hover {
+        background: #fbdcdc;
+        border-color: #efbbbb;
     }
 
-    /* ===== Empty State ===== */
+    .btn-activate,
+    .btn-restore {
+        background: #e9f7ec;
+        color: #1d7a3f;
+        border-color: #cfead8;
+    }
+
+    .btn-activate:hover,
+    .btn-restore:hover {
+        background: #ddf1e2;
+        border-color: #bfe2cb;
+    }
+
+    .btn-deactivate {
+        background: #fff4e6;
+        color: #ad6d16;
+        border-color: #f1dfbf;
+    }
+
+    .btn-deactivate:hover {
+        background: #ffecd3;
+        border-color: #e8d0a5;
+    }
+
+    .btn-disabled {
+        background: #f1f3f6;
+        color: #8a98a6;
+        border-color: #dbe2ea;
+        cursor: not-allowed;
+        opacity: 0.9;
+    }
+
+    .btn-disabled:hover {
+        background: #f1f3f6;
+        border-color: #dbe2ea;
+    }
+
     .empty-state {
         text-align: center;
-        padding: 60px 20px;
-        color: #95a5a6;
+        padding: 54px 20px;
+        color: #7f90a0;
     }
 
     .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 15px;
+        font-size: 2.6rem;
+        margin-bottom: 10px;
         display: block;
+        color: #9aacbd;
     }
 
-    .fw-600 { font-weight: 600; }
+    .fw-600 {
+        font-weight: 600;
+    }
 
-    /* Password toggle styles */
-    .password-wrapper { position: relative; }
+    .password-wrapper {
+        position: relative;
+    }
+
     .password-wrapper .password-toggle {
         position: absolute;
-        right: .5rem;
+        right: 0.5rem;
         top: 50%;
         transform: translateY(-50%);
-        z-index: 9999;
+        z-index: 10;
         background: transparent;
         border: none;
         width: 2.2rem;
@@ -314,123 +428,52 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #3498db;
+        color: #3b6aaf;
         cursor: pointer;
     }
+
     .password-wrapper .password-toggle i {
         pointer-events: auto;
         display: inline-block;
     }
 
-    /* ===== Action Buttons ===== */
-    .action-buttons {
-        display: flex;
-        gap: 0;
-        flex-wrap: nowrap;
-        align-items: center;
-        border-radius: 6px;
-        overflow: hidden;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-        width: fit-content;
+    @media (max-width: 992px) {
+        .page-header h1 {
+            font-size: 1.75rem;
+        }
+
+        .panel-header {
+            align-items: stretch;
+        }
+
+        .search-box {
+            margin-left: 0;
+            max-width: none;
+        }
+
+        .admin-table thead th,
+        .admin-table tbody td {
+            padding: 11px 12px;
+        }
     }
 
-    .btn-edit,
-    .btn-delete,
-    .btn-activate,
-    .btn-deactivate,
-    .btn-restore {
-        padding: 7px 14px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        border-radius: 0;
-        border: none;
-        cursor: pointer;
-        transition: filter 0.2s ease, transform 0.15s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        text-align: center;
-        white-space: nowrap;
-    }
+    @media (max-width: 640px) {
+        .page-header {
+            padding: 14px;
+        }
 
-    .action-buttons > *:first-child {
-        border-radius: 6px 0 0 6px;
-    }
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
 
-    .action-buttons > *:last-child {
-        border-radius: 0 6px 6px 0;
-    }
-
-    .action-buttons > *:only-child {
-        border-radius: 6px;
-    }
-
-    .action-buttons > * + * {
-        border-left: 1px solid rgba(255,255,255,0.25);
-    }
-
-    .btn-edit {
-        background: #3498db;
-        color: white;
-    }
-
-    .btn-edit:hover {
-        filter: brightness(1.12);
-        transform: none;
-        box-shadow: none;
-    }
-
-    .btn-delete {
-        background: #e74c3c;
-        color: white;
-    }
-
-    .btn-delete:hover {
-        filter: brightness(1.12);
-    }
-        background: #c0392b;
-    }
-
-    .btn-activate {
-        background: #27ae60;
-        color: white;
-    }
-
-    .btn-activate:hover {
-        filter: brightness(1.12);
-    }
-
-    .btn-deactivate {
-        background: #f39c12;
-        color: white;
-    }
-
-    .btn-deactivate:hover {
-        filter: brightness(1.12);
-    }
-
-    .btn-restore {
-        background: #27ae60;
-        color: white;
-    }
-
-    .btn-restore:hover {
-        filter: brightness(1.12);
-    }
-
-    .btn-disabled {
-        background: #95a5a6;
-        color: white;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
-    .btn-disabled:hover {
-        background: #95a5a6;
-        transform: none;
-        box-shadow: none;
+        .btn-add-user {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
+
+<div class="users-shell">
 
 <!-- Breadcrumbs -->
 <div class="breadcrumbs">
@@ -581,6 +624,8 @@
     </div>
 </div>
 
+</div>
+
 <!-- Delete User Modal -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -639,7 +684,7 @@
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);color:white;border:none;">
                 <h5 class="modal-title" id="addUserModalLabel">
                     <i class="fas fa-user-plus me-2"></i> Add New User
                 </h5>
@@ -650,7 +695,7 @@
                 <div class="modal-body" style="padding:30px;">
                     <!-- Form Header -->
                     <div style="margin-bottom: 25px; text-align: center;">
-                        <h6 style="color: #1e3c72; font-weight: 700; margin: 0;">User Information</h6>
+                        <h6 style="color: #2f5f45; font-weight: 700; margin: 0;">User Information</h6>
                         <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Create a new user account with appropriate role and permissions</p>
                     </div>
 
@@ -735,7 +780,7 @@
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border:none;padding:8px 24px;">
+                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border:none;padding:8px 24px;">
                         <i class="fas fa-save me-1"></i> Create User
                     </button>
                 </div>
@@ -748,7 +793,7 @@
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);color:white;border:none;">
                 <h5 class="modal-title" id="editUserModalLabel">
                     <i class="fas fa-user-edit me-2"></i> Edit User
                 </h5>
@@ -807,7 +852,7 @@
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border:none;padding:8px 24px;">
+                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border:none;padding:8px 24px;">
                         <i class="fas fa-save me-1"></i> Update User
                     </button>
                 </div>

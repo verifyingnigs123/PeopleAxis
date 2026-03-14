@@ -13,13 +13,13 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
 
     .btn-add-role {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         border: none;
         padding: 10px 22px;
@@ -46,7 +46,7 @@
     }
 
     .panel-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         padding: 20px 25px;
         display: flex;
@@ -73,7 +73,7 @@
 
     .admin-table thead th {
         background: #f8f9fa;
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 600;
         padding: 14px 20px;
         text-align: left;
@@ -120,7 +120,7 @@
 
     .badge-primary {
         background: #e8ecff;
-        color: #2a5298;
+        color: #6ea988;
     }
 
     .search-box {
@@ -223,7 +223,7 @@
 
     .form-control:focus {
         outline: none;
-        border-color: #2a5298;
+        border-color: #6ea988;
         box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
     }
 
@@ -346,7 +346,7 @@
 <div class="modal fade" id="addRoleModal" tabindex="-1" aria-labelledby="addRoleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);color:white;border:none;">
                 <h5 class="modal-title" id="addRoleModalLabel">
                     <i class="fas fa-plus me-2"></i> Add New Role
                 </h5>
@@ -357,7 +357,7 @@
                 <div class="modal-body" style="padding:30px;">
                     <!-- Form Header -->
                     <div style="margin-bottom: 25px; text-align: center;">
-                        <h6 style="color: #1e3c72; font-weight: 700; margin: 0;">New Role Details</h6>
+                        <h6 style="color: #2f5f45; font-weight: 700; margin: 0;">New Role Details</h6>
                         <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Fill in the form below to create a new system role</p>
                     </div>
 
@@ -400,7 +400,7 @@
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border:none;padding:8px 24px;">
+                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border:none;padding:8px 24px;">
                         <i class="fas fa-save me-1"></i> Save Role
                     </button>
                 </div>
@@ -413,7 +413,7 @@
 <div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:white;border:none;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);color:white;border:none;">
                 <h5 class="modal-title" id="editRoleModalLabel">
                     <i class="fas fa-edit me-2"></i> Edit Role
                 </h5>
@@ -424,12 +424,12 @@
                 <div class="modal-body" style="padding:30px;">
                     <!-- Form Header -->
                     <div style="margin-bottom: 20px;">
-                        <h6 id="editRoleTitle" style="color: #1e3c72; font-weight: 700; margin: 0;"></h6>
+                        <h6 id="editRoleTitle" style="color: #2f5f45; font-weight: 700; margin: 0;"></h6>
                         <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Update role details below</p>
                     </div>
 
                     <!-- Role Information Card -->
-                    <div style="background: #f8f9ff; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #2a5298;">
+                    <div style="background: #f8f9ff; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #6ea988;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
                             <span style="color: #7f8c8d; font-weight: 600;">Created Date:</span>
                             <span id="editRoleCreatedDate" style="color: #2c3e50; font-weight: 500;"></span>
@@ -478,7 +478,7 @@
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border:none;padding:8px 24px;">
+                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border:none;padding:8px 24px;">
                         <i class="fas fa-save me-1"></i> Update Role
                     </button>
                 </div>

@@ -3,39 +3,318 @@
 <?= $this->section('content') ?>
 
 <style>
-    .biometric-header h1 { color: #1e3c72; font-weight: 700; margin: 0 0 10px 0; }
-    .biometric-header p { color: #7f8c8d; margin: 0; }
-    .biometric-table { width: 100%; border-collapse: collapse; }
-    .biometric-table th { background: #f8f9fa; color: #1e3c72; font-weight: 600; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
-    .biometric-table td { padding: 12px; border-bottom: 1px solid #e9ecef; }
-    .biometric-table tbody tr:hover { background: #f8f9ff; }
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-    .badge-present { background: #d4edda; color: #155724; }
-    .badge-absent { background: #f8d7da; color: #721c24; }
-    .badge-late { background: #fff3cd; color: #856404; }
-    .empty-msg { text-align: center; padding: 40px; color: #7f8c8d; }
+    .hr-shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 8px 0 18px;
+    }
+
+    .breadcrumbs {
+        margin-bottom: 14px;
+        font-size: 0.9rem;
+    }
+
+    .breadcrumbs a {
+        color: #6ea988;
+        text-decoration: none;
+    }
+
+    .breadcrumbs a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumbs span {
+        color: #6f8192;
+        margin: 0 6px;
+    }
+
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .admin-header h1 {
+        color: #2f5f45;
+        font-weight: 700;
+        margin: 0;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .admin-header p {
+        color: #6f8192;
+        margin: 6px 0 0;
+        font-size: 0.92rem;
+    }
+
+    .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+
+    .stat-box {
+        background: #ffffff;
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stat-box i {
+        font-size: 1.2rem;
+        color: #6ea988;
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef3ff;
+        border: 1px solid #d8e4f7;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    .stat-box.success i {
+        color: #1d7a3f;
+        background: #e9f7ec;
+        border-color: #cfead8;
+    }
+
+    .stat-box.warning i {
+        color: #9d6108;
+        background: #fff5e6;
+        border-color: #f0d5ab;
+    }
+
+    .stat-box.danger i {
+        color: #a43737;
+        background: #fef0f0;
+        border-color: #f3cccc;
+    }
+
+    .stat-info h5 {
+        margin: 0;
+        color: #7f90a0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+    }
+
+    .stat-info h3 {
+        margin: 6px 0 0;
+        color: #2f5f45;
+        font-weight: 700;
+        font-size: 1.55rem;
+        line-height: 1.1;
+    }
+
+    .admin-panel {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: #ffffff;
+        padding: 14px 16px;
+    }
+
+    .panel-header h2 {
+        margin: 0;
+        font-size: 1.08rem;
+        font-weight: 700;
+    }
+
+    .table-responsive {
+        padding: 14px;
+        overflow-x: auto;
+    }
+
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+    }
+
+    .admin-table th {
+        background: #f7f9fc;
+        color: #445b72;
+        font-weight: 700;
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid #e1e9f2;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        white-space: nowrap;
+    }
+
+    .admin-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #edf2f7;
+        font-size: 0.86rem;
+        color: #42586e;
+        white-space: nowrap;
+    }
+
+    .admin-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .badge-present {
+        background: #e9f7ec;
+        color: #1d7a3f;
+        border-color: #cfead8;
+    }
+
+    .badge-absent {
+        background: #fdecec;
+        color: #b43a3a;
+        border-color: #f4d3d3;
+    }
+
+    .badge-late {
+        background: #fff4e4;
+        color: #9f6310;
+        border-color: #f1debb;
+    }
+
+    .empty-msg {
+        text-align: center;
+        padding: 40px 16px;
+        color: #7f8c8d;
+    }
+
+    .empty-msg i {
+        font-size: 2.4rem;
+        opacity: 0.45;
+        margin-bottom: 10px;
+        color: #95a8bb;
+    }
+
+    .pagination-wrap {
+        margin-top: 14px;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .admin-header {
+            padding: 14px;
+        }
+
+        .admin-header h1 {
+            font-size: 1.55rem;
+        }
+
+        .table-responsive {
+            padding: 12px;
+        }
+    }
 </style>
 
+<div class="hr-shell">
+
+<?php
+    $pageLogs = $logs ?? [];
+    $totalLogs = count($pageLogs);
+    $presentLogs = 0;
+    $lateLogs = 0;
+    $absentLogs = 0;
+
+    foreach ($pageLogs as $logSummary) {
+        $summaryStatus = strtolower((string) ($logSummary->status ?? 'absent'));
+        if ($summaryStatus === 'present') {
+            $presentLogs++;
+        } elseif ($summaryStatus === 'late') {
+            $lateLogs++;
+        } else {
+            $absentLogs++;
+        }
+    }
+?>
+
 <!-- Breadcrumbs -->
-<div style="margin-bottom: 20px; font-size: 0.9rem;">
-    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> / 
+<div class="breadcrumbs">
+    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
+    <span>/</span>
     <span><i class="fas fa-fingerprint"></i> Biometric Logs</span>
 </div>
 
 <!-- Header -->
-<div class="biometric-header" style="margin-bottom: 25px;">
-    <h1><i class="fas fa-fingerprint"></i> Biometric Attendance Logs</h1>
-    <p>Employee attendance records from the biometric device</p>
+<div class="admin-header">
+    <div>
+        <h1><i class="fas fa-fingerprint"></i> Biometric Attendance Logs</h1>
+        <p>Attendance records captured from the biometric device</p>
+    </div>
+</div>
+
+<div class="admin-stats">
+    <div class="stat-box">
+        <i class="fas fa-table"></i>
+        <div class="stat-info">
+            <h5>Records on Page</h5>
+            <h3><?= $totalLogs ?></h3>
+        </div>
+    </div>
+    <div class="stat-box success">
+        <i class="fas fa-check-circle"></i>
+        <div class="stat-info">
+            <h5>Present</h5>
+            <h3><?= $presentLogs ?></h3>
+        </div>
+    </div>
+    <div class="stat-box warning">
+        <i class="fas fa-clock"></i>
+        <div class="stat-info">
+            <h5>Late</h5>
+            <h3><?= $lateLogs ?></h3>
+        </div>
+    </div>
+    <div class="stat-box danger">
+        <i class="fas fa-user-times"></i>
+        <div class="stat-info">
+            <h5>Absent</h5>
+            <h3><?= $absentLogs ?></h3>
+        </div>
+    </div>
 </div>
 
 <!-- Table Panel -->
-<div style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 18px 20px;">
-        <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;"><i class="fas fa-table"></i> Records (<?= count($logs ?? []) ?>)</h2>
+<div class="admin-panel">
+    <div class="panel-header">
+        <h2><i class="fas fa-table"></i> Records (<?= $totalLogs ?>)</h2>
     </div>
-    <div style="padding: 20px; overflow-x: auto;">
+    <div class="table-responsive">
         <?php if (!empty($logs)): ?>
-            <table class="biometric-table">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -86,9 +365,11 @@
 
 <!-- Pagination -->
 <?php if (!empty($logs) && isset($pager)): ?>
-    <div style="margin-top: 20px; text-align: center;">
+    <div class="pagination-wrap">
         <?= $pager->links('default_full', 'default_full') ?>
     </div>
 <?php endif; ?>
+
+</div>
 
 <?= $this->endSection() ?>

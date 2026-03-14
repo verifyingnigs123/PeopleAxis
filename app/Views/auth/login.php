@@ -3,246 +3,376 @@
 <?= $this->section('content') ?>
 
 <style>
-    .login-container {
-        max-width: 500px;
-        margin: 3rem auto;
+    :root {
+        --auth-ink: #1f2d3b;
+        --auth-muted: #607182;
+        --auth-accent: #0f766e;
+        --auth-accent-dark: #0a5f59;
+        --auth-warm: #f4efe7;
+        --auth-line: #d5dee6;
+        --auth-rail: #2d4454;
+        --auth-rail-soft: #3f5d70;
     }
 
-    .login-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+    .auth-stage {
+        max-width: 1080px;
+        margin: 18px auto 10px;
+        padding: 0 10px;
+        font-family: 'Gill Sans', 'Trebuchet MS', sans-serif;
+        color: var(--auth-ink);
     }
 
-    .login-header {
-        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-        color: white;
-        padding: 2rem;
-        text-align: center;
-    }
-
-    .login-header h1 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-
-    .login-header i {
-        font-size: 2.5rem;
-        color: #e74c3c;
-        margin-bottom: 0.5rem;
-        display: block;
-    }
-
-    .login-header p {
-        margin: 0;
-        font-size: 0.9rem;
-        opacity: 0.9;
-    }
-
-    .login-body {
-        padding: 2rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-        display: block;
-        font-size: 0.95rem;
-    }
-
-    .form-group input {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-group input:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
-
-    .form-check {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-check input {
-        border-color: #dee2e6;
-    }
-
-    .form-check input:checked {
-        background-color: #3498db;
-        border-color: #3498db;
-    }
-
-    .form-check label {
-        margin-left: 0.5rem;
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 0;
-    }
-
-    .login-btn {
-        width: 100%;
-        padding: 0.75rem;
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-bottom: 1rem;
-    }
-
-    .login-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(52, 152, 219, 0.3);
-    }
-
-    .alert {
-        border-radius: 6px;
-        border: none;
-        margin-bottom: 1.5rem;
-    }
-
-    .alert-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-
-    .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-    }
-
-    .login-footer {
-        padding: 0 2rem 2rem;
-        text-align: center;
-    }
-
-    .login-footer p {
-        margin: 0;
-        font-size: 0.9rem;
-        color: #7f8c8d;
-    }
-
-    .login-footer a {
-        color: #3498db;
+    .auth-back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        color: #245f89;
         text-decoration: none;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.9rem;
     }
 
-    .login-footer a:hover {
+    .auth-back-link:hover {
+        color: #174564;
+    }
+
+    .auth-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--auth-line);
+        box-shadow: 0 16px 38px rgba(23, 38, 52, 0.16);
+        background: #ffffff;
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        animation: authEnter 0.5s ease;
+    }
+
+    .auth-form-panel {
+        padding: 34px 34px 30px;
+        background:
+            linear-gradient(180deg, #ffffff 0%, var(--auth-warm) 100%);
+        position: relative;
+    }
+
+    .auth-form-panel::before {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.02));
+    }
+
+    .auth-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 4px 12px;
+        background: #e8f5f3;
+        color: var(--auth-accent-dark);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+
+    .auth-title {
+        margin: 0;
+        font-family: Cambria, Cochin, Georgia, serif;
+        font-size: 2rem;
+        line-height: 1.15;
+        color: #1c2a38;
+    }
+
+    .auth-subtitle {
+        margin: 8px 0 18px;
+        max-width: 560px;
+        color: var(--auth-muted);
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+
+    .auth-form-group {
+        margin-bottom: 14px;
+    }
+
+    .auth-form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #2d3f50;
+        font-size: 0.84rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+    }
+
+    .auth-input {
+        width: 100%;
+        border: 1px solid #c8d4df;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #1f2d3b;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .auth-input:focus {
+        outline: none;
+        border-color: var(--auth-accent);
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+    }
+
+    .auth-password-wrap {
+        position: relative;
+    }
+
+    .auth-toggle-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: #5e6f7f;
+        cursor: pointer;
+    }
+
+    .auth-toggle-btn:hover,
+    .auth-toggle-btn:focus-visible {
+        background: #ecf7f5;
+        color: var(--auth-accent-dark);
+        outline: none;
+    }
+
+    .auth-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 2px 0 16px;
+    }
+
+    .auth-row .form-check {
+        margin: 0;
+    }
+
+    .auth-row .form-check-input:checked {
+        background-color: var(--auth-accent);
+        border-color: var(--auth-accent);
+    }
+
+    .auth-row .form-check-label {
+        margin-left: 5px;
+        color: #4d5e6e;
+        font-size: 0.9rem;
+    }
+
+    .auth-forgot-link {
+        color: #1a5f8f;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.86rem;
+    }
+
+    .auth-forgot-link:hover {
+        color: #144565;
         text-decoration: underline;
     }
 
-    .divider {
-        display: flex;
-        align-items: center;
-        margin: 1.5rem 0;
-    }
-
-    .divider::before,
-    .divider::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: #dee2e6;
-    }
-
-    .divider span {
-        margin: 0 0.75rem;
-        color: #7f8c8d;
-        font-size: 0.85rem;
-    }
-
-    .back-link {
-        display: inline-block;
-        margin-bottom: 2rem;
-        color: #3498db;
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .back-link:hover {
-        color: #2980b9;
-    }
-
-    .password-wrapper .password-toggle {
-        z-index: 9999 !important;
-        pointer-events: auto !important;
-        background: transparent;
+    .auth-submit-btn {
+        width: 100%;
         border: none;
+        border-radius: 10px;
+        padding: 11px 16px;
+        background: linear-gradient(135deg, var(--auth-accent-dark) 0%, var(--auth-accent) 100%);
+        color: #ffffff;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .auth-submit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(10, 95, 89, 0.24);
+    }
+
+    .auth-note {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 0.83rem;
+        color: #5f7081;
+    }
+
+    .auth-form-panel .alert {
+        border: none;
+        border-radius: 9px;
+        margin-bottom: 14px;
+        font-size: 0.92rem;
+    }
+
+    .auth-rail {
+        padding: 28px 24px;
+        background:
+            radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.18), transparent 40%),
+            linear-gradient(160deg, var(--auth-rail) 0%, var(--auth-rail-soft) 100%);
+        color: #ecf4fa;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 490px;
+    }
+
+    .auth-rail-title {
+        margin: 0;
+        font-size: 1.28rem;
+        font-family: Cambria, Cochin, Georgia, serif;
+    }
+
+    .auth-rail-subtitle {
+        margin: 8px 0 0;
+        color: rgba(236, 244, 250, 0.86);
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .auth-rail-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+    }
+
+    .auth-rail-list li {
         display: flex;
         align-items: center;
-        justify-content: center;
-        width: 2.5rem;
-        height: calc(100% - 0.4rem);
-        right: .5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        position: absolute;
-        cursor: pointer;
+        gap: 8px;
+        font-size: 0.89rem;
     }
-    .password-wrapper .password-toggle i {
-        pointer-events: auto;
-        display: inline-block;
+
+    .auth-rail-list i {
+        color: #9fe3d7;
+    }
+
+    .auth-status-card {
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        padding: 12px;
+    }
+
+    .auth-status-title {
+        margin: 0 0 4px;
+        font-size: 0.78rem;
+        letter-spacing: 0.45px;
+        text-transform: uppercase;
+        color: rgba(236, 244, 250, 0.82);
+    }
+
+    .auth-status-text {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    @keyframes authEnter {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 980px) {
+        .auth-card {
+            grid-template-columns: 1fr;
+        }
+
+        .auth-form-panel::before {
+            display: none;
+        }
+
+        .auth-rail {
+            min-height: auto;
+            gap: 16px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .auth-stage {
+            margin-top: 12px;
+            padding: 0;
+        }
+
+        .auth-form-panel {
+            padding: 22px 18px 20px;
+        }
+
+        .auth-title {
+            font-size: 1.55rem;
+        }
+
+        .auth-rail {
+            padding: 20px 18px;
+        }
     }
 </style>
 
-<div class="login-container">
-    <a href="<?= base_url() ?>" class="back-link">
+<div class="auth-stage">
+    <a href="<?= base_url() ?>" class="auth-back-link">
         <i class="fas fa-arrow-left"></i> Back to Home
     </a>
 
-    <div class="login-card">
-        <div class="login-header">
-            <i class="fas fa-users"></i>
-            <h1>PeopleAxis</h1>
-            <p>HR Management System</p>
-        </div>
-
-        <div class="login-body">
-            <?php if (session()->has('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle"></i> <?= session()->get('error') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="auth-card">
+        <section class="auth-form-panel">
+            <div>
+                <div class="auth-kicker">
+                    <i class="fas fa-key"></i>
+                    Authorized Access
+                </div>
+                <h1 class="auth-title">Log In to Dashboard</h1>
+                <p class="auth-subtitle">Sign in with your company credentials to continue to PeopleAxis HR workspace.</p>
             </div>
+
+            <?php if (session()->has('error')): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> <?= session()->get('error') ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             <?php endif; ?>
 
             <?php if (session()->has('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle"></i> <?= session()->get('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i> <?= session()->get('success') ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             <?php endif; ?>
 
-            <form action="<?= base_url('login') ?>" method="POST">
+            <form action="<?= base_url('login') ?>" method="POST" autocomplete="on">
                 <?= csrf_field() ?>
 
-                <div class="form-group">
-                    <label for="email">
-                        <i class="fas fa-envelope"></i> Email Address
-                    </label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
-                        class="form-control" 
-                        placeholder="Enter your email"
+                <div class="auth-form-group">
+                    <label for="email">Email Address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="auth-input"
+                        placeholder="name@company.com"
                         value="<?= old('email') ?>"
+                        autocomplete="username"
                         required
                     >
                     <?php if ($errors = session('validation')) : ?>
@@ -254,23 +384,20 @@
                     <?php endif; ?>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">
-                        <i class="fas fa-lock"></i> Password
-                    </label>
-
-                    <div class="password-wrapper" style="position:relative;">
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            class="form-control" 
+                <div class="auth-form-group">
+                    <label for="password">Password</label>
+                    <div class="auth-password-wrap">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="auth-input"
                             placeholder="Enter your password"
+                            autocomplete="current-password"
                             required
-                            style="padding-right:3.5rem;"
+                            style="padding-right: 2.9rem;"
                         >
-
-                        <button type="button" id="togglePassword" class="password-toggle" aria-pressed="false" aria-label="Show password" tabindex="0" onclick="togglePasswordVisibility(event)">
+                        <button type="button" id="togglePassword" class="auth-toggle-btn" aria-pressed="false" aria-label="Show password">
                             <i class="fas fa-eye-slash" aria-hidden="true"></i>
                             <span class="visually-hidden">Show password</span>
                         </button>
@@ -284,33 +411,47 @@
                     <?php endif; ?>
                 </div>
 
-                <div class="form-check">
-                    <input 
-                        type="checkbox" 
-                        class="form-check-input" 
-                        id="remember" 
-                        name="remember"
-                    >
-                    <label class="form-check-label" for="remember">
-                        Remember me
-                    </label>
+                <div class="auth-row">
+                    <div class="form-check">
+                        <input
+                            type="checkbox"
+                            class="form-check-input"
+                            id="remember"
+                            name="remember"
+                        >
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div>
+
+                    <a href="<?= base_url('forgot-password') ?>" class="auth-forgot-link">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="login-btn">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
+                <button type="submit" class="auth-submit-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Log In to Dashboard
                 </button>
             </form>
 
-            <div class="divider">
-                <span>OR</span>
-            </div>
-        </div>
+            <p class="auth-note">For account updates, contact your HR administrator.</p>
+        </section>
 
-    <div class="login-footer">
-        <p>
-            <a href="<?= base_url('forgot-password') ?>">Forgot Password?</a> | 
-            <a href="<?= base_url('contact') ?>">Contact Support</a>
-        </p>
+        <aside class="auth-rail">
+            <div>
+                <h2 class="auth-rail-title">PeopleAxis HR System</h2>
+                <p class="auth-rail-subtitle">A centralized space for teams, approvals, attendance, and role-based reporting.</p>
+            </div>
+
+            <ul class="auth-rail-list">
+                <li><i class="fas fa-check-circle"></i> Department and employee records</li>
+                <li><i class="fas fa-check-circle"></i> Leave workflow and approval control</li>
+                <li><i class="fas fa-check-circle"></i> Real-time attendance visibility</li>
+                <li><i class="fas fa-check-circle"></i> Audit-ready dashboard operations</li>
+            </ul>
+
+            <div class="auth-status-card">
+                <p class="auth-status-title">Session Security</p>
+                <p class="auth-status-text">All sign-in requests use CSRF protection and role-based session policies.</p>
+            </div>
+        </aside>
     </div>
 </div>
 
@@ -318,69 +459,55 @@
 
 <?= $this->section('scripts') ?>
 <script>
-// Robust password toggle: simple, works even if DOMContentLoaded timing differs
-function togglePasswordVisibility(e) {
-    try {
-        var toggle = document.getElementById('togglePassword');
-        var pwd = document.getElementById('password');
-        if (!toggle || !pwd) return;
-        if (e && e.preventDefault) e.preventDefault();
-        var isHidden = pwd.getAttribute('type') === 'password';
-        pwd.setAttribute('type', isHidden ? 'text' : 'password');
+    (function bindPasswordToggle() {
+        function togglePasswordVisibility(event) {
+            if (event) {
+                event.preventDefault();
+            }
 
-        // update UI
-        toggle.setAttribute('aria-pressed', String(isHidden));
-        toggle.setAttribute('title', isHidden ? 'Hide password' : 'Show password');
-        var sr = toggle.querySelector('.visually-hidden');
-        if (sr) sr.textContent = isHidden ? 'Hide password' : 'Show password';
-        var icon = toggle.querySelector('i');
-        if (icon) {
-            icon.classList.remove(isHidden ? 'fa-eye-slash' : 'fa-eye');
-            icon.classList.add(isHidden ? 'fa-eye' : 'fa-eye-slash');
+            var toggle = document.getElementById('togglePassword');
+            var passwordInput = document.getElementById('password');
+
+            if (!toggle || !passwordInput) {
+                return;
+            }
+
+            var isHidden = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isHidden ? 'text' : 'password');
+            toggle.setAttribute('aria-pressed', String(isHidden));
+            toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+
+            var srLabel = toggle.querySelector('.visually-hidden');
+            if (srLabel) {
+                srLabel.textContent = isHidden ? 'Hide password' : 'Show password';
+            }
+
+            var icon = toggle.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye', isHidden);
+                icon.classList.toggle('fa-eye-slash', !isHidden);
+            }
         }
-        pwd.focus();
-        console.log('togglePasswordVisibility: set type to', pwd.getAttribute('type'));
-    } catch (err) {
-        console.error('togglePasswordVisibility error:', err);
-    }
-}
 
-// Attach event listeners if possible
-(function attachToggle() {
-    var toggle = document.getElementById('togglePassword');
-    var pwd = document.getElementById('password');
-    if (!toggle || !pwd) return;
-    toggle.addEventListener('click', togglePasswordVisibility);
-    toggle.addEventListener('keydown', function (e) {
-        if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            togglePasswordVisibility(e);
+        function wireToggle() {
+            var toggle = document.getElementById('togglePassword');
+            if (!toggle) {
+                return;
+            }
+
+            toggle.addEventListener('click', togglePasswordVisibility);
+            toggle.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    togglePasswordVisibility(event);
+                }
+            });
         }
-    });
-})();
-// Delegated listeners as a robust fallback (works with AJAX-loaded content and CSP)
-document.addEventListener('click', function (e) {
-    var btn = e.target.closest && e.target.closest('#togglePassword');
-    if (btn) {
-        togglePasswordVisibility(e);
-    }
-});
-document.addEventListener('keydown', function (e) {
-    var active = document.activeElement;
-    if (!active) return;
-    if ((e.key === ' ' || e.key === 'Enter') && active.id === 'togglePassword') {
-        e.preventDefault();
-        togglePasswordVisibility(e);
-    }
-});
 
-// Also attach directly to the inner icon as a fallback
-var loginEyeIcon = document.querySelector('#togglePassword i');
-if (loginEyeIcon) {
-    loginEyeIcon.addEventListener('click', function (e) {
-        e.stopPropagation();
-        togglePasswordVisibility(e);
-    });
-}
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', wireToggle);
+        } else {
+            wireToggle();
+        }
+    })();
 </script>
 <?= $this->endSection() ?>

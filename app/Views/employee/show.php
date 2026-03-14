@@ -13,7 +13,7 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -39,7 +39,7 @@
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
     }
 
@@ -81,7 +81,7 @@
     }
 
     .section-title {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         font-size: 1.1rem;
         margin-bottom: 20px;
@@ -200,7 +200,7 @@
         <div class="detail-row">
             <span class="detail-label">Email Address</span>
             <span class="detail-value">
-                <a href="mailto:<?= esc($employee->email) ?>" style="color: #2a5298; text-decoration: none;">
+                <a href="mailto:<?= esc($employee->email) ?>" style="color: #6ea988; text-decoration: none;">
                     <?= esc($employee->email) ?>
                 </a>
             </span>
@@ -419,7 +419,7 @@
     </div>
 
     <!-- Net Pay footer (Monthly) -->
-    <div style="background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);border-radius:8px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border-radius:8px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
             <div style="color:rgba(255,255,255,.75);font-size:0.78rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Monthly Net Pay (Take-Home)</div>
             <div style="color:rgba(255,255,255,.6);font-size:0.72rem;margin-top:2px;">Full month &middot; all deductions applied</div>
@@ -448,7 +448,7 @@
     ?>
     <div style="margin-top:14px;">
         <div style="font-size:0.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
-                    background:#f0f3ff;color:#1e3c72;padding:7px 12px;border-radius:6px;margin-bottom:10px;">
+                    background:#f0f3ff;color:#2f5f45;padding:7px 12px;border-radius:6px;margin-bottom:10px;">
             <i class="fas fa-calendar-alt"></i> Semi-Monthly Pay &mdash;
             <span style="font-weight:400;font-size:.68rem;">(PH standard &middot; 15th &amp; end-of-month)</span>
         </div>

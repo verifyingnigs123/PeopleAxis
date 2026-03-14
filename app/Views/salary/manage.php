@@ -3,42 +3,199 @@
 <?= $this->section('content') ?>
 
 <style>
-    .page-header {
+    .hr-shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 8px 0 18px;
+    }
+
+    .breadcrumbs {
+        margin-bottom: 14px;
+        font-size: 0.9rem;
+    }
+
+    .breadcrumbs a {
+        color: #6ea988;
+        text-decoration: none;
+    }
+
+    .breadcrumbs a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumbs span {
+        color: #6f8192;
+        margin: 0 6px;
+    }
+
+    .admin-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        gap: 14px;
         flex-wrap: wrap;
-        gap: 20px;
+        margin-bottom: 14px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     }
 
-    .page-header h1 {
-        color: #1e3c72;
+    .admin-header h1 {
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .admin-header p {
+        color: #6f8192;
+        margin: 6px 0 0;
+        font-size: 0.92rem;
+    }
+
+    .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+
+    .stat-box {
+        background: #ffffff;
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stat-box i {
+        font-size: 1.2rem;
+        color: #6ea988;
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef3ff;
+        border: 1px solid #d8e4f7;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    .stat-box.success i {
+        color: #1d7a3f;
+        background: #e9f7ec;
+        border-color: #cfead8;
+    }
+
+    .stat-box.warning i {
+        color: #9d6108;
+        background: #fff5e6;
+        border-color: #f0d5ab;
+    }
+
+    .stat-info h5 {
+        margin: 0;
+        color: #7f90a0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+    }
+
+    .stat-info h3 {
+        margin: 6px 0 0;
+        color: #2f5f45;
+        font-weight: 700;
+        font-size: 1.55rem;
+        line-height: 1.1;
+    }
+
+    .alert {
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        border: none;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
     }
 
     .admin-panel {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
         overflow: hidden;
     }
 
     .panel-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 20px 25px;
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: #ffffff;
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 
     .panel-header h2 {
         margin: 0;
         font-weight: 700;
-        font-size: 1.3rem;
+        font-size: 1.08rem;
+    }
+
+    .panel-header p {
+        margin: 6px 0 0;
+        font-size: 0.84rem;
+        opacity: 0.88;
+    }
+
+    .search-box {
+        margin-left: auto;
+    }
+
+    .search-box input {
+        padding: 8px 12px;
+        width: 220px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+        font-size: 0.84rem;
+        outline: none;
+    }
+
+    .search-box input::placeholder {
+        color: rgba(255, 255, 255, 0.82);
+    }
+
+    .search-box input:focus {
+        background: rgba(255, 255, 255, 0.22);
     }
 
     .table-responsive {
         overflow-x: auto;
+    }
+
+    .table-legend {
+        padding: 6px 14px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e8eef5;
+        font-size: 0.72rem;
+        color: #7f8c8d;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
     }
 
     .salary-table {
@@ -48,40 +205,40 @@
     }
 
     .salary-table thead th {
-        background: #f0f3f8;
-        color: #1e3c72;
+        background: #f7f9fc;
+        color: #445b72;
         font-weight: 700;
-        padding: 7px 9px;
+        padding: 8px 10px;
         text-align: left;
-        border-bottom: 2px solid #dce3f0;
+        border-bottom: 1px solid #e1e9f2;
         font-size: 0.7rem;
         text-transform: uppercase;
-        letter-spacing: .3px;
+        letter-spacing: 0.3px;
         white-space: nowrap;
     }
 
     .salary-table thead th.th-deduct {
-        background: #fff0f0;
+        background: #fff3f3;
         color: #a93226;
-        border-left: 2px solid #f5c6ca;
+        border-left: 2px solid #f1c7cb;
     }
 
     .salary-table tbody td.td-deduct {
         color: #c0392b;
-        font-size: .76rem;
+        font-size: 0.76rem;
         border-left: 2px solid #fce8e8;
     }
 
     .salary-table tbody td {
-        padding: 6px 9px;
-        border-bottom: 1px solid #f1f3f5;
+        padding: 7px 10px;
+        border-bottom: 1px solid #edf2f7;
         font-size: 0.78rem;
         color: #495057;
         white-space: nowrap;
     }
 
     .salary-table tbody tr:hover {
-        background: #f8f9ff;
+        background: #fbfdff;
     }
 
     .salary-input {
@@ -95,7 +252,7 @@
 
     .salary-input:focus {
         outline: none;
-        border-color: #2a5298;
+        border-color: #6ea988;
         box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.1);
     }
 
@@ -159,19 +316,8 @@
 
     .empty-state {
         text-align: center;
-        padding: 60px 20px;
+        padding: 54px 20px;
         color: #95a5a6;
-    }
-
-    .alert {
-        border-radius: 6px;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-    }
-
-    .alert-success {
-        background: #d4edda;
-        color: #155724;
     }
 
     .pagination {
@@ -187,36 +333,65 @@
         padding: 8px 12px;
         border-radius: 4px;
         background: white;
-        color: #2a5298;
+        color: #6ea988;
         text-decoration: none;
         border: 1px solid #dee2e6;
         transition: all 0.3s ease;
     }
 
     .pagination a:hover {
-        background: #2a5298;
+        background: #6ea988;
         color: white;
-        border-color: #2a5298;
+        border-color: #6ea988;
     }
 
     .pagination .active {
-        background: #2a5298;
+        background: #6ea988;
         color: white;
-        border-color: #2a5298;
+        border-color: #6ea988;
+    }
+
+    @media (max-width: 768px) {
+        .admin-header {
+            padding: 14px;
+        }
+
+        .admin-header h1 {
+            font-size: 1.55rem;
+        }
+
+        .search-box {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        .search-box input {
+            width: 100%;
+        }
     }
 </style>
 
+<div class="hr-shell">
+
+<?php
+    $totalEmp = count($employees ?? []);
+    $withSalary = count(array_filter($employees ?? [], fn($employeeSummary) => !empty($employeeSummary->salary_id)));
+    $withoutSalary = max($totalEmp - $withSalary, 0);
+    $coverageRate = $totalEmp > 0 ? round(($withSalary / $totalEmp) * 100) . '%' : '0%';
+?>
+
 <!-- Breadcrumbs -->
-<div style="margin-bottom: 20px;">
-    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> /
+<div class="breadcrumbs">
+    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
+    <span>/</span>
     <span>Salary Management</span>
 </div>
 
 <!-- Page Header -->
-<div class="page-header">
+<div class="admin-header">
     <div>
         <h1><i class="fas fa-money-bill-wave"></i> Salary Management</h1>
-        <p>Manage employee salaries and compensation</p>
+        <p><?= !empty($isAdmin) ? 'Manage salary rates, statutory deductions, and compensation records' : 'Review employee salary rates and compensation details' ?></p>
     </div>
 </div>
 
@@ -234,32 +409,40 @@
     </div>
 <?php endif; ?>
 
-<!-- Summary Cards (Super Admin only) -->
-<?php if (!empty($isAdmin)): ?>
-<?php
-    $totalEmp     = count($employees ?? []);
-    $withSalary   = count(array_filter($employees ?? [], fn($e) => !empty($e->salary_id)));
-    $withoutSalary = $totalEmp - $withSalary;
-?>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
-    <div style="background:#fff;border-radius:8px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid #1e3c72;">
-        <div style="font-size:1.9rem;font-weight:800;color:#1e3c72;"><?= $totalEmp ?></div>
-        <div style="font-size:.82rem;color:#7f8c8d;margin-top:4px;">Active Employees</div>
+<div class="admin-stats">
+    <div class="stat-box">
+        <i class="fas fa-users"></i>
+        <div class="stat-info">
+            <h5>Total Employees</h5>
+            <h3><?= $totalEmp ?></h3>
+        </div>
     </div>
-    <div style="background:#fff;border-radius:8px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid #27ae60;">
-        <div style="font-size:1.9rem;font-weight:800;color:#27ae60;"><?= $withSalary ?></div>
-        <div style="font-size:.82rem;color:#7f8c8d;margin-top:4px;">With Salary Rate Set</div>
+    <div class="stat-box success">
+        <i class="fas fa-file-invoice-dollar"></i>
+        <div class="stat-info">
+            <h5>Rates Set</h5>
+            <h3><?= $withSalary ?></h3>
+        </div>
     </div>
-    <div style="background:#fff;border-radius:8px;padding:20px 22px;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid #e74c3c;">
-        <div style="font-size:1.9rem;font-weight:800;color:#e74c3c;"><?= $withoutSalary ?></div>
-        <div style="font-size:.82rem;color:#7f8c8d;margin-top:4px;">No Rate Set Yet</div>
+    <div class="stat-box warning">
+        <i class="fas fa-exclamation-circle"></i>
+        <div class="stat-info">
+            <h5>Missing Rates</h5>
+            <h3><?= $withoutSalary ?></h3>
+        </div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-chart-pie"></i>
+        <div class="stat-info">
+            <h5>Coverage</h5>
+            <h3><?= $coverageRate ?></h3>
+        </div>
     </div>
 </div>
-<?php endif; ?>
 
 <!-- Salary Table -->
 <div class="admin-panel">
-    <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div class="panel-header">
         <div>
             <h2 style="margin:0;"><i class="fas fa-list"></i> Employee Salary Rates (<?= count($employees ?? []) ?>)</h2>
             <?php if (empty($isAdmin)): ?>
@@ -267,17 +450,14 @@
             <?php endif; ?>
         </div>
         <!-- Search -->
-        <div>
-            <input type="text" id="salarySearch" placeholder="&#xf002; Search employee..." oninput="filterTable(this.value)"
-                   style="padding:8px 14px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(255,255,255,.15);
-                          color:#fff;font-size:.85rem;width:220px;outline:none;"
-                   onfocus="this.style.background='rgba(255,255,255,.25)'" onblur="this.style.background='rgba(255,255,255,.15)'">
+        <div class="search-box">
+            <input type="text" id="salarySearch" placeholder="Search employee..." oninput="filterTable(this.value)">
         </div>
     </div>
 
     <div class="table-responsive">
         <!-- Column legend -->
-        <div style="padding:6px 14px;background:#f8f9fa;border-bottom:1px solid #e8eef5;font-size:.72rem;color:#7f8c8d;display:flex;gap:16px;flex-wrap:wrap;">
+        <div class="table-legend">
             <span><strong>W. Tax</strong> = Withholding Tax</span>
             <span><strong>Extra Ded.</strong> = Custom/Other Deductions</span>
             <span style="color:#a93226;"><i class="fas fa-square" style="font-size:.55rem;"></i> Red columns = Statutory deductions (auto-computed)</span>
@@ -324,7 +504,7 @@
                     ?>
                         <tr class="salary-row">
                             <td>
-                                <span style="font-family:monospace;font-weight:700;color:#1e3c72;font-size:.88rem;"><?= esc($emp->emp_code) ?></span>
+                                <span style="font-family:monospace;font-weight:700;color:#2f5f45;font-size:.88rem;"><?= esc($emp->emp_code) ?></span>
                             </td>
                             <td>
                                 <strong><?= esc($emp->employee_name) ?></strong>
@@ -363,7 +543,7 @@
                                 <td class="td-deduct">&#8369;<?= number_format($wTax, 2) ?></td>
                                 <td class="td-deduct">&#8369;<?= number_format($extraDed, 2) ?></td>
                                 <td style="color:#8e44ad;font-weight:700;">&#8369;<?= number_format($gross, 2) ?></td>
-                                <td style="color:#1e3c72;font-weight:800;">&#8369;<?= number_format($net, 2) ?></td>
+                                <td style="color:#2f5f45;font-weight:800;">&#8369;<?= number_format($net, 2) ?></td>
                                 <td style="font-size:.75rem;color:#7f8c8d;">
                                     <?= !empty($emp->effective_from) ? date('M d, Y', strtotime($emp->effective_from)) : '—' ?>
                                 </td>
@@ -407,6 +587,8 @@
     </div>
 </div>
 
+</div>
+
 <style>
     .btn-set {
         padding: 6px 12px;
@@ -445,7 +627,7 @@
     }
     @keyframes smSlide { from{transform:translateY(-24px);opacity:0} to{transform:translateY(0);opacity:1} }
     .salary-modal-head {
-        background: linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);
+        background: linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);
         color: #fff;
         padding: 18px 24px;
         display: flex;
@@ -484,7 +666,7 @@
         font-size:.88rem; box-sizing:border-box;
         transition: border-color .25s;
     }
-    .sm-input:focus { outline:none; border-color:#2a5298; box-shadow:0 0 0 3px rgba(42,82,152,.1); }
+    .sm-input:focus { outline:none; border-color:#6ea988; box-shadow:0 0 0 3px rgba(42,82,152,.1); }
     .sm-section-head {
         font-size:.72rem; font-weight:700; letter-spacing:.5px;
         text-transform:uppercase; padding:6px 10px;
@@ -504,7 +686,7 @@
     .sm-alert { display:none; padding:10px 14px; border-radius:6px;
                 background:#fde8e8; color:#c0392b; font-size:.84rem; margin-bottom:14px; }
     .net-banner {
-        background: linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);
+        background: linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);
         border-radius:8px; padding:14px 18px; margin-top:14px;
         display:flex; justify-content:space-between; align-items:center;
     }
@@ -596,7 +778,7 @@
                 </div>
 
                 <!-- Semi-Monthly (15-day) Breakdown -->
-                <div class="sm-section-head" style="background:#f0f3ff;color:#1e3c72;margin-top:18px;">
+                <div class="sm-section-head" style="background:#f0f3ff;color:#2f5f45;margin-top:18px;">
                     <i class="fas fa-calendar-alt"></i> Semi-Monthly Pay <small style="font-weight:400;font-size:.68rem;">(PH standard · 15th &amp; end-of-month)</small>
                 </div>
                 <div class="semi-grid">
@@ -625,7 +807,7 @@
                     Cancel
                 </button>
                 <button type="submit" id="smSubmitBtn"
-                        style="padding:8px 26px;border:none;border-radius:6px;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;font-weight:700;cursor:pointer;font-size:.9rem;">
+                        style="padding:8px 26px;border:none;border-radius:6px;background:linear-gradient(135deg,#2f5f45,#6ea988);color:#fff;font-weight:700;cursor:pointer;font-size:.9rem;">
                     <i class="fas fa-save" style="margin-right:6px;"></i> Save
                 </button>
             </div>

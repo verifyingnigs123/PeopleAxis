@@ -14,7 +14,7 @@
 
     .page-header h1 {
         margin: 0;
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
     }
 
@@ -51,7 +51,7 @@
     }
 
     .btn-primary-soft {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #6ea988 0%, #5b9474 100%);
         color: white;
         border: none;
         border-radius: 8px;
@@ -80,7 +80,7 @@
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border-left: 4px solid #2a5298;
+        border-left: 4px solid #6ea988;
     }
 
     .stat-label {
@@ -94,7 +94,7 @@
         margin-top: 10px;
         font-size: 2rem;
         font-weight: 700;
-        color: #1e3c72;
+        color: #2f5f45;
     }
 
     .dashboard-grid {
@@ -113,7 +113,7 @@
 
     .panel-header {
         padding: 18px 22px;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #6ea988 0%, #5b9474 100%);
         color: white;
         font-weight: 700;
     }
@@ -145,7 +145,7 @@
     }
 
     .metric-value {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         text-align: right;
     }
@@ -177,7 +177,7 @@
 
     .leave-table thead th {
         background: #f8fafc;
-        color: #1e3c72;
+        color: #2f5f45;
         padding: 14px 18px;
         text-align: left;
         font-size: 0.82rem;
@@ -194,7 +194,7 @@
     }
 
     .leave-table tbody tr:hover {
-        background: #f8fbff;
+        background: #eef7f1;
     }
 
     .badge {
@@ -213,8 +213,8 @@
     }
 
     .badge-manager-approved {
-        background: #dbeafe;
-        color: #1d4ed8;
+        background: #e1efe6;
+        color: #4d7f63;
     }
 
     .badge-approved {
@@ -319,13 +319,20 @@
     </div>
 </div>
 
+<?php
+    $hasEmployeeSnapshot = !empty($employee);
+    $hasLeaveSchedule = !empty($activeLeave) || !empty($nextLeave);
+    $hasLeaveHistory = !empty($leaves);
+?>
+
+<?php if ($hasEmployeeSnapshot || $hasLeaveSchedule): ?>
 <div class="dashboard-grid">
-    <div class="panel">
-        <div class="panel-header">
-            <i class="fas fa-user"></i> Employee Snapshot
-        </div>
-        <div class="panel-body">
-            <?php if ($employee): ?>
+    <?php if ($hasEmployeeSnapshot): ?>
+        <div class="panel">
+            <div class="panel-header">
+                <i class="fas fa-user"></i> Employee Snapshot
+            </div>
+            <div class="panel-body">
                 <div class="metric-row">
                     <div class="metric-label">Employee</div>
                     <div class="metric-value"><?= esc(trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''))) ?></div>
@@ -342,21 +349,17 @@
                     <div class="metric-label">Employment Status</div>
                     <div class="metric-value"><?= esc(ucfirst((string) ($employee->status ?? 'active'))) ?></div>
                 </div>
-            <?php else: ?>
-                <div class="empty-state" style="padding: 20px 10px;">
-                    <i class="fas fa-user-slash"></i>
-                    <p>No employee profile data available yet.</p>
-                </div>
-            <?php endif; ?>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 
-    <div class="panel">
-        <div class="panel-header">
-            <i class="fas fa-plane-departure"></i> Leave Schedule
-        </div>
-        <div class="panel-body">
-            <?php if (!empty($activeLeave)): ?>
+    <?php if ($hasLeaveSchedule): ?>
+        <div class="panel">
+            <div class="panel-header">
+                <i class="fas fa-plane-departure"></i> Leave Schedule
+            </div>
+            <div class="panel-body">
+                <?php if (!empty($activeLeave)): ?>
                 <div class="metric-row">
                     <div class="metric-label">Currently On Leave</div>
                     <div class="metric-value"><?= esc($activeLeave->leave_type ?? 'Leave') ?></div>
@@ -378,23 +381,20 @@
                     <div class="metric-label">Ends</div>
                     <div class="metric-value"><?= date('M d, Y', strtotime($nextLeave->end_date)) ?></div>
                 </div>
-            <?php else: ?>
-                <div class="empty-state" style="padding: 20px 10px;">
-                    <i class="fas fa-calendar-check"></i>
-                    <p>No active or upcoming approved leave at the moment.</p>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 </div>
+<?php endif; ?>
 
+<?php if ($hasLeaveHistory): ?>
 <div class="panel">
     <div class="panel-header">
         <i class="fas fa-list"></i> Leave Request History
     </div>
 
     <div class="table-responsive">
-        <?php if (!empty($leaves)): ?>
             <table class="leave-table">
                 <thead>
                     <tr>
@@ -437,12 +437,6 @@
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-inbox" style="font-size: 2.6rem;"></i>
-                <p>No leave requests found for the selected filter.</p>
-            </div>
-        <?php endif; ?>
     </div>
 
     <?php if (isset($pager) && $pager): ?>
@@ -451,5 +445,6 @@
         </div>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <?= $this->endSection() ?>

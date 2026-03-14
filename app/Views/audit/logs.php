@@ -13,7 +13,7 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -53,13 +53,13 @@
 
     .filter-input:focus {
         outline: none;
-        border-color: #2a5298;
+        border-color: #6ea988;
         box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
     }
 
     .filter-btn {
         padding: 10px 20px;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         border: none;
         border-radius: 6px;
@@ -81,7 +81,7 @@
     }
 
     .panel-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         padding: 20px 25px;
     }
@@ -103,7 +103,7 @@
 
     .audit-table thead th {
         background: #f8f9fa;
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 600;
         padding: 14px 20px;
         text-align: left;
@@ -185,22 +185,22 @@
         padding: 8px 12px;
         border-radius: 4px;
         background: white;
-        color: #2a5298;
+        color: #6ea988;
         text-decoration: none;
         border: 1px solid #dee2e6;
         transition: all 0.3s ease;
     }
 
     .pagination a:hover {
-        background: #2a5298;
+        background: #6ea988;
         color: white;
-        border-color: #2a5298;
+        border-color: #6ea988;
     }
 
     .pagination .active {
-        background: #2a5298;
+        background: #6ea988;
         color: white;
-        border-color: #2a5298;
+        border-color: #6ea988;
     }
 </style>
 

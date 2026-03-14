@@ -1,208 +1,222 @@
 <?php $role = session()->get('role') ?? ''; $roleName = session()->get('role_name') ?? ''; ?>
 
 <style>
-    /* ===== Navigation Bar ===== */
-    .navbar-custom {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        padding: 0.75rem 0;
-    }
-
-    .navbar-custom .navbar-brand {
-        color: white;
-        font-weight: 700;
-        font-size: 1.5rem;
-        margin-right: 2rem;
-    }
-
-    .navbar-custom .nav-link {
-        color: rgba(255, 255, 255, 0.9);
-        margin: 0 0.5rem;
-        transition: color 0.3s ease;
-    }
-
-    .navbar-custom .nav-link:hover {
-        color: white;
-    }
-
-    .navbar-custom .user-menu-dropdown {
-        color: rgba(255, 255, 255, 0.9);
-    }
-
-    /* ===== Layout Container ===== */
     .layout-container {
         display: flex;
-        min-height: calc(100vh - 70px);
-        background: #f8f9fa;
+        min-height: 100vh;
     }
 
-    /* ===== Sidebar ===== */
     .sidebar {
-        width: 260px;
-        background: white;
-        padding: 20px 0;
-        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+        width: 250px;
+        background: var(--pa-surface);
         position: fixed;
         left: 0;
-        top: 70px;
-        height: calc(100vh - 70px);
+        top: 0;
+        height: 100vh;
         overflow-y: auto;
         z-index: 100;
-        border-right: 1px solid #e9ecef;
+        border-right: 1px solid var(--pa-border-soft);
+        padding: 18px 0;
+    }
+
+    .content-utility-bar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .utility-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+    }
+
+    .mobile-sidebar-toggle,
+    .notification-bell,
+    .utility-menu-dropdown {
+        border: 1px solid var(--pa-border-soft);
+        background: var(--pa-surface);
+        color: #355444;
+        border-radius: 10px;
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0.55rem 0.8rem;
+        box-shadow: 0 2px 8px rgba(35, 71, 52, 0.06);
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        text-decoration: none;
+    }
+
+    .mobile-sidebar-toggle {
+        display: none;
+    }
+
+    .mobile-sidebar-toggle:hover,
+    .mobile-sidebar-toggle:focus-visible,
+    .notification-bell:hover,
+    .notification-bell:focus-visible,
+    .utility-menu-dropdown:hover,
+    .utility-menu-dropdown:focus-visible {
+        background: #f4faf6;
+        color: #254132;
+        border-color: #b6d3c1;
+        outline: none;
+    }
+
+    .utility-menu-dropdown::after {
+        margin-left: 0.35rem;
+    }
+
+    .utility-menu-label {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .sidebar::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
     }
 
     .sidebar::-webkit-scrollbar-track {
-        background: #f1f3f5;
+        background: #f4faf6;
     }
 
     .sidebar::-webkit-scrollbar-thumb {
-        background: #ced4da;
-        border-radius: 3px;
+        background: #a7c5b2;
+        border-radius: 6px;
     }
 
-    .sidebar::-webkit-scrollbar-thumb:hover {
-        background: #adb5bd;
-    }
-
-    /* ===== Sidebar Section Title ===== */
     .sidebar-section {
-        margin-bottom: 25px;
+        margin-bottom: 18px;
     }
 
     .sidebar-section-title {
-        padding: 0 20px;
-        margin: 15px 0 10px 0;
-        font-size: 0.75rem;
+        padding: 0 16px;
+        margin: 10px 0 8px;
+        font-size: 0.72rem;
         font-weight: 700;
-        color: #667eea;
+        color: var(--pa-muted);
         text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 0.08em;
     }
 
-    /* ===== Sidebar Links ===== */
     .sidebar-link {
         display: flex;
         align-items: center;
-        padding: 12px 20px;
-        color: #495057;
+        gap: 10px;
+        padding: 10px 16px;
+        color: #355444;
         text-decoration: none;
         border-left: 3px solid transparent;
-        transition: all 0.3s ease;
-        font-size: 0.95rem;
-        position: relative;
-        z-index: 10;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        font-size: 0.93rem;
         cursor: pointer;
     }
 
+    .sidebar-link i {
+        width: 18px;
+        text-align: center;
+        color: #5f7b69;
+    }
+
     .sidebar-link:hover {
-        background: #f1f3ff;
-        color: #667eea;
-        border-left-color: #667eea;
+        background: #eef7f1;
+        color: #254132;
+    }
+
+    .sidebar-link:hover i {
+        color: #5b9474;
     }
 
     .sidebar-link.active {
-        background: #f1f3ff;
-        color: #667eea;
-        border-left-color: #667eea;
+        background: #e1efe6;
+        color: #254132;
+        border-left-color: #6ea988;
         font-weight: 600;
     }
 
-    .sidebar-link i {
-        width: 20px;
-        margin-right: 12px;
-        text-align: center;
-        font-size: 0.95rem;
+    .sidebar-link.active i {
+        color: #6ea988;
     }
 
-    /* ===== Sidebar Form Button (for sync) ===== */
+    .sidebar-link:focus {
+        outline: 2px solid #9ac4ad;
+        outline-offset: -2px;
+    }
+
+    .sidebar-link:focus:not(:focus-visible) {
+        outline: none;
+    }
+
     .sidebar-sync-form {
-        padding: 0 20px;
+        padding: 0 16px;
         margin-bottom: 10px;
     }
 
     .sidebar-sync-form button {
         width: 100%;
-        padding: 10px 15px;
-        background: #667eea;
-        color: white;
+        padding: 9px 12px;
+        background: var(--pa-primary);
+        color: #ffffff;
         border: none;
-        border-radius: 4px;
-        font-size: 0.9rem;
+        border-radius: 8px;
+        font-size: 0.88rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: background-color 0.2s ease;
     }
 
     .sidebar-sync-form button:hover {
-        background: #5568d3;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        background: var(--pa-primary-dark);
     }
 
-    /* ===== Content Area ===== */
+    .sidebar-sync-form button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
     .content-area {
-        margin-left: 260px;
-        padding: 30px;
+        margin-left: 250px;
+        padding: 24px;
         flex: 1;
+        min-width: 0;
         overflow-y: auto;
-        background: #f8f9fa;
+        background: var(--pa-bg);
     }
 
-    /* ===== Permission Note (for restricted roles) ===== */
     .permission-note {
-        padding: 12px 20px;
-        margin: 15px 20px;
-        background: #fff3cd;
-        border-left: 3px solid #ffc107;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        color: #856404;
+        margin: 12px 16px;
+        padding: 10px 12px;
+        background: #ecf7f0;
+        border: 1px solid #c7ddd0;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        color: #4b6f5a;
         display: flex;
         align-items: center;
+        gap: 8px;
     }
 
-    .permission-note i {
-        margin-right: 8px;
-        font-size: 1rem;
-    }
-
-    /* ===== Responsive Design ===== */
-    @media (max-width: 768px) {
-        .sidebar {
-            width: 0;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar.open {
-            width: 260px;
-            transform: translateX(0);
-        }
-
-        .content-area {
-            margin-left: 0;
-        }
-    }
-
-    /* ===== Dropdown Menu Styles ===== */
     .dropdown-menu {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        border: none;
-        border-radius: 6px;
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+        border: 1px solid #c7ddd0;
+        border-radius: 8px;
     }
 
     .dropdown-item {
-        padding: 10px 15px;
-        color: #495057;
+        padding: 0.55rem 0.85rem;
+        color: #355444;
     }
 
     .dropdown-item:hover {
-        background: #f1f3ff;
-        color: #667eea;
+        background: #f4faf6;
+        color: #254132;
     }
 
     .dropdown-item i {
@@ -211,151 +225,38 @@
         text-align: center;
     }
 
-    /* ===== Active Link State ===== */
-    .sidebar-link.active {
-        background: #f1f3ff;
-        color: #667eea;
-        border-left-color: #667eea;
-        font-weight: 600;
-        position: relative;
-    }
-
-    .sidebar-link.active::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 20px;
-        background: #667eea;
-        border-radius: 3px 0 0 3px;
-    }
-
-    /* ===== Link Transition ===== */
-    .sidebar-link {
-        position: relative;
-    }
-
-    .sidebar-link::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(102, 126, 234, 0.05);
-        border-radius: 0;
-        z-index: -1;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .sidebar-link:hover::before {
-        opacity: 1;
-    }
-
-    /* ===== Form Button States ===== */
-    .sidebar-sync-form button:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-    }
-
-    /* ===== Sidebar Section Animation ===== */
-    .sidebar-section {
-        animation: slideInLeft 0.3s ease-out;
-    }
-
-    @keyframes slideInLeft {
-        from {
-            opacity: 0;
-            transform: translateX(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    /* ===== Navbar Responsive ===== */
-    @media (max-width: 992px) {
-        .navbar-custom .nav-link {
-            margin: 0.25rem 0;
-        }
-    }
-
-    /* ===== Content Area Responsive ===== */
-    @media (max-width: 768px) {
-        .content-area {
-            margin-left: 0;
-            padding: 20px;
-        }
-
-        .sidebar {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        .permission-note {
-            margin: 20px 15px;
-            padding: 10px 15px;
-            font-size: 0.8rem;
-        }
-    }
-
-    /* ===== Focus States for Accessibility ===== */
-    .sidebar-link:focus {
-        outline: 2px solid #667eea;
-        outline-offset: -2px;
-    }
-
-    .sidebar-link:focus:not(:focus-visible) {
-        outline: none;
-    }
-
-    /* ===== Loading States ===== */
     .btn-loading {
         pointer-events: none;
         opacity: 0.8;
     }
 
-    /* ===== Notification Bell Styles ===== */
-    .notification-bell {
+    .notification-dropdown {
         position: relative;
-        color: rgba(255, 255, 255, 0.9);
-        cursor: pointer;
-        transition: color 0.3s ease;
-        padding: 0.5rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        overflow: visible;
     }
 
-    .notification-bell:hover {
-        color: white;
+    .notification-bell {
+        position: relative;
+        cursor: pointer;
+        overflow: visible;
     }
 
     .notification-badge {
         position: absolute;
-        top: -8px;
-        right: -8px;
-        background: #e74c3c;
-        color: white;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        top: -6px;
+        right: -4px;
+        background: #6ea988;
+        color: #ffffff;
+        border-radius: 999px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 700;
         animation: pulse 2s infinite;
-        box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+        box-shadow: 0 2px 6px rgba(110, 169, 136, 0.35);
         z-index: 1001;
         line-height: 1;
     }
@@ -369,24 +270,19 @@
         }
     }
 
-    .notification-dropdown {
-        position: relative;
-    }
-
     .notification-dropdown-menu {
         position: absolute;
-        top: 100%;
+        top: calc(100% + 0.45rem);
         right: 0;
-        background: white;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        width: 380px;
-        max-height: 500px;
+        background: #ffffff;
+        border: 1px solid #c7ddd0;
+        border-radius: 10px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        width: 360px;
+        max-height: 480px;
         overflow-y: auto;
         z-index: 1000;
         display: none;
-        margin-top: 0.5rem;
     }
 
     .notification-dropdown-menu.show {
@@ -394,86 +290,86 @@
     }
 
     .notification-dropdown-header {
-        padding: 12px 16px;
-        border-bottom: 1px solid #e9ecef;
+        padding: 12px 14px;
+        border-bottom: 1px solid #dbe9e0;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: #f8f9fa;
-        border-radius: 6px 6px 0 0;
+        background: #f4faf6;
+        border-radius: 10px 10px 0 0;
     }
 
     .notification-dropdown-header h5 {
         margin: 0;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 600;
-        color: #2c3e50;
+        color: #254132;
     }
 
     .notification-dropdown-header .btn-clear {
         background: none;
         border: none;
-        color: #667eea;
+        color: #5b9474;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         padding: 0;
         text-decoration: none;
     }
 
     .notification-dropdown-header .btn-clear:hover {
-        color: #5568d3;
+        color: #254132;
         text-decoration: underline;
     }
 
     .notification-item {
-        padding: 12px 16px;
-        border-bottom: 1px solid #e9ecef;
+        padding: 12px 14px;
+        border-bottom: 1px solid #dbe9e0;
         transition: background 0.2s ease;
         cursor: pointer;
     }
 
     .notification-item:hover {
-        background: #f8f9fa;
+        background: #f4faf6;
     }
 
     .notification-item.unread {
-        background: #f1f3ff;
+        background: #ecf7f0;
     }
 
     .notification-item-content {
         display: flex;
-        gap: 12px;
+        gap: 10px;
     }
 
     .notification-item-icon {
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
     }
 
     .notification-item-icon.info {
-        background: #e7f3ff;
-        color: #1890ff;
+        background: #ecf7f0;
+        color: #5b9474;
     }
 
     .notification-item-icon.success {
-        background: #f6ffed;
-        color: #52c41a;
+        background: #e7f2ea;
+        color: #355444;
     }
 
     .notification-item-icon.warning {
-        background: #fffbe6;
-        color: #faad14;
+        background: #e1efe6;
+        color: #5b9474;
     }
 
     .notification-item-icon.danger {
-        background: #fff2f0;
-        color: #ff4d4f;
+        background: #c7ddd0;
+        color: #254132;
     }
 
     .notification-item-text {
@@ -483,21 +379,21 @@
 
     .notification-item-title {
         font-weight: 600;
-        color: #2c3e50;
-        font-size: 0.95rem;
+        color: #254132;
+        font-size: 0.9rem;
         margin-bottom: 4px;
     }
 
     .notification-item-message {
-        color: #666;
-        font-size: 0.85rem;
+        color: #4b6f5a;
+        font-size: 0.82rem;
         line-height: 1.4;
         margin-bottom: 4px;
     }
 
     .notification-item-time {
-        font-size: 0.75rem;
-        color: #999;
+        font-size: 0.72rem;
+        color: #95ad9f;
     }
 
     .notification-item-actions {
@@ -508,156 +404,106 @@
 
     .notification-item-actions a,
     .notification-item-actions button {
-        padding: 4px 8px;
+        padding: 0;
         font-size: 0.75rem;
         text-decoration: none;
         cursor: pointer;
         border: none;
         background: none;
-        color: #667eea;
+        color: #5b9474;
         transition: color 0.2s ease;
     }
 
     .notification-item-actions a:hover,
     .notification-item-actions button:hover {
-        color: #5568d3;
+        color: #254132;
         text-decoration: underline;
     }
 
     .notification-empty {
-        padding: 40px 16px;
+        padding: 28px 14px;
         text-align: center;
-        color: #999;
+        color: #5f7b69;
     }
 
     .notification-empty i {
-        font-size: 2rem;
-        margin-bottom: 12px;
-        color: #ccc;
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        color: #c7ddd0;
     }
 
     .notification-empty p {
         margin: 0;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     .notification-loading {
-        padding: 20px 16px;
+        padding: 18px 14px;
         text-align: center;
-        color: #999;
+        color: #5f7b69;
     }
 
     .notification-loading .spinner-border {
-        width: 1.5rem;
-        height: 1.5rem;
+        width: 1.3rem;
+        height: 1.3rem;
+    }
+
+    @media (max-width: 992px) {
+        .utility-menu-label {
+            max-width: 110px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .content-utility-bar {
+            position: sticky;
+            top: 0;
+            z-index: 95;
+            padding-bottom: 8px;
+            background: linear-gradient(180deg, var(--pa-bg) 78%, rgba(240, 247, 242, 0));
+            justify-content: space-between;
+        }
+
+        .mobile-sidebar-toggle {
+            display: inline-flex;
+        }
+
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .content-area {
+            margin-left: 0;
+            padding: 16px;
+        }
+
+        .utility-actions {
+            gap: 8px;
+        }
+
+        .permission-note {
+            margin: 12px;
+        }
     }
 
     @media (max-width: 576px) {
+        .utility-menu-label {
+            display: none;
+        }
+
         .notification-dropdown-menu {
-            width: 320px;
+            width: min(92vw, 320px);
         }
     }
 </style>
 
 <?php if (session()->get('logged_in')): ?>
-
-<!-- ===== TOP NAVIGATION BAR ===== -->
-<nav class="navbar navbar-expand-lg navbar-custom sticky-top">
-    <div class="container-fluid">
-        <!-- Brand Logo -->
-        <a class="navbar-brand" href="<?= base_url('dashboard') ?>">
-            <i class="fas fa-users-cog"></i> PeopleAxis
-        </a>
-
-        <!-- Mobile Toggle -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- Navigation Items -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <!-- Dashboard Link -->
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('dashboard') ?>">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
-                </li>
-
-                <!-- Role-Based Quick Links -->
-                <?php if ($roleName === 'Super Admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('users') ?>">
-                            <i class="fas fa-users"></i> Users
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('activity-logs') ?>">
-                            <i class="fas fa-history"></i> Audit Logs
-                        </a>
-                    </li>
-                <?php elseif ($roleName === 'HR Admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('leaves') ?>">
-                            <i class="fas fa-calendar-check"></i> Approvals
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('attendance/logs') ?>">
-                            <i class="fas fa-clock"></i> Attendance
-                        </a>
-                    </li>
-                <?php elseif ($roleName === 'Manager'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('attendance/team') ?>">
-                            <i class="fas fa-users"></i> Team
-                        </a>
-                    </li>
-                <?php endif; ?>
-
-                <!-- Notification Bell -->
-                <li class="nav-item notification-dropdown">
-                    <a class="nav-link notification-bell" id="notificationBell" href="#" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
-                    </a>
-                    <div class="notification-dropdown-menu" id="notificationMenu">
-                        <div class="notification-dropdown-header">
-                            <h5>Notifications</h5>
-                            <div>
-                                <button class="btn-clear" id="markAllRead" title="Mark all as read">Mark all read</button>
-                                <button class="btn-clear" id="deleteAllNotifications" title="Delete all notifications">Delete all</button>
-                            </div>
-                        </div>
-                        <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
-                            <div class="notification-loading">
-                                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-
-                <!-- User Dropdown -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle user-menu-dropdown" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle"></i> 
-                        <?= esc(session()->get('name') ?? 'User') ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="fas fa-user"></i> My Profile</a></li>
-                        <?php if ($roleName === 'Super Admin'): ?>
-                            <li><a class="dropdown-item" href="<?= base_url('settings') ?>"><i class="fas fa-cog"></i> Settings</a></li>
-                        <?php endif; ?>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="<?= base_url('logout') ?>"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
 
 <!-- ===== MAIN CONTENT LAYOUT ===== -->
 <div class="layout-container">
@@ -700,11 +546,6 @@
                     </a>
                 </div>
 
-                <!-- Restrictions Note -->
-                <div class="permission-note">
-                    <i class="fas fa-lock"></i>
-                    <span>Cannot view other employees' data</span>
-                </div>
             </nav>
         </aside>
 
@@ -890,29 +731,111 @@
 
     <!-- ===== CONTENT AREA ===== -->
     <div class="content-area" id="mainContent">
+        <div class="content-utility-bar">
+            <button type="button" class="mobile-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <div class="utility-actions">
+                <div class="notification-dropdown">
+                    <button type="button" class="notification-bell" id="notificationBell" title="Notifications" aria-expanded="false">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="notification-dropdown-menu" id="notificationMenu">
+                        <div class="notification-dropdown-header">
+                            <h5>Notifications</h5>
+                            <div>
+                                <button class="btn-clear" id="markAllRead" title="Mark all as read">Mark all read</button>
+                                <button class="btn-clear" id="deleteAllNotifications" title="Delete all notifications">Delete all</button>
+                            </div>
+                        </div>
+                        <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
+                            <div class="notification-loading">
+                                <div class="spinner-border spinner-border-sm text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <button class="utility-menu-dropdown dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="utility-menu-label"><?= esc(session()->get('name') ?? 'User') ?></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="fas fa-user"></i> My Profile</a></li>
+                        <?php if ($roleName === 'Super Admin'): ?>
+                            <li><a class="dropdown-item" href="<?= base_url('settings') ?>"><i class="fas fa-cog"></i> Settings</a></li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?= base_url('logout') ?>"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const currentUrl = window.location.pathname;
     const role = '<?= $role ?>';
     const roleName = '<?= $roleName ?>';
 
+    function normalizePath(path) {
+        if (!path) {
+            return '/';
+        }
+
+        // Keep root as-is, trim trailing slash for all other paths.
+        return path.length > 1 && path.endsWith('/')
+            ? path.slice(0, -1)
+            : path;
+    }
+
     // ===== Highlight Active Navigation Links =====
     function setActiveLink() {
-        const sidebarLinks = document.querySelectorAll('.sidebar-link');
-        
+        const sidebarLinks = Array.from(document.querySelectorAll('.sidebar-link'));
+        const currentPath = normalizePath(window.location.pathname);
+
+        sidebarLinks.forEach(link => link.classList.remove('active'));
+
+        // Prefer exact path match so sibling links (e.g. /leaves and /leaves/create)
+        // do not appear active at the same time.
+        const exactMatch = sidebarLinks.find(link => {
+            const href = link.getAttribute('href');
+            const linkPath = href ? normalizePath(new URL(href, window.location.origin).pathname) : '';
+            return linkPath === currentPath;
+        });
+
+        if (exactMatch) {
+            exactMatch.classList.add('active');
+            return;
+        }
+
+        // Fallback to the most specific parent route when exact match is not present.
+        let bestMatch = null;
+        let bestLength = -1;
+
         sidebarLinks.forEach(link => {
             const href = link.getAttribute('href');
-            
-            // Normalize URLs for comparison
-            const linkPath = href ? new URL(href, window.location.origin).pathname : '';
-            
-            if (linkPath === currentUrl || currentUrl.startsWith(linkPath + '/')) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
+
+            if (!href) {
+                return;
+            }
+
+            const linkPath = normalizePath(new URL(href, window.location.origin).pathname);
+            const isParentRoute = currentPath.startsWith(linkPath + '/');
+
+            if (isParentRoute && linkPath.length > bestLength) {
+                bestMatch = link;
+                bestLength = linkPath.length;
             }
         });
+
+        if (bestMatch) {
+            bestMatch.classList.add('active');
+        }
     }
 
     // ===== Dashboard Navigation =====
@@ -927,13 +850,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 // For regular links, add active class
                 sidebarLinks.forEach(l => l.classList.remove('active'));
                 this.classList.add('active');
+
+                if (window.innerWidth <= 768) {
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar) {
+                        sidebar.classList.remove('open');
+                        document.body.style.overflow = 'auto';
+                    }
+                }
             });
         });
     }
 
     // ===== Mobile Sidebar Toggle =====
     function setupMobileToggle() {
-        const navToggler = document.querySelector('.navbar-toggler');
+        const navToggler = document.getElementById('sidebarToggle');
         const sidebar = document.querySelector('.sidebar');
         
         if (navToggler && sidebar) {
@@ -1341,8 +1272,9 @@ document.addEventListener('DOMContentLoaded', function() {
     notificationBell.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        notificationMenu.classList.toggle('show');
-        if (notificationMenu.classList.contains('show')) {
+        const isOpen = notificationMenu.classList.toggle('show');
+        notificationBell.setAttribute('aria-expanded', String(isOpen));
+        if (isOpen) {
             fetchNotifications();
         }
     });
@@ -1350,7 +1282,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close notification dropdown when clicking outside
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.notification-dropdown')) {
-            notificationMenu && notificationMenu.classList.remove('show');
+            if (notificationMenu) {
+                notificationMenu.classList.remove('show');
+            }
+            notificationBell.setAttribute('aria-expanded', 'false');
         }
     });
 
@@ -1447,9 +1382,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var bar = document.createElement('div');
     bar.id  = 'pjax-progress-bar';
     bar.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;height:3px;width:0;'
-        + 'background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);'
+        + 'background:linear-gradient(90deg,#6ea988 0%,#5b9474 100%);'
         + 'transition:width .3s ease,opacity .4s ease;pointer-events:none;opacity:0;'
-        + 'border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(102,126,234,.5);';
+        + 'border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(110,169,136,.45);';
     document.body.appendChild(bar);
 
     function showBar()   { bar.style.opacity = '1'; bar.style.width = '65%'; }
@@ -1477,16 +1412,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /* ── highlight the active sidebar link ─────────────────────────────── */
     function updateActiveLink(url) {
-        var path = new URL(url, location.origin).pathname;
-        document.querySelectorAll('.sidebar-link').forEach(function(link){
+        function normalizePath(path) {
+            if (!path) return '/';
+            return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+        }
+
+        var path = normalizePath(new URL(url, location.origin).pathname);
+        var links = Array.from(document.querySelectorAll('.sidebar-link'));
+
+        links.forEach(function(link) { link.classList.remove('active'); });
+
+        var exact = links.find(function(link) {
+            var href = link.getAttribute('href');
+            if (!href) return false;
+
+            try {
+                var lp = normalizePath(new URL(href, location.origin).pathname);
+                return lp === path;
+            } catch (e) {
+                return false;
+            }
+        });
+
+        if (exact) {
+            exact.classList.add('active');
+            return;
+        }
+
+        var bestMatch = null;
+        var bestLength = -1;
+
+        links.forEach(function(link) {
             var href = link.getAttribute('href');
             if (!href) return;
+
             try {
-                var lp = new URL(href, location.origin).pathname;
-                var active = lp === path || (lp !== '/' && path.startsWith(lp + '/'));
-                link.classList.toggle('active', active);
-            } catch(e){}
+                var lp = normalizePath(new URL(href, location.origin).pathname);
+                var isParentRoute = path.startsWith(lp + '/');
+
+                if (isParentRoute && lp.length > bestLength) {
+                    bestMatch = link;
+                    bestLength = lp.length;
+                }
+            } catch (e) {}
         });
+
+        if (bestMatch) {
+            bestMatch.classList.add('active');
+        }
     }
 
     /* ── core: fetch a page and swap only #mainContent ─────────────────── */

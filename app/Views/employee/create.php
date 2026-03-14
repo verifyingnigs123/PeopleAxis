@@ -8,7 +8,7 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -28,7 +28,7 @@
     }
 
     .form-header h2 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -67,7 +67,7 @@
 
     .form-control:focus {
         outline: none;
-        border-color: #2a5298;
+        border-color: #6ea988;
         box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
     }
 
@@ -100,7 +100,7 @@
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
     }
 

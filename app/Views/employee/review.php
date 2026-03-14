@@ -13,7 +13,7 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -37,7 +37,7 @@
     }
 
     .section-title {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         font-size: 1.1rem;
         margin-bottom: 20px;
@@ -87,7 +87,7 @@
     }
 
     .approval-card h3 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin-bottom: 10px;
     }

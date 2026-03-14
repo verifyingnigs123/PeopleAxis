@@ -3,768 +3,299 @@
 <?= $this->section('content') ?>
 
 <style>
-    /* ===== Navbar Styles ===== */
-    .navbar-custom {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 1rem 0;
+    :root {
+        --dash-bg: #f0f7f2;
+        --dash-surface: #ffffff;
+        --dash-border: #dbe9e0;
+        --dash-text: #1f362a;
+        --dash-muted: #5f7b69;
+        --dash-primary: #6ea988;
+        --dash-primary-soft: #ecf7f0;
     }
 
-    .navbar-custom .navbar-brand {
-        color: white;
-        font-weight: bold;
-        font-size: 1.5rem;
+    .dashboard-shell {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 4px 0 14px;
+        color: var(--dash-text);
     }
 
-    .navbar-custom .nav-link {
-        color: rgba(255, 255, 255, 0.9) !important;
-        margin-left: 1rem;
-    }
-
-    .navbar-custom .nav-link:hover {
-        color: white !important;
-    }
-
-    .navbar-custom .user-menu-dropdown {
-        color: white !important;
-    }
-
-    /* ===== Main Container ===== */
-    .main-container {
-        display: flex;
-        min-height: calc(100vh - 70px);
-        background: #f8f9fa;
-    }
-
-    /* ===== Sidebar Styles ===== */
-    .sidebar {
-        width: 260px;
-        background: white;
-        padding: 20px 0;
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-        position: fixed;
-        height: calc(100vh - 70px);
-        overflow-y: auto;
-        z-index: 100;
-    }
-
-    .sidebar nav {
-        padding: 0;
-    }
-
-    .sidebar-title {
-        padding: 15px 20px 10px;
-        font-weight: 700;
-        color: #667eea;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .sidebar .nav-link {
-        display: block;
-        padding: 12px 20px;
-        color: #495057;
-        text-decoration: none;
-        border-left: 3px solid transparent;
-        transition: all 0.3s ease;
-    }
-
-    .sidebar .nav-link:hover {
-        background: #f1f3ff;
-        border-left-color: #667eea;
-        color: #667eea;
-    }
-
-    .sidebar .nav-link.active {
-        background: #f1f3ff;
-        border-left-color: #667eea;
-        color: #667eea;
-        font-weight: 600;
-    }
-
-    .sidebar .nav-link i {
-        margin-right: 10px;
-        width: 20px;
-        text-align: center;
-    }
-
-    /* ===== Content Area ===== */
-    .content-area {
-        margin-left: 260px;
-        padding: 30px;
-        flex: 1;
-        overflow-y: auto;
-    }
-
-    /* ===== Page Header ===== */
+    .admin-header,
     .page-header {
+        background: var(--dash-surface);
+        border: 1px solid var(--dash-border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin-bottom: 14px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        gap: 14px;
         flex-wrap: wrap;
-        gap: 20px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
 
+    .admin-header h1,
     .page-header h1 {
-        color: #2c3e50;
-        font-weight: 700;
         margin: 0;
+        color: #2f5f45;
+        font-weight: 700;
+        font-size: 1.9rem;
+        line-height: 1.1;
     }
 
+    .admin-header p,
     .page-header p {
-        color: #95a5a6;
-        margin: 5px 0 0 0;
+        margin: 6px 0 0;
+        color: var(--dash-muted);
+        font-size: 0.92rem;
     }
 
-    /* ===== Statistics Cards ===== */
-    .stat-card {
-        background: white;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .stat-card i {
-        font-size: 2.5rem;
-        color: #667eea;
-        margin-bottom: 15px;
-    }
-
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin: 10px 0;
-    }
-
-    .stat-label {
-        color: #95a5a6;
-        font-weight: 500;
-    }
-
-    /* ===== Card Styles ===== */
-    .card {
-        background: white;
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-    }
-
-    .card:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px 20px;
-        font-weight: 600;
-        border-bottom: none;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .card-header i {
-        margin-right: 8px;
-    }
-
-    .card-body {
-        padding: 20px;
-    }
-
-    /* ===== Quick Actions ===== */
-    .btn-outline-primary {
-        border: 2px solid #667eea;
-        color: #667eea;
-        transition: all 0.3s ease;
-    }
-
-    .btn-outline-primary:hover {
-        background: #667eea;
-        border-color: #667eea;
-        color: white;
-    }
-
-    .btn-outline-primary i {
-        margin-right: 5px;
-    }
-
-    /* ===== Activity Items ===== */
-    .activity-item {
-        padding: 12px 0;
-    }
-
-    .activity-item p {
-        color: #2c3e50;
-        margin: 0;
-    }
-
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.65rem;
-    }
-
-    /* ===== Alert Messages ===== */
-    .alert {
-        border-radius: 8px;
-        border: none;
-        margin-bottom: 20px;
-    }
-
-    .alert-success {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .alert-danger {
-        background: #f8d7da;
-        color: #721c24;
-    }
-
-    .alert-warning {
-        background: #fff3cd;
-        color: #856404;
-    }
-
-    .alert i {
-        margin-right: 8px;
-    }
-
-    /* ===== Table Styles ===== */
-    .table {
-        color: #495057;
-    }
-
-    .table thead th {
-        background: #f8f9fa;
-        color: #2c3e50;
-        font-weight: 600;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    .table tbody tr:hover {
-        background: #f8f9fa;
-    }
-
-    /* ===== Footer ===== */
-    .footer {
-        background: white;
-        padding: 20px;
-        text-align: center;
-        color: #95a5a6;
-        border-top: 1px solid #dee2e6;
-        margin-top: 40px;
-    }
-
-    .footer a {
-        color: #667eea;
-        text-decoration: none;
-        margin: 0 5px;
-    }
-
-    .footer a:hover {
-        text-decoration: underline;
-    }
-
-    /* ===== Loading Spinner ===== */
-    .loading-spinner {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .loading-spinner.active {
-        display: flex;
-    }
-
-    /* ===== Responsive Design ===== */
-    @media (max-width: 768px) {
-        .sidebar {
-            width: 0;
-            position: fixed;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar.active {
-            transform: translateX(0);
-        }
-
-        .content-area {
-            margin-left: 0;
-            padding: 15px;
-        }
-
-        .page-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .stat-card {
-            padding: 15px;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-        }
-
-        .stat-card i {
-            font-size: 2rem;
-        }
-
-        .row.mb-4 {
-            margin-bottom: 1rem !important;
-        }
-
-        .col-md-3,
-        .col-lg-6,
-        .col-lg-12 {
-            flex-basis: 100%;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .navbar-brand {
-            font-size: 1.2rem;
-        }
-
-        .page-header h1 {
-            font-size: 1.5rem;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-        }
-    }
-
-    /* ===== Utility Classes ===== */
-    .text-muted {
-        color: #95a5a6 !important;
-    }
-
-    .text-center {
-        text-align: center;
-    }
-
-    .mb-4 {
-        margin-bottom: 1.5rem;
-    }
-
-    .mb-3 {
-        margin-bottom: 1rem;
-    }
-
-    .row.two-col {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    @media (max-width: 992px) {
-        .row.two-col {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* ===== ADMIN DASHBOARD STYLES ===== */
-    .admin-navbar {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
-    }
-
-    .admin-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        flex-wrap: wrap;
-        gap: 20px;
-    }
-
-    .admin-header h1 {
-        color: #1e3c72;
-        font-weight: 700;
-        margin: 0;
-    }
-
-    .admin-header p {
-        color: #95a5a6;
-        margin: 5px 0 0 0;
-    }
-
-    /* ===== Admin Stats ===== */
     .admin-stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .stat-box,
+    .stat-card {
+        background: var(--dash-surface);
+        border: 1px solid var(--dash-border);
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .stat-box {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 15px;
         display: flex;
         align-items: center;
-        gap: 15px;
-        transition: all 0.3s ease;
+        gap: 12px;
     }
 
-    .stat-box:hover {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    .stat-card {
+        text-align: center;
+        padding: 16px;
+    }
+
+    .stat-box:hover,
+    .stat-card:hover {
         transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.09);
     }
 
-    .stat-box i {
-        font-size: 2rem;
-        color: #2a5298;
-        width: 50px;
-        height: 50px;
-        display: flex;
+    .stat-box i,
+    .stat-card i {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: #f0f4ff;
-        border-radius: 8px;
+        font-size: 1.15rem;
+        color: var(--dash-primary);
+        background: var(--dash-primary-soft);
     }
 
     .stat-info h5 {
         margin: 0;
-        color: #95a5a6;
-        font-size: 0.85rem;
+        color: var(--dash-muted);
+        font-size: 0.8rem;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
 
     .stat-info h3 {
-        margin: 8px 0 0 0;
-        color: #1e3c72;
+        margin: 6px 0 0;
+        color: #0f172a;
         font-weight: 700;
-        font-size: 1.8rem;
+        font-size: 1.55rem;
     }
 
-    /* ===== Admin Panel ===== */
-    .admin-panel {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin-bottom: 30px;
-        overflow: hidden;
-    }
-
-    .panel-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 20px 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
-
-    .panel-header h2 {
-        margin: 0;
+    .stat-value {
+        font-size: 2rem;
         font-weight: 700;
-        font-size: 1.3rem;
+        color: #0f172a;
+        margin: 10px 0 4px;
     }
 
-    .panel-header i {
-        margin-right: 8px;
-    }
-
-    .search-box {
-        flex: 1;
-        min-width: 200px;
-    }
-
-    .search-box input {
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 0.9rem;
-    }
-
-    .panel-body {
-        padding: 20px;
-    }
-
-    /* ===== Admin Table ===== */
-    .admin-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .admin-table thead th {
-        background: #f8f9fa;
-        color: #1e3c72;
+    .stat-label {
+        color: var(--dash-muted);
         font-weight: 600;
-        padding: 12px 15px;
-        text-align: left;
-        border-bottom: 2px solid #dee2e6;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
     }
 
-    .admin-table tbody td {
-        padding: 12px 15px;
-        border-bottom: 1px solid #dee2e6;
-        font-size: 0.95rem;
-    }
-
-    .admin-table tbody tr:hover {
-        background: #f8f9fa;
-    }
-
-    .admin-table .badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.65rem;
-        border-radius: 4px;
-    }
-
-    .admin-table .action-buttons {
-        display: flex;
-        gap: 8px;
-    }
-
-    .admin-table .btn-sm {
-        padding: 0.35rem 0.65rem;
-        font-size: 0.75rem;
-        border-radius: 4px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .btn-edit {
-        background: #3498db;
-        color: white;
-    }
-
-    .btn-edit:hover {
-        background: #2980b9;
-    }
-
-    .btn-delete {
-        background: #e74c3c;
-        color: white;
-    }
-
-    .btn-delete:hover {
-        background: #c0392b;
-    }
-
-    /* ===== Quick Actions ===== */
     .admin-actions {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
     }
 
     .action-card {
-        background: white;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        text-align: center;
-        transition: all 0.3s ease;
+        background: var(--dash-surface);
+        border: 1px solid var(--dash-border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .action-card:hover {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-        transform: translateY(-5px);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.09);
     }
 
     .action-card i {
-        font-size: 2.5rem;
-        color: #2a5298;
-        margin-bottom: 15px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        color: var(--dash-primary);
+        background: var(--dash-primary-soft);
+        margin-bottom: 8px;
     }
 
     .action-card h3 {
-        color: #1e3c72;
+        color: #0f172a;
         font-weight: 700;
-        margin: 10px 0;
+        font-size: 1.02rem;
+        margin: 2px 0 8px;
     }
 
     .action-card p {
-        color: #95a5a6;
-        font-size: 0.9rem;
-        margin: 10px 0;
+        color: var(--dash-muted);
+        font-size: 0.88rem;
+        line-height: 1.45;
+        margin-bottom: 12px;
     }
 
-    .action-card .btn-outline-primary {
-        border-color: #2a5298;
-        color: #2a5298;
-        margin-top: 10px;
+    .card {
+        background: var(--dash-surface);
+        border: 1px solid var(--dash-border);
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        margin-bottom: 14px;
+        overflow: hidden;
     }
 
-    .action-card .btn-outline-primary:hover {
-        background: #2a5298;
-        border-color: #2a5298;
-        color: white;
+    .card-header {
+        background: #f4faf6;
+        border-bottom: 1px solid var(--dash-border);
+        color: #355444;
+        font-weight: 600;
+        padding: 12px 14px;
     }
 
-    /* ===== Admin Container with Sidebar ===== */
-    .admin-container {
-        display: flex;
-        min-height: calc(100vh - 70px);
-        background: #f5f6fa;
+    .card-body {
+        padding: 14px;
     }
 
-    .admin-sidebar {
-        width: 260px;
-        background: white;
-        padding: 20px 0;
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-        position: fixed;
-        height: calc(100vh - 70px);
-        overflow-y: auto;
-        z-index: 100;
+    .card-body .btn {
+        margin-right: 8px;
+        margin-bottom: 8px;
     }
 
-    .admin-sidebar nav {
-        padding: 0;
+    .btn-outline-primary {
+        border-color: #b8d8c6;
+        color: #4d7f63;
+        background: #ecf7f0;
     }
 
-    .admin-sidebar .sidebar-title {
-        padding: 15px 20px 10px;
-        font-weight: 700;
-        color: #2a5298;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .btn-outline-primary:hover {
+        border-color: #9ac4ad;
+        color: #2f5f45;
+        background: #dfeee5;
     }
 
-    .admin-sidebar .nav-link {
-        display: block;
-        padding: 12px 20px;
-        color: #495057;
-        text-decoration: none;
-        border-left: 3px solid transparent;
-        transition: all 0.3s ease;
+    .alert {
+        border-radius: 10px;
+        border: 1px solid transparent;
+        margin-bottom: 12px;
     }
 
-    .admin-sidebar .nav-link:hover {
-        background: #f1f4ff;
-        border-left-color: #2a5298;
-        color: #2a5298;
+    .alert-success {
+        background: #dcfce7;
+        color: #166534;
+        border-color: #bbf7d0;
     }
 
-    .admin-sidebar .nav-link.active {
-        background: #f1f4ff;
-        border-left-color: #2a5298;
-        color: #2a5298;
+    .alert-danger {
+        background: #fee2e2;
+        color: #991b1b;
+        border-color: #fecaca;
+    }
+
+    .table {
+        color: #355444;
+    }
+
+    .table thead th {
+        background: #f4faf6;
+        color: #355444;
+        border-bottom: 1px solid var(--dash-border);
         font-weight: 600;
     }
 
-    .admin-sidebar .nav-link i {
-        margin-right: 10px;
-        width: 20px;
-        text-align: center;
+    .table tbody tr:hover {
+        background: #eef7f1;
     }
 
-    .admin-content {
-        margin-left: 260px;
-        padding: 30px;
-        background: #f5f6fa;
-        min-height: calc(100vh - 70px);
-        flex: 1;
-        overflow-y: auto;
+    @media (max-width: 992px) {
+        .admin-header h1,
+        .page-header h1 {
+            font-size: 1.6rem;
+        }
     }
 
-    /* ===== Responsive Admin ===== */
     @media (max-width: 768px) {
-        .admin-sidebar {
-            width: 0;
-            position: fixed;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
+        .dashboard-shell {
+            padding-top: 0;
         }
 
-        .admin-sidebar.active {
-            transform: translateX(0);
-        }
-
-        .admin-content {
-            margin-left: 0;
-            padding: 15px;
-        }
-
-        .admin-header {
-            flex-direction: column;
-            align-items: flex-start;
+        .admin-header,
+        .page-header {
+            padding: 14px;
         }
 
         .admin-stats {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .panel-header {
-            flex-direction: column;
-            align-items: flex-start;
+        .stat-card {
+            padding: 14px;
         }
 
-        .search-box {
-            width: 100%;
+        .stat-value {
+            font-size: 1.6rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .admin-stats {
+            grid-template-columns: 1fr;
         }
 
-        .admin-table thead {
-            display: none;
-        }
-
-        .admin-table tbody tr {
-            display: block;
-            margin-bottom: 15px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-        }
-
-        .admin-table tbody td {
-            display: block;
-            text-align: right;
-            padding-left: 50%;
-            position: relative;
-            border: none;
-        }
-
-        .admin-table tbody td:before {
-            content: attr(data-label);
-            position: absolute;
-            left: 10px;
-            font-weight: 600;
-            text-align: left;
+        .admin-actions {
+            grid-template-columns: 1fr;
         }
     }
 </style>
 
 <?php $roleName = session()->get('role_name') ?? session()->get('role'); ?>
 
+<div class="dashboard-shell">
+
 <!-- Super Admin Dashboard -->
 <?php if ($roleName === 'Super Admin'): ?>
     <div class="admin-header">
         <div>
-            <h1><i class="fas fa-shield-alt"></i> Administration Panel</h1>
-            <p>System Management & User Control</p>
-        </div>
-        <div>
-            <a href="<?= base_url('users/create') ?>" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Add New User
-            </a>
+            <h1><i class="fas fa-shield-alt"></i> Super Admin Dashboard</h1>
+            <p>Operational overview for users, access control, and system governance</p>
         </div>
     </div>
 
@@ -800,110 +331,31 @@
         </div>
     </div>
 
-    <!-- User Management Section -->
-    <div class="admin-panel" style="margin-bottom: 30px;">
-        <div class="panel-header">
-            <h2><i class="fas fa-users-cog"></i> User Management</h2>
-            <a href="<?= base_url('users') ?>" class="btn btn-primary" style="background: white; color: #2a5298; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 600;">
-                <i class="fas fa-arrow-right"></i> View All Users
-            </a>
-        </div>
-        <div class="panel-body" style="padding: 25px;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <!-- Create Operations -->
-                <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #2a5298;">
-                    <h4 style="color: #2a5298; margin: 0 0 15px 0; font-size: 1.1rem;">
-                        <i class="fas fa-plus-circle"></i> Create Operations
-                    </h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
-                        <li style="margin-bottom: 8px;"><strong>Add New Users</strong> - Create new user accounts with roles and permissions</li>
-                        <li style="margin-bottom: 8px;"><strong>Submit Leave Requests</strong> - Create leave requests on behalf of users</li>
-                    </ul>
-                    <div style="margin-top: 15px;">
-                        <a href="<?= base_url('users/create') ?>" class="btn btn-sm" style="background: #2a5298; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
-                            <i class="fas fa-user-plus"></i> Add User
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Read Operations -->
-                <div style="background: #f0f8f0; padding: 20px; border-radius: 8px; border-left: 4px solid #27ae60;">
-                    <h4 style="color: #27ae60; margin: 0 0 15px 0; font-size: 1.1rem;">
-                        <i class="fas fa-eye"></i> Read Operations
-                    </h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
-                        <li style="margin-bottom: 8px;"><strong>View User Lists</strong> - Browse all system users with details</li>
-                        <li style="margin-bottom: 8px;"><strong>Leave History</strong> - Access complete leave records and patterns</li>
-                        <li style="margin-bottom: 8px;"><strong>Dashboard Analytics</strong> - Monitor system metrics and statistics</li>
-                    </ul>
-                    <div style="margin-top: 15px;">
-                        <a href="<?= base_url('users') ?>" class="btn btn-sm" style="background: #27ae60; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
-                            <i class="fas fa-list"></i> View Users
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Update Operations -->
-                <div style="background: #fff8e1; padding: 20px; border-radius: 8px; border-left: 4px solid #f39c12;">
-                    <h4 style="color: #f39c12; margin: 0 0 15px 0; font-size: 1.1rem;">
-                        <i class="fas fa-edit"></i> Update Operations
-                    </h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
-                        <li style="margin-bottom: 8px;"><strong>Edit User Details</strong> - Modify user information and roles</li>
-                        <li style="margin-bottom: 8px;"><strong>Approve/Reject Leaves</strong> - Process leave requests efficiently</li>
-                        <li style="margin-bottom: 8px;"><strong>Activate/Deactivate Accounts</strong> - Control user access status</li>
-                    </ul>
-                    <div style="margin-top: 15px;">
-                        <a href="<?= base_url('leaves') ?>" class="btn btn-sm" style="background: #f39c12; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
-                            <i class="fas fa-check-circle"></i> Manage Leaves
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Delete Operations -->
-                <div style="background: #ffeaea; padding: 20px; border-radius: 8px; border-left: 4px solid #e74c3c;">
-                    <h4 style="color: #e74c3c; margin: 0 0 15px 0; font-size: 1.1rem;">
-                        <i class="fas fa-trash-alt"></i> Delete Operations
-                    </h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #495057;">
-                        <li style="margin-bottom: 8px;"><strong>Deactivate Users</strong> - Soft delete preserves data for audit trails</li>
-                        <li style="margin-bottom: 8px;"><strong>Maintain Data Integrity</strong> - Keep historical records while restricting access</li>
-                    </ul>
-                    <div style="margin-top: 15px;">
-                        <a href="<?= base_url('users') ?>" class="btn btn-sm" style="background: #e74c3c; color: white; border: none; padding: 6px 15px; border-radius: 4px;">
-                            <i class="fas fa-user-slash"></i> Manage Access
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
+    <!-- Super Admin Actions (Manager-style layout) -->
     <div class="admin-actions">
+        <div class="action-card">
+            <i class="fas fa-users-cog"></i>
+            <h3>Manage Users</h3>
+            <p><?= $totalUsers ?? 0 ?> accounts are registered. Create, update, and monitor user access.</p>
+            <a href="<?= base_url('users') ?>" class="btn btn-outline-primary">Open Users</a>
+        </div>
         <div class="action-card">
             <i class="fas fa-lock"></i>
             <h3>Roles & Permissions</h3>
-            <p>Manage user roles and access control</p>
-            <a href="<?= base_url('roles') ?>" class="btn btn-outline-primary">Manage</a>
+            <p>Manage role assignments and keep permission boundaries aligned with policy.</p>
+            <a href="<?= base_url('roles') ?>" class="btn btn-outline-primary">Manage Roles</a>
         </div>
         <div class="action-card">
             <i class="fas fa-history"></i>
-            <h3>Activity Logs</h3>
-            <p>View system and user activity</p>
+            <h3>Audit Logs</h3>
+            <p><?= $auditCount ?? 0 ?> log entries are available for compliance and activity review.</p>
             <a href="<?= base_url('activity-logs') ?>" class="btn btn-outline-primary">View Logs</a>
         </div>
         <div class="action-card">
-            <i class="fas fa-sliders-h"></i>
+            <i class="fas fa-cogs"></i>
             <h3>System Settings</h3>
-            <p>Configure system settings</p>
-            <a href="<?= base_url('settings') ?>" class="btn btn-outline-primary">Settings</a>
-        </div>
-        <div class="action-card">
-            <i class="fas fa-database"></i>
-            <h3>Backup & Restore</h3>
-            <p>Manage database backups</p>
-            <a href="<?= base_url('backups') ?>" class="btn btn-outline-primary">Backup</a>
+            <p>Configure platform behavior and keep global settings consistent.</p>
+            <a href="<?= base_url('settings') ?>" class="btn btn-outline-primary">Open Settings</a>
         </div>
     </div>
 
@@ -1049,13 +501,6 @@
     </div>
     <?php endif; ?>
 
-    <?php if (isset($warning)): ?>
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-circle"></i> <?= $warning ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <?php endif; ?>
-
     <?php if (isset($error)): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fas fa-times-circle"></i> <?= $error ?>
@@ -1129,147 +574,5 @@
 <?php endif; ?>
 
 </div>
-
-<style>
-    .dashboard-container {
-        padding: 20px;
-        margin-left: 260px;
-        margin-top: -10px;
-    }
-
-    .dashboard-header {
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 20px;
-    }
-
-    .page-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 5px;
-    }
-
-    /* Stat Cards */
-    .stat-card {
-        background: white;
-        border: none;
-        border-radius: 10px;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-
-    .stat-card:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
-    }
-
-    .stat-card-blue { border-left: 5px solid #3498db; }
-    .stat-card-blue .stat-icon { background: rgba(52, 152, 219, 0.1); color: #3498db; }
-
-    .stat-card-green { border-left: 5px solid #27ae60; }
-    .stat-card-green .stat-icon { background: rgba(39, 174, 96, 0.1); color: #27ae60; }
-
-    .stat-card-purple { border-left: 5px solid #9b59b6; }
-    .stat-card-purple .stat-icon { background: rgba(155, 89, 182, 0.1); color: #9b59b6; }
-
-    .stat-card-orange { border-left: 5px solid #f39c12; }
-    .stat-card-orange .stat-icon { background: rgba(243, 156, 18, 0.1); color: #f39c12; }
-
-    .stat-card-red { border-left: 5px solid #e74c3c; }
-    .stat-card-red .stat-icon { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
-
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-    }
-
-    .stat-body {
-        flex: 1;
-    }
-
-    .stat-title {
-        font-size: 0.9rem;
-        color: #7f8c8d;
-        margin-bottom: 5px;
-        font-weight: 600;
-    }
-
-    .stat-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin: 0;
-    }
-
-    .stat-value-text {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: #2c3e50;
-        margin: 5px 0 0 0;
-    }
-
-    /* Cards */
-    .card {
-        border: 1px solid #e9ecef !important;
-    }
-
-    .card-header {
-        background-color: #ffffff !important;
-        border-bottom: 1px solid #e9ecef !important;
-        padding: 1.25rem;
-    }
-
-    .card-header h5 {
-        color: #2c3e50;
-        font-weight: 700;
-    }
-
-    /* Tables */
-    .table thead {
-        background-color: #f8f9fa;
-    }
-
-    .table thead th {
-        color: #2c3e50;
-        font-weight: 700;
-        font-size: 0.9rem;
-        border: 1px solid #e9ecef;
-    }
-
-    .table tbody td {
-        border: 1px solid #e9ecef;
-        vertical-align: middle;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .dashboard-container {
-            margin-left: 0;
-            padding: 15px;
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-        }
-
-        .stat-card {
-            padding: 15px;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-        }
-    }
-</style>
 
 <?= $this->endSection() ?>

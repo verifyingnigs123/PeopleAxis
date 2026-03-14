@@ -3,287 +3,373 @@
 <?= $this->section('content') ?>
 
 <style>
+    .attendance-shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 8px 0 18px;
+    }
+
+    .breadcrumbs {
+        margin-bottom: 14px;
+        font-size: 0.9rem;
+    }
+
+    .breadcrumbs a {
+        color: #6ea988;
+        text-decoration: none;
+    }
+
+    .breadcrumbs a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumbs span {
+        color: #6f8192;
+        margin: 0 6px;
+    }
+
     .page-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        gap: 14px;
         flex-wrap: wrap;
-        gap: 20px;
+        margin-bottom: 14px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
+        font-size: 2rem;
+        line-height: 1;
     }
 
     .page-header p {
-        color: #7f8c8d;
-        margin: 0;
+        color: #6f8192;
+        margin: 6px 0 0;
+        font-size: 0.92rem;
     }
 
-    .report-container {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 25px;
-        margin-bottom: 30px;
-    }
-
-    @media (max-width: 1024px) {
-        .report-container {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .report-panel {
-        background: white;
+    .tips-alert {
+        background: #eaf3fb;
+        color: #2a587f;
+        border: 1px solid #d4e3f2;
+        border-left: 4px solid #2a587f;
+        padding: 12px 14px;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        padding: 25px;
-    }
-
-    .report-panel h3 {
-        color: #1e3c72;
-        font-weight: 700;
-        margin: 0 0 20px 0;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f0f2f5;
-    }
-
-    .form-group {
-        margin-bottom: 20px;
-    }
-
-    .form-label {
-        display: block;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 8px;
-        font-size: 0.9rem;
-    }
-
-    .form-input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 2px solid #e1e8ed;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-        box-sizing: border-box;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: #2a5298;
-        box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
-    }
-
-    .form-input select {
-        cursor: pointer;
-    }
-
-    .btn-generate {
-        width: 100%;
-        padding: 12px 20px;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .btn-generate:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(30, 60, 114, 0.4);
-    }
-
-    .btn-secondary {
-        background: #95a5a6;
-        margin-top: 10px;
-    }
-
-    .btn-secondary:hover {
-        background: #7f8c8d;
-    }
-
-    .preview-panel {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .preview-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 20px 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .preview-header h3 {
-        margin: 0;
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-
-    .preview-content {
-        padding: 25px;
-    }
-
-    .report-summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-    }
-
-    .summary-item {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
-        border-left: 4px solid #667eea;
-    }
-
-    .summary-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1e3c72;
-        margin: 5px 0;
-    }
-
-    .summary-label {
-        font-size: 0.85rem;
-        color: #7f8c8d;
-        text-transform: uppercase;
-    }
-
-    .report-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
-
-    .report-table thead th {
-        background: #f8f9fa;
-        color: #1e3c72;
-        font-weight: 600;
-        padding: 12px 15px;
-        text-align: left;
-        border-bottom: 2px solid #dee2e6;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-    }
-
-    .report-table tbody td {
-        padding: 12px 15px;
-        border-bottom: 1px solid #f1f3f5;
-        font-size: 0.9rem;
-        color: #495057;
-    }
-
-    .report-table tbody tr:hover {
-        background: #f8f9ff;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    .badge-present {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .badge-absent {
-        background: #f8d7da;
-        color: #721c24;
-    }
-
-    .badge-late {
-        background: #fff3cd;
-        color: #856404;
-    }
-
-    .badge-leave {
-        background: #d1ecf1;
-        color: #0c5460;
-    }
-
-    .alert-info {
-        background: #d1ecf1;
-        color: #0c5460;
-        padding: 15px;
-        border-radius: 6px;
-        margin-bottom: 20px;
-        border-left: 4px solid #0c5460;
+        margin-bottom: 14px;
         display: flex;
         gap: 10px;
         align-items: flex-start;
     }
 
-    .alert-info i {
+    .tips-alert i {
         margin-top: 2px;
+    }
+
+    .tips-alert p {
+        margin: 4px 0 0;
+    }
+
+    .report-container {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+
+    .report-panel {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        padding: 14px;
+    }
+
+    .report-panel .panel-heading {
+        color: #1f3550;
+        font-weight: 700;
+        margin: 0 0 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e7edf4;
+        font-size: 1.08rem;
+        line-height: 1.25;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #2f4358;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 9px 11px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        box-sizing: border-box;
+        background: #ffffff;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #6ea988;
+        box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+    }
+
+    .btn-generate {
+        width: 100%;
+        padding: 9px 12px;
+        background: #6ea988;
+        color: #ffffff;
+        border: 1px solid #6ea988;
+        border-radius: 8px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        line-height: 1;
+    }
+
+    .btn-generate:hover {
+        background: #21437c;
+        border-color: #21437c;
+    }
+
+    .btn-secondary {
+        margin-top: 8px;
+        background: #f1f5fb;
+        color: #6ea988;
+        border-color: #c9d8ef;
+    }
+
+    .btn-secondary:hover {
+        background: #e7effa;
+        border-color: #bdd2ee;
+    }
+
+    .preview-panel {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+
+    .preview-header {
+        background: #6ea988;
+        color: #ffffff;
+        padding: 12px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .preview-header h3 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
+
+    .preview-period {
+        font-size: 0.84rem;
+        opacity: 0.92;
+        font-weight: 600;
+    }
+
+    .preview-content {
+        padding: 14px;
+    }
+
+    .report-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .summary-item {
+        background: #f8fbff;
+        border: 1px solid #e2ebf4;
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .summary-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2f5f45;
+        margin: 4px 0;
+        line-height: 1.1;
+    }
+
+    .summary-label {
+        font-size: 0.72rem;
+        color: #6f8192;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        font-weight: 700;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    .report-table thead th {
+        background: #f7f9fc;
+        color: #445b72;
+        font-weight: 700;
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid #e1e9f2;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        white-space: nowrap;
+    }
+
+    .report-table tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #edf2f7;
+        font-size: 0.86rem;
+        color: #42586e;
+    }
+
+    .report-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .badge-present {
+        background: #e9f7ec;
+        color: #1d7a3f;
+        border-color: #cfead8;
+    }
+
+    .badge-absent {
+        background: #fdecec;
+        color: #b43a3a;
+        border-color: #f4d3d3;
+    }
+
+    .badge-late {
+        background: #fff4e4;
+        color: #9f6310;
+        border-color: #f1debb;
+    }
+
+    .badge-leave {
+        background: #e8f4fd;
+        color: #1e6fa5;
+        border-color: #c7dff1;
     }
 
     .export-buttons {
         display: flex;
-        gap: 10px;
-        margin-top: 20px;
+        gap: 8px;
+        margin-top: 12px;
         flex-wrap: wrap;
     }
 
     .btn-export {
-        padding: 8px 16px;
-        border: 2px solid #667eea;
-        background: white;
-        color: #667eea;
-        border-radius: 6px;
+        padding: 7px 11px;
+        border: 1px solid #c9d8ef;
+        background: #f1f5fb;
+        color: #6ea988;
+        border-radius: 8px;
         cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        display: flex;
+        font-weight: 700;
+        transition: background 0.2s ease, border-color 0.2s ease;
+        display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .btn-export:hover {
-        background: #667eea;
-        color: white;
+        background: #e7effa;
+        border-color: #bdd2ee;
     }
 
     .empty-state {
         text-align: center;
-        padding: 40px;
-        color: #7f8c8d;
+        padding: 34px 14px;
+        color: #7f90a0;
     }
 
     .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 15px;
-        opacity: 0.5;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        opacity: 0.45;
+        color: #8fa3b8;
+    }
+
+    .empty-note {
+        font-size: 0.88rem;
+        margin-top: 6px;
+    }
+
+    @media (max-width: 1100px) {
+        .report-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .page-header {
+            padding: 14px;
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+        }
+
+        .preview-content,
+        .report-panel {
+            padding: 12px;
+        }
     }
 </style>
 
+<div class="attendance-shell">
+
 <!-- Breadcrumbs -->
-<div style="margin-bottom: 20px;">
-    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> /
-    <a href="<?= base_url('reports') ?>"><i class="fas fa-chart-bar"></i> Reports</a> /
+<div class="breadcrumbs">
+    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
+    <span>/</span>
+    <a href="<?= base_url('reports') ?>"><i class="fas fa-chart-bar"></i> Reports</a>
+    <span>/</span>
     <span>Attendance Report</span>
 </div>
 
@@ -296,11 +382,11 @@
 </div>
 
 <!-- Info Alert -->
-<div class="alert-info">
+<div class="tips-alert">
     <i class="fas fa-lightbulb"></i>
     <div>
         <strong>Report Generation Tips:</strong>
-        <p style="margin: 5px 0 0 0;">Select date range and parameters to generate customized attendance reports. You can export data in CSV or PDF format for further analysis.</p>
+        <p>Select date range and parameters to generate customized attendance reports. You can export data in CSV or PDF format for further analysis.</p>
     </div>
 </div>
 
@@ -308,7 +394,7 @@
 <div class="report-container">
     <!-- Configuration Panel -->
     <div class="report-panel">
-        <h3><i class="fas fa-sliders-h"></i> Report Configuration</h3>
+        <h3 class="panel-heading"><i class="fas fa-sliders-h"></i> Report Configuration</h3>
 
         <form id="reportForm" method="POST" action="<?= base_url('reports/generate/attendance') ?>">
             <?= csrf_field() ?>
@@ -374,16 +460,18 @@
     <div class="preview-panel">
         <div class="preview-header">
             <h3><i class="fas fa-eye"></i> Report Preview</h3>
-            <div id="reportTitle" style="font-size: 0.9rem; opacity: 0.9;"></div>
+            <div id="reportTitle" class="preview-period"></div>
         </div>
         <div class="preview-content" id="reportPreview">
             <div class="empty-state">
                 <i class="fas fa-chart-bar"></i>
                 <p><strong>Report preview will appear here</strong></p>
-                <p style="font-size: 0.9rem;">Fill in the configuration form and click "Generate Report" to see the preview.</p>
+                <p class="empty-note">Fill in the configuration form and click "Generate Report" to see the preview.</p>
             </div>
         </div>
     </div>
+</div>
+
 </div>
 
 <script>

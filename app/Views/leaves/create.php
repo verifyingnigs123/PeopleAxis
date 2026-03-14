@@ -4,11 +4,11 @@
 
 <style>
     .page-header {
-        margin-bottom: 30px;
+        margin-bottom: 14px;
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -17,18 +17,18 @@
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        padding: 40px;
-        max-width: 600px;
+        padding: 24px;
+        max-width: 920px;
         margin: 0 auto;
     }
 
     .form-header {
-        margin-bottom: 30px;
+        margin-bottom: 18px;
         text-align: center;
     }
 
     .form-header h2 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -38,8 +38,18 @@
         margin-top: 5px;
     }
 
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 16px;
+    }
+
     .form-group {
-        margin-bottom: 25px;
+        margin-bottom: 0;
+    }
+
+    .form-group.full-span {
+        grid-column: 1 / -1;
     }
 
     .form-label {
@@ -52,17 +62,17 @@
 
     .form-control {
         width: 100%;
-        padding: 12px 15px;
+        padding: 10px 12px;
         border: 2px solid #e1e8ed;
         border-radius: 6px;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         transition: all 0.3s ease;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     .form-control:focus {
         outline: none;
-        border-color: #2a5298;
+        border-color: #6ea988;
         box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
     }
 
@@ -85,17 +95,17 @@
     .form-actions {
         display: flex;
         gap: 12px;
-        margin-top: 35px;
+        margin-top: 18px;
     }
 
     .btn {
-        padding: 12px 28px;
+        padding: 10px 20px;
         border-radius: 6px;
         border: none;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -103,7 +113,7 @@
     }
 
     .btn-submit {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         flex: 1;
     }
@@ -140,21 +150,36 @@
 
     .date-range-info {
         background: #f8f9ff;
-        padding: 12px 15px;
+        padding: 9px 12px;
         border-radius: 6px;
-        font-size: 0.9rem;
+        font-size: 0.86rem;
         color: #2c3e50;
-        margin-top: 10px;
+        margin-top: 8px;
     }
 
     .date-range-value {
         font-weight: 700;
-        color: #2a5298;
+        color: #6ea988;
+    }
+
+    @media (max-width: 992px) {
+        .form-container {
+            max-width: 640px;
+            padding: 20px;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full-span {
+            grid-column: auto;
+        }
     }
 </style>
 
 <!-- Breadcrumbs -->
-<div style="margin-bottom: 20px;">
+<div style="margin-bottom: 12px;">
     <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> /
     <a href="<?= base_url('leaves') ?>">Leave Requests</a> /
     <span>Apply for Leave</span>
@@ -186,89 +211,93 @@
 
     <form action="<?= base_url('leaves/store') ?>" method="POST">
         <?= csrf_field() ?>
-
-        <!-- From Date Field -->
-        <div class="form-group">
-            <label for="from_date" class="form-label">
-                From Date <span class="required-notice">*</span>
-            </label>
-            <input 
-                type="date" 
-                class="form-control <?= isset($errors['from_date']) ? 'is-invalid' : '' ?>" 
-                id="from_date" 
-                name="from_date"
-                value="<?= old('from_date') ?>"
-                required
-                min="<?= date('Y-m-d') ?>"
-            >
-            <?php if (isset($errors['from_date'])): ?>
-                <span class="invalid-feedback"><?= $errors['from_date'] ?></span>
-            <?php endif; ?>
-        </div>
-
-        <!-- To Date Field -->
-        <div class="form-group">
-            <label for="to_date" class="form-label">
-                To Date <span class="required-notice">*</span>
-            </label>
-            <input 
-                type="date" 
-                class="form-control <?= isset($errors['to_date']) ? 'is-invalid' : '' ?>" 
-                id="to_date" 
-                name="to_date"
-                value="<?= old('to_date') ?>"
-                required
-                min="<?= date('Y-m-d') ?>"
-            >
-            <?php if (isset($errors['to_date'])): ?>
-                <span class="invalid-feedback"><?= $errors['to_date'] ?></span>
-            <?php endif; ?>
-            <div class="date-range-info">
-                <span>Total Days: </span>
-                <span class="date-range-value" id="total-days">0</span>
+        <div class="form-grid">
+            <!-- From Date Field -->
+            <div class="form-group">
+                <label for="from_date" class="form-label">
+                    From Date <span class="required-notice">*</span>
+                </label>
+                <input 
+                    type="date" 
+                    class="form-control <?= isset($errors['from_date']) ? 'is-invalid' : '' ?>" 
+                    id="from_date" 
+                    name="from_date"
+                    value="<?= old('from_date') ?>"
+                    required
+                    min="<?= date('Y-m-d') ?>"
+                >
+                <?php if (isset($errors['from_date'])): ?>
+                    <span class="invalid-feedback"><?= $errors['from_date'] ?></span>
+                <?php endif; ?>
             </div>
-        </div>
 
-        <!-- Leave Type Field -->
-        <div class="form-group">
-            <label for="leave_type" class="form-label">
-                Leave Type <span class="required-notice">*</span>
-            </label>
-            <select 
-                class="form-control <?= isset($errors['leave_type']) ? 'is-invalid' : '' ?>" 
-                id="leave_type" 
-                name="leave_type"
-                required
-            >
-                <option value="">Select Leave Type</option>
-                <option value="Casual" <?= old('leave_type') === 'Casual' ? 'selected' : '' ?>>Casual Leave</option>
-                <option value="Sick" <?= old('leave_type') === 'Sick' ? 'selected' : '' ?>>Sick Leave</option>
-                <option value="Earned" <?= old('leave_type') === 'Earned' ? 'selected' : '' ?>>Earned Leave</option>
-                <option value="Maternity" <?= old('leave_type') === 'Maternity' ? 'selected' : '' ?>>Maternity Leave</option>
-                <option value="Paternity" <?= old('leave_type') === 'Paternity' ? 'selected' : '' ?>>Paternity Leave</option>
-                <option value="Unpaid" <?= old('leave_type') === 'Unpaid' ? 'selected' : '' ?>>Unpaid Leave</option>
-            </select>
-            <?php if (isset($errors['leave_type'])): ?>
-                <span class="invalid-feedback"><?= $errors['leave_type'] ?></span>
-            <?php endif; ?>
-        </div>
+            <!-- To Date Field -->
+            <div class="form-group">
+                <label for="to_date" class="form-label">
+                    To Date <span class="required-notice">*</span>
+                </label>
+                <input 
+                    type="date" 
+                    class="form-control <?= isset($errors['to_date']) ? 'is-invalid' : '' ?>" 
+                    id="to_date" 
+                    name="to_date"
+                    value="<?= old('to_date') ?>"
+                    required
+                    min="<?= date('Y-m-d') ?>"
+                >
+                <?php if (isset($errors['to_date'])): ?>
+                    <span class="invalid-feedback"><?= $errors['to_date'] ?></span>
+                <?php endif; ?>
+            </div>
 
-        <!-- Reason Field -->
-        <div class="form-group">
-            <label for="reason" class="form-label">
-                Reason <span class="required-notice">*</span>
-            </label>
-            <textarea 
-                class="form-control <?= isset($errors['reason']) ? 'is-invalid' : '' ?>" 
-                id="reason" 
-                name="reason" 
-                placeholder="Describe the reason for your leave"
-                rows="4"
-                required
-            ><?= old('reason') ?></textarea>
-            <?php if (isset($errors['reason'])): ?>
-                <span class="invalid-feedback"><?= $errors['reason'] ?></span>
-            <?php endif; ?>
+            <div class="form-group full-span">
+                <div class="date-range-info">
+                    <span>Total Days: </span>
+                    <span class="date-range-value" id="total-days">0</span>
+                </div>
+            </div>
+
+            <!-- Leave Type Field -->
+            <div class="form-group full-span">
+                <label for="leave_type" class="form-label">
+                    Leave Type <span class="required-notice">*</span>
+                </label>
+                <select 
+                    class="form-control <?= isset($errors['leave_type']) ? 'is-invalid' : '' ?>" 
+                    id="leave_type" 
+                    name="leave_type"
+                    required
+                >
+                    <option value="">Select Leave Type</option>
+                    <option value="Casual" <?= old('leave_type') === 'Casual' ? 'selected' : '' ?>>Casual Leave</option>
+                    <option value="Sick" <?= old('leave_type') === 'Sick' ? 'selected' : '' ?>>Sick Leave</option>
+                    <option value="Earned" <?= old('leave_type') === 'Earned' ? 'selected' : '' ?>>Earned Leave</option>
+                    <option value="Maternity" <?= old('leave_type') === 'Maternity' ? 'selected' : '' ?>>Maternity Leave</option>
+                    <option value="Paternity" <?= old('leave_type') === 'Paternity' ? 'selected' : '' ?>>Paternity Leave</option>
+                    <option value="Unpaid" <?= old('leave_type') === 'Unpaid' ? 'selected' : '' ?>>Unpaid Leave</option>
+                </select>
+                <?php if (isset($errors['leave_type'])): ?>
+                    <span class="invalid-feedback"><?= $errors['leave_type'] ?></span>
+                <?php endif; ?>
+            </div>
+
+            <!-- Reason Field -->
+            <div class="form-group full-span">
+                <label for="reason" class="form-label">
+                    Reason <span class="required-notice">*</span>
+                </label>
+                <textarea 
+                    class="form-control <?= isset($errors['reason']) ? 'is-invalid' : '' ?>" 
+                    id="reason" 
+                    name="reason" 
+                    placeholder="Describe the reason for your leave"
+                    rows="3"
+                    required
+                ><?= old('reason') ?></textarea>
+                <?php if (isset($errors['reason'])): ?>
+                    <span class="invalid-feedback"><?= $errors['reason'] ?></span>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- Form Actions -->

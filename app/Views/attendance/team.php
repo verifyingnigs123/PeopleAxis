@@ -14,7 +14,7 @@
 
     .page-header h1 {
         margin: 0;
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
     }
 
@@ -55,7 +55,7 @@
     }
 
     .btn-primary-soft {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         border: none;
         border-radius: 8px;
@@ -84,7 +84,7 @@
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border-left: 4px solid #2a5298;
+        border-left: 4px solid #6ea988;
     }
 
     .stat-label {
@@ -98,7 +98,7 @@
         margin-top: 10px;
         font-size: 2rem;
         font-weight: 700;
-        color: #1e3c72;
+        color: #2f5f45;
     }
 
     .dashboard-grid {
@@ -117,7 +117,7 @@
 
     .panel-header {
         padding: 18px 22px;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
     }
 
@@ -161,7 +161,7 @@
 
     .metric-value {
         font-weight: 700;
-        color: #1e3c72;
+        color: #2f5f45;
     }
 
     .alert {
@@ -216,7 +216,7 @@
 
     .attendance-table thead th {
         background: #f8fafc;
-        color: #1e3c72;
+        color: #2f5f45;
         padding: 14px 18px;
         text-align: left;
         font-size: 0.82rem;

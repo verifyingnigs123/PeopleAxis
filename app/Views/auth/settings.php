@@ -3,194 +3,41 @@
 <?= $this->section('content') ?>
 
 <style>
-    .settings-container {
-        max-width: 900px;
+    .settings-shell {
+        max-width: 980px;
         margin: 0 auto;
-        padding: 30px 0;
+        padding: 8px 0 18px;
     }
 
     .settings-header {
-        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
     }
 
     .settings-header h1 {
-        color: #2c3e50;
+        margin: 0;
+        color: #2f5f45;
         font-weight: 700;
-        margin-bottom: 10px;
     }
 
     .settings-header p {
-        color: #95a5a6;
-        font-size: 0.95rem;
-    }
-
-    .settings-section {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        margin-bottom: 25px;
-        overflow: hidden;
-    }
-
-    .settings-section-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .settings-section-header i {
-        font-size: 1.3rem;
-    }
-
-    .settings-section-header h2 {
-        margin: 0;
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-
-    .settings-section-body {
-        padding: 30px;
-    }
-
-    .form-group {
-        margin-bottom: 25px;
-    }
-
-    .form-group:last-child {
-        margin-bottom: 0;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        color: #2c3e50;
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    .form-group small {
-        display: block;
-        margin-top: 5px;
-        color: #95a5a6;
-        font-size: 0.85rem;
-    }
-
-    .form-control, .form-select {
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 10px 12px;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .settings-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 25px;
-    }
-
-    .form-check {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 15px;
-    }
-
-    .form-check input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        accent-color: #667eea;
-    }
-
-    .form-check label {
-        margin: 0;
-        font-weight: 500;
-        cursor: pointer;
-        color: #495057;
-    }
-
-    .button-group {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #dee2e6;
-    }
-
-    .btn {
-        padding: 10px 25px;
-        border-radius: 6px;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.95rem;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-secondary {
-        background: #f1f3ff;
-        color: #667eea;
-        border: 1px solid #667eea;
-    }
-
-    .btn-secondary:hover {
-        background: #667eea;
-        color: white;
-    }
-
-    .alert {
-        border-radius: 6px;
-        border: none;
-        margin-bottom: 20px;
-        padding: 15px 20px;
-    }
-
-    .alert-success {
-        background: #d4edda;
-        color: #155724;
-        border-left: 4px solid #28a745;
-    }
-
-    .alert-danger {
-        background: #f8d7da;
-        color: #721c24;
-        border-left: 4px solid #dc3545;
-    }
-
-    .alert-info {
-        background: #d1ecf1;
-        color: #0c5460;
-        border-left: 4px solid #17a2b8;
+        margin: 4px 0 0;
+        color: #6f8192;
+        font-size: 0.92rem;
     }
 
     .breadcrumbs {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
+        font-size: 0.9rem;
     }
 
     .breadcrumbs a {
-        color: #667eea;
+        color: #6ea988;
         text-decoration: none;
-        font-size: 0.9rem;
     }
 
     .breadcrumbs a:hover {
@@ -198,43 +45,243 @@
     }
 
     .breadcrumbs span {
-        color: #95a5a6;
-        margin: 0 5px;
+        color: #6f8192;
+        margin: 0 6px;
     }
 
-    @media (max-width: 768px) {
-        .settings-container {
-            padding: 20px;
-        }
+    .settings-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
 
-        .settings-section-body {
-            padding: 20px;
-        }
+    .settings-card-header {
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: #ffffff;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-        .settings-grid {
+    .settings-card-header h2 {
+        margin: 0;
+        font-size: 1.06rem;
+        font-weight: 700;
+    }
+
+    .settings-card-body {
+        padding: 18px;
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .field.full {
+        grid-column: 1 / -1;
+    }
+
+    .field label {
+        color: #2a3e55;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    .field small {
+        color: #7f90a0;
+        font-size: 0.82rem;
+    }
+
+    .field .form-control,
+    .field .form-select {
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        padding: 9px 11px;
+        font-size: 0.92rem;
+    }
+
+    .field .form-control:focus,
+    .field .form-select:focus {
+        border-color: #6ea988;
+        box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+    }
+
+    .switch-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .switch-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px;
+        background: #f8fbff;
+    }
+
+    .switch-item .form-check {
+        margin: 0;
+        display: flex;
+        align-items: start;
+        gap: 9px;
+    }
+
+    .switch-item .form-check-input {
+        margin-top: 3px;
+        width: 17px;
+        height: 17px;
+        accent-color: #6ea988;
+    }
+
+    .switch-item .form-check-label {
+        margin: 0;
+        font-weight: 600;
+        color: #2f4358;
+    }
+
+    .switch-item .hint {
+        margin-top: 5px;
+        color: #7f90a0;
+        font-size: 0.82rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .info-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 11px;
+        background: #fcfdff;
+    }
+
+    .info-item .label {
+        margin: 0;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        font-weight: 700;
+        color: #7f90a0;
+    }
+
+    .info-item .value {
+        margin: 5px 0 0;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #1f3550;
+    }
+
+    .form-actions {
+        margin-top: 14px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-settings {
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid transparent;
+    }
+
+    .btn-settings-primary {
+        background: #6ea988;
+        color: #ffffff;
+        border-color: #6ea988;
+    }
+
+    .btn-settings-primary:hover {
+        background: #21437c;
+        color: #ffffff;
+    }
+
+    .btn-settings-secondary {
+        background: #f1f5fb;
+        color: #6ea988;
+        border-color: #c9d8ef;
+    }
+
+    .btn-settings-secondary:hover {
+        background: #e7effa;
+        color: #1f4077;
+    }
+
+    .alert {
+        border-radius: 8px;
+        border: none;
+        margin-bottom: 14px;
+        padding: 12px 14px;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    @media (max-width: 992px) {
+        .settings-grid,
+        .switch-grid,
+        .info-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .settings-grid,
+        .switch-grid,
+        .info-grid {
             grid-template-columns: 1fr;
         }
 
-        .button-group {
-            flex-direction: column;
+        .settings-card-body {
+            padding: 14px;
+        }
+
+        .form-actions {
             justify-content: stretch;
         }
 
-        .btn {
+        .btn-settings {
             width: 100%;
+            justify-content: center;
         }
     }
 </style>
 
-<!-- Check if user is logged in -->
-<?php if (!session()->get('logged_in')): ?>
-    <?= redirect()->to('/login') ?>
-<?php endif; ?>
+<?php
+    $role = session()->get('role');
+    $roleName = session()->get('role_name') ?? $role;
+    $isAdminScope = in_array($roleName, ['Super Admin', 'admin'], true);
+?>
 
-<?php $role = session()->get('role'); ?>
-
-<!-- Settings Container -->
-<div class="container settings-container">
+<div class="settings-shell">
     <!-- Breadcrumbs -->
     <div class="breadcrumbs">
         <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
@@ -245,7 +292,7 @@
     <!-- Settings Header -->
     <div class="settings-header">
         <h1><i class="fas fa-cog"></i> Settings</h1>
-        <p>Manage your application and account settings</p>
+        <p>Configure application behavior, defaults, and notification preferences</p>
     </div>
 
     <!-- Display Flash Messages -->
@@ -272,162 +319,141 @@
         </div>
     <?php endif; ?>
 
-    <!-- General Settings -->
-    <div class="settings-section">
-        <div class="settings-section-header">
-            <i class="fas fa-sliders-h"></i>
-            <h2>General Settings</h2>
-        </div>
-        <div class="settings-section-body">
-            <form action="<?= base_url('settings/update') ?>" method="POST">
-                <?= csrf_field() ?>
+    <form action="<?= base_url('settings/update') ?>" method="POST">
+        <?= csrf_field() ?>
 
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-sliders-h"></i>
+                <h2>General Settings</h2>
+            </div>
+            <div class="settings-card-body">
                 <div class="settings-grid">
-                    <div class="form-group">
+                    <div class="field">
                         <label for="site_name">Site Name</label>
-                        <input type="text" class="form-control" id="site_name" name="site_name" 
-                               value="PeopleAxis" required>
-                        <small>The name of your application</small>
+                        <input type="text" class="form-control" id="site_name" name="site_name" value="<?= old('site_name', 'PeopleAxis') ?>" required>
+                        <small>The application name displayed across the system.</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="field">
                         <label for="site_url">Site URL</label>
-                        <input type="url" class="form-control" id="site_url" name="site_url" 
-                               value="<?= base_url() ?>" required>
-                        <small>Your application's main URL</small>
+                        <input type="url" class="form-control" id="site_url" name="site_url" value="<?= old('site_url', base_url()) ?>" required>
+                        <small>Primary application URL used for links and routing.</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="field">
                         <label for="timezone">Timezone</label>
+                        <?php $timezone = old('timezone', 'UTC'); ?>
                         <select class="form-select" id="timezone" name="timezone" required>
-                            <option value="UTC">UTC</option>
-                            <option value="America/New_York">Eastern Time</option>
-                            <option value="America/Chicago">Central Time</option>
-                            <option value="America/Denver">Mountain Time</option>
-                            <option value="America/Los_Angeles">Pacific Time</option>
-                            <option value="Europe/London">London</option>
-                            <option value="Europe/Paris">Paris</option>
-                            <option value="Asia/Tokyo">Tokyo</option>
-                            <option value="Australia/Sydney">Sydney</option>
+                            <option value="UTC" <?= $timezone === 'UTC' ? 'selected' : '' ?>>UTC</option>
+                            <option value="America/New_York" <?= $timezone === 'America/New_York' ? 'selected' : '' ?>>Eastern Time</option>
+                            <option value="America/Chicago" <?= $timezone === 'America/Chicago' ? 'selected' : '' ?>>Central Time</option>
+                            <option value="America/Denver" <?= $timezone === 'America/Denver' ? 'selected' : '' ?>>Mountain Time</option>
+                            <option value="America/Los_Angeles" <?= $timezone === 'America/Los_Angeles' ? 'selected' : '' ?>>Pacific Time</option>
+                            <option value="Europe/London" <?= $timezone === 'Europe/London' ? 'selected' : '' ?>>London</option>
+                            <option value="Europe/Paris" <?= $timezone === 'Europe/Paris' ? 'selected' : '' ?>>Paris</option>
+                            <option value="Asia/Tokyo" <?= $timezone === 'Asia/Tokyo' ? 'selected' : '' ?>>Tokyo</option>
+                            <option value="Australia/Sydney" <?= $timezone === 'Australia/Sydney' ? 'selected' : '' ?>>Sydney</option>
                         </select>
-                        <small>Select your timezone</small>
+                        <small>Default timezone for reports and timestamps.</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="field">
                         <label for="date_format">Date Format</label>
+                        <?php $dateFormat = old('date_format', 'Y-m-d'); ?>
                         <select class="form-select" id="date_format" name="date_format" required>
-                            <option value="Y-m-d">YYYY-MM-DD</option>
-                            <option value="m/d/Y">MM/DD/YYYY</option>
-                            <option value="d/m/Y">DD/MM/YYYY</option>
-                            <option value="Y/m/d">YYYY/MM/DD</option>
+                            <option value="Y-m-d" <?= $dateFormat === 'Y-m-d' ? 'selected' : '' ?>>YYYY-MM-DD</option>
+                            <option value="m/d/Y" <?= $dateFormat === 'm/d/Y' ? 'selected' : '' ?>>MM/DD/YYYY</option>
+                            <option value="d/m/Y" <?= $dateFormat === 'd/m/Y' ? 'selected' : '' ?>>DD/MM/YYYY</option>
+                            <option value="Y/m/d" <?= $dateFormat === 'Y/m/d' ? 'selected' : '' ?>>YYYY/MM/DD</option>
                         </select>
-                        <small>Choose your preferred date format</small>
+                        <small>Preferred display format for dates.</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="field">
                         <label for="items_per_page">Items Per Page</label>
-                        <input type="number" class="form-control" id="items_per_page" name="items_per_page" 
-                               value="15" min="5" max="100" required>
-                        <small>Number of items to display per page</small>
-                    </div>
-                </div>
-
-                <hr style="margin: 30px 0;">
-
-                <!-- Maintenance Mode -->
-                <div class="form-group">
-                    <label>Maintenance Mode</label>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="maintenance_mode" 
-                               name="maintenance_mode" value="1">
-                        <label class="form-check-label" for="maintenance_mode">
-                            Enable Maintenance Mode (Application will be offline)
-                        </label>
-                    </div>
-                    <small>When enabled, only administrators can access the application</small>
-                </div>
-
-                <div class="button-group">
-                    <a href="<?= base_url('dashboard') ?>" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Settings
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Notification Settings -->
-    <div class="settings-section">
-        <div class="settings-section-header">
-            <i class="fas fa-bell"></i>
-            <h2>Notification Settings</h2>
-        </div>
-        <div class="settings-section-body">
-            <form action="<?= base_url('settings/update') ?>" method="POST">
-                <?= csrf_field() ?>
-
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="enable_notifications" 
-                           name="enable_notifications" value="1" checked>
-                    <label class="form-check-label" for="enable_notifications">
-                        <strong>Enable Notifications</strong><br>
-                        <small style="color: #95a5a6;">Receive in-app notifications</small>
-                    </label>
-                </div>
-
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="enable_email_notifications" 
-                           name="enable_email_notifications" value="1" checked>
-                    <label class="form-check-label" for="enable_email_notifications">
-                        <strong>Email Notifications</strong><br>
-                        <small style="color: #95a5a6;">Receive email notifications about important events</small>
-                    </label>
-                </div>
-
-                <div class="button-group">
-                    <a href="<?= base_url('dashboard') ?>" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Settings
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- System Information Section (Admin Only) -->
-    <?php if ($role === 'admin'): ?>
-        <div class="settings-section">
-            <div class="settings-section-header">
-                <i class="fas fa-info-circle"></i>
-                <h2>System Information</h2>
-            </div>
-            <div class="settings-section-body">
-                <div class="settings-grid">
-                    <div>
-                        <p style="color: #95a5a6; font-size: 0.9rem; margin-bottom: 5px;">PHP Version</p>
-                        <p style="color: #2c3e50; font-weight: 600; font-size: 1rem;"><?= phpversion() ?></p>
-                    </div>
-                    <div>
-                        <p style="color: #95a5a6; font-size: 0.9rem; margin-bottom: 5px;">CodeIgniter Version</p>
-                        <p style="color: #2c3e50; font-weight: 600; font-size: 1rem;">4.x</p>
-                    </div>
-                    <div>
-                        <p style="color: #95a5a6; font-size: 0.9rem; margin-bottom: 5px;">Environment</p>
-                        <p style="color: #2c3e50; font-weight: 600; font-size: 1rem;"><?= ENVIRONMENT ?></p>
-                    </div>
-                    <div>
-                        <p style="color: #95a5a6; font-size: 0.9rem; margin-bottom: 5px;">Database</p>
-                        <p style="color: #2c3e50; font-weight: 600; font-size: 1rem;">CodeIgniter 4</p>
+                        <input type="number" class="form-control" id="items_per_page" name="items_per_page" value="<?= old('items_per_page', '15') ?>" min="5" max="100" required>
+                        <small>How many rows to show in paginated lists.</small>
                     </div>
                 </div>
             </div>
         </div>
-    <?php endif; ?>
+
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <i class="fas fa-bell"></i>
+                <h2>Notifications & Maintenance</h2>
+            </div>
+            <div class="settings-card-body">
+                <div class="switch-grid">
+                    <div class="switch-item">
+                        <input type="hidden" name="enable_notifications" value="0">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enable_notifications" name="enable_notifications" value="1" <?= old('enable_notifications', '1') == '1' ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="enable_notifications">Enable In-App Notifications</label>
+                        </div>
+                        <div class="hint">Show alerts and activity updates inside the app.</div>
+                    </div>
+
+                    <div class="switch-item">
+                        <input type="hidden" name="enable_email_notifications" value="0">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enable_email_notifications" name="enable_email_notifications" value="1" <?= old('enable_email_notifications', '1') == '1' ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="enable_email_notifications">Enable Email Notifications</label>
+                        </div>
+                        <div class="hint">Send important notifications via email.</div>
+                    </div>
+
+                    <div class="switch-item full" style="grid-column: 1 / -1;">
+                        <input type="hidden" name="maintenance_mode" value="0">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="maintenance_mode" name="maintenance_mode" value="1" <?= old('maintenance_mode', '0') == '1' ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="maintenance_mode">Enable Maintenance Mode</label>
+                        </div>
+                        <div class="hint">When enabled, only administrators can access the application.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php if ($isAdminScope): ?>
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="fas fa-info-circle"></i>
+                    <h2>System Information</h2>
+                </div>
+                <div class="settings-card-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <p class="label">PHP Version</p>
+                            <p class="value"><?= phpversion() ?></p>
+                        </div>
+                        <div class="info-item">
+                            <p class="label">CodeIgniter Version</p>
+                            <p class="value">4.x</p>
+                        </div>
+                        <div class="info-item">
+                            <p class="label">Environment</p>
+                            <p class="value"><?= ENVIRONMENT ?></p>
+                        </div>
+                        <div class="info-item">
+                            <p class="label">Database Driver</p>
+                            <p class="value">MySQLi</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div class="form-actions">
+            <a href="<?= base_url('dashboard') ?>" class="btn-settings btn-settings-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <button type="submit" class="btn-settings btn-settings-primary">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+        </div>
+    </form>
 </div>
 
 <?= $this->endSection() ?>

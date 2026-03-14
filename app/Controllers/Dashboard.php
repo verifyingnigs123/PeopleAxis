@@ -137,7 +137,6 @@ class Dashboard extends BaseController
                         $data['employee'] = null;
                         $data['attendance'] = [];
                         $data['leaves'] = [];
-                        $data['warning'] = 'Employee profile not yet created. Please contact HR.';
                     }
                 } catch (\Exception $e) {
                     log_message('error', 'Dashboard Employee Error: ' . $e->getMessage());

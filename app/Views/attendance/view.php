@@ -6,32 +6,37 @@
     .page-header {
         display: flex;
         justify-content: space-between;
-        align-items: end;
-        margin-bottom: 30px;
+        align-items: center;
+        margin-bottom: 16px;
         flex-wrap: wrap;
-        gap: 20px;
+        gap: 12px;
+        padding: 16px 18px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
 
     .page-header p {
-        margin: 8px 0 0;
+        margin: 4px 0 0;
         color: #64748b;
+        font-size: 0.9rem;
     }
 
     .filter-form {
         display: flex;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
-        align-items: end;
-        background: white;
-        padding: 16px 18px;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        align-items: center;
+        background: #f8fbff;
+        padding: 10px 12px;
+        border-radius: 8px;
+        box-shadow: none;
     }
 
     .filter-group {
@@ -48,23 +53,25 @@
     }
 
     .filter-group input {
-        min-width: 180px;
-        padding: 10px 12px;
+        min-width: 150px;
+        padding: 8px 10px;
         border: 1px solid #d9e2ec;
         border-radius: 8px;
+        font-size: 0.9rem;
     }
 
     .btn-primary-soft {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         border: none;
         border-radius: 8px;
-        padding: 10px 16px;
+        padding: 8px 12px;
         font-weight: 600;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        font-size: 0.88rem;
     }
 
     .btn-primary-soft:hover {
@@ -74,17 +81,18 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
     }
 
     .stat-card {
         background: white;
         border-radius: 8px;
-        padding: 20px;
+        padding: 12px 14px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border-left: 4px solid #2a5298;
+        border-left: 3px solid #6ea988;
+        min-height: 105px;
     }
 
     .dashboard-grid {
@@ -103,7 +111,7 @@
 
     .info-panel-header {
         padding: 18px 22px;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         font-weight: 700;
     }
@@ -135,23 +143,23 @@
     }
 
     .info-value {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         text-align: right;
     }
 
     .stat-label {
         color: #7f8c8d;
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         text-transform: uppercase;
         font-weight: 600;
     }
 
     .stat-value {
-        font-size: 2rem;
-        color: #2a5298;
+        font-size: 1.6rem;
+        color: #6ea988;
         font-weight: 700;
-        margin-top: 8px;
+        margin-top: 6px;
     }
 
     .admin-panel {
@@ -162,7 +170,7 @@
     }
 
     .panel-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
         padding: 20px 25px;
     }
@@ -184,7 +192,7 @@
 
     .attendance-table thead th {
         background: #f8f9fa;
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 600;
         padding: 14px 20px;
         text-align: left;
@@ -253,6 +261,19 @@
     }
 
     @media (max-width: 992px) {
+        .page-header {
+            padding: 14px;
+        }
+
+        .filter-form {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+        }
+
         .dashboard-grid {
             grid-template-columns: 1fr;
         }
@@ -316,13 +337,20 @@
     </div>
 </div>
 
+<?php
+    $hasEmployeeSnapshot = !empty($employee);
+    $hasLatestAttendance = !empty($latestRecord);
+    $hasAttendanceRows = !empty($records);
+?>
+
+<?php if ($hasEmployeeSnapshot || $hasLatestAttendance): ?>
 <div class="dashboard-grid">
-    <div class="info-panel">
-        <div class="info-panel-header">
-            <i class="fas fa-id-badge"></i> Employee Snapshot
-        </div>
-        <div class="info-panel-body">
-            <?php if ($employee): ?>
+    <?php if ($hasEmployeeSnapshot): ?>
+        <div class="info-panel">
+            <div class="info-panel-header">
+                <i class="fas fa-id-badge"></i> Employee Snapshot
+            </div>
+            <div class="info-panel-body">
                 <div class="info-row">
                     <div class="info-label">Employee</div>
                     <div class="info-value"><?= esc(trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''))) ?></div>
@@ -339,21 +367,16 @@
                     <div class="info-label">Status</div>
                     <div class="info-value"><?= esc(ucfirst((string) ($employee->status ?? 'active'))) ?></div>
                 </div>
-            <?php else: ?>
-                <div class="empty-state" style="padding: 20px 10px;">
-                    <i class="fas fa-user-slash"></i>
-                    <p>No employee profile data available yet.</p>
-                </div>
-            <?php endif; ?>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 
-    <div class="info-panel">
-        <div class="info-panel-header">
-            <i class="fas fa-clock"></i> Latest Attendance Record
-        </div>
-        <div class="info-panel-body">
-            <?php if (!empty($latestRecord)): ?>
+    <?php if ($hasLatestAttendance): ?>
+        <div class="info-panel">
+            <div class="info-panel-header">
+                <i class="fas fa-clock"></i> Latest Attendance Record
+            </div>
+            <div class="info-panel-body">
                 <div class="info-row">
                     <div class="info-label">Date</div>
                     <div class="info-value"><?= date('M d, Y', strtotime($latestRecord->date)) ?></div>
@@ -370,24 +393,20 @@
                     <div class="info-label">Status</div>
                     <div class="info-value"><?= esc(ucwords(str_replace('-', ' ', (string) ($latestRecord->status ?? 'present')))) ?></div>
                 </div>
-            <?php else: ?>
-                <div class="empty-state" style="padding: 24px 10px;">
-                    <i class="fas fa-inbox"></i>
-                    <p>No attendance records found yet.</p>
-                </div>
-            <?php endif; ?>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <!-- Attendance Table -->
+<?php if ($hasAttendanceRows): ?>
 <div class="admin-panel">
     <div class="panel-header">
         <h2><i class="fas fa-list"></i> Attendance Records (<?= count($records ?? []) ?>)</h2>
     </div>
 
     <div class="table-responsive">
-        <?php if (!empty($records)): ?>
             <table class="attendance-table">
                 <thead>
                     <tr>
@@ -450,12 +469,6 @@
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-inbox"></i>
-                <p>No attendance records found for the selected period.</p>
-            </div>
-        <?php endif; ?>
     </div>
 
     <?php if (isset($pager) && $pager): ?>
@@ -464,5 +477,6 @@
         </div>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <?= $this->endSection() ?>

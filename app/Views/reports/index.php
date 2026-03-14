@@ -13,69 +13,71 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
 
     .reports-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
-        margin-top: 30px;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 14px;
+        margin-top: 14px;
     }
 
     .report-card {
         background: white;
-        border-radius: 10px;
-        padding: 25px;
+        border-radius: 9px;
+        padding: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         transition: all 0.3s ease;
         text-decoration: none;
         color: inherit;
         display: flex;
         flex-direction: column;
-        border-left: 4px solid #2a5298;
+        border-left: 3px solid #6ea988;
     }
 
     .report-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
     }
 
     .report-icon {
-        font-size: 2.5rem;
-        color: #2a5298;
-        margin-bottom: 15px;
-    }
-
-    .report-title {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #1e3c72;
+        font-size: 2rem;
+        color: #6ea988;
         margin-bottom: 10px;
     }
 
+    .report-title {
+        font-size: 1.03rem;
+        font-weight: 700;
+        color: #2f5f45;
+        margin-bottom: 6px;
+    }
+
     .report-description {
-        font-size: 0.9rem;
+        font-size: 0.84rem;
+        line-height: 1.45;
         color: #7f8c8d;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         flex-grow: 1;
     }
 
     .report-btn {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
         color: white;
-        padding: 10px 20px;
-        border-radius: 6px;
+        padding: 8px 12px;
+        border-radius: 7px;
         text-align: center;
-        font-weight: 600;
+        font-size: 0.84rem;
+        font-weight: 700;
         text-decoration: none;
         transition: all 0.3s ease;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 6px;
         border: none;
         cursor: pointer;
     }

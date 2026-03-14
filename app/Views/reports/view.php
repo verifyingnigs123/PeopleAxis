@@ -13,7 +13,7 @@
     }
 
     .page-header h1 {
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 700;
         margin: 0;
     }
@@ -27,7 +27,7 @@
     }
 
     .report-header h2 {
-        color: #1e3c72;
+        color: #2f5f45;
         margin-bottom: 10px;
         font-weight: 700;
     }
@@ -120,7 +120,7 @@
 
     .report-table thead th {
         background: #f8f9fa;
-        color: #1e3c72;
+        color: #2f5f45;
         font-weight: 600;
         padding: 14px 20px;
         text-align: left;
@@ -165,7 +165,7 @@
 
     .summary-value {
         font-size: 1.8rem;
-        color: #2a5298;
+        color: #6ea988;
         font-weight: 700;
         margin-top: 5px;
     }
@@ -203,7 +203,7 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        color: #2a5298;
+        color: #6ea988;
         text-decoration: none;
         margin-bottom: 20px;
         font-weight: 600;
