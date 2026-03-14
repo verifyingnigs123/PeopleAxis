@@ -2,8 +2,6 @@
 
 <?= $this->section('content') ?>
 
-
-
 <style>
     .page-header {
         display: flex;
