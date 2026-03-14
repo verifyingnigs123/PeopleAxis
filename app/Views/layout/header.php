@@ -963,6 +963,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let notificationsPollHandle = null;
     let notificationEventSource = null;
     let streamReconnectHandle = null;
+    let latestNotificationId = 0;
+    let hasLoadedNotificationsOnce = false;
     
     if (!notificationBell || !notificationBadge) {
         console.warn('Notification elements not found');
@@ -999,6 +1001,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             if (data.success && Array.isArray(data.notifications)) {
+                handleRealtimeNotifications(data.notifications);
                 renderNotifications(data.notifications);
                 updateBadge(data.unread_count ?? null, data.notifications);
             } else {
@@ -1027,8 +1030,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function connectNotificationStream() {
         if (typeof EventSource === 'undefined') {
-            // Browser doesn't support SSE — fall back to 30s polling
-            startNotificationsPolling(30000);
+            // Browser doesn't support SSE — fall back to short polling.
+            startNotificationsPolling(5000);
             return;
         }
 
@@ -1054,14 +1057,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 notificationEventSource = null;
             }
 
-            // SSE dropped — fall back to 30s polling while reconnecting
-            startNotificationsPolling(30000);
+            // SSE dropped — fall back to short polling while reconnecting.
+            startNotificationsPolling(5000);
 
             if (streamReconnectHandle) {
                 clearTimeout(streamReconnectHandle);
             }
             streamReconnectHandle = setTimeout(connectNotificationStream, 5000);
         };
+    }
+
+    // Detect new notifications and show a toast after initial page load.
+    function handleRealtimeNotifications(notifications) {
+        const first = notifications[0] || null;
+        const firstId = first ? parseInt(first.id, 10) || 0 : 0;
+
+        if (!hasLoadedNotificationsOnce) {
+            latestNotificationId = firstId;
+            hasLoadedNotificationsOnce = true;
+            return;
+        }
+
+        if (firstId <= latestNotificationId) {
+            return;
+        }
+
+        const newNotifications = notifications
+            .filter(n => (parseInt(n.id, 10) || 0) > latestNotificationId)
+            .sort((a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0));
+
+        latestNotificationId = firstId;
+
+        newNotifications.slice(-3).forEach(n => {
+            showLiveToast(n.title || 'New notification', n.message || 'You have a new update.', n.type || 'info');
+        });
     }
 
     // Render notifications in the dropdown
@@ -1234,9 +1263,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get time ago string
     function getTimeAgo(dateString) {
-        const date = new Date(dateString);
+        const value = String(dateString || '').trim();
+        if (!value) return 'just now';
+
+        let date;
+
+        // MySQL DATETIME usually arrives as "YYYY-MM-DD HH:mm:ss" with no timezone.
+        // In this app it is stored in UTC, so force UTC parsing to avoid fixed offsets
+        // like always showing "8 hours ago" for fresh notifications.
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
+            date = new Date(value.replace(' ', 'T') + 'Z');
+        } else {
+            date = new Date(value);
+        }
+
+        if (Number.isNaN(date.getTime())) return 'just now';
+
         const now = new Date();
-        const seconds = Math.floor((now - date) / 1000);
+        const seconds = Math.max(0, Math.floor((now - date) / 1000));
         
         let interval = seconds / 31536000;
         if (interval > 1) return Math.floor(interval) + ' years ago';
@@ -1256,8 +1300,54 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'just now';
     }
 
+    // Lightweight in-app toast for real-time notification arrival.
+    function showLiveToast(title, message, type) {
+        const toast = document.createElement('div');
+        const level = String(type || 'info').toLowerCase();
+        const levelClass = ['success', 'warning', 'danger', 'info'].includes(level) ? level : 'info';
+
+        toast.className = `alert alert-${levelClass}`;
+        toast.style.cssText = [
+            'position: fixed',
+            'right: 20px',
+            'top: 90px',
+            'z-index: 9999',
+            'min-width: 280px',
+            'max-width: 420px',
+            'box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18)',
+            'border-radius: 10px',
+            'padding: 12px 14px',
+            'opacity: 0',
+            'transform: translateY(-8px)',
+            'transition: opacity 0.2s ease, transform 0.2s ease'
+        ].join(';');
+
+        toast.innerHTML = `
+            <div style="font-weight:700; margin-bottom:4px;">${escapeHtml(title)}</div>
+            <div style="font-size:0.9rem; line-height:1.35;">${escapeHtml(message)}</div>
+        `;
+
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-8px)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 220);
+        }, 3200);
+    }
+
     // Escape HTML to prevent XSS
     function escapeHtml(text) {
+        const value = String(text ?? '');
         const map = {
             '&': '&amp;',
             '<': '&lt;',
@@ -1265,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, m => map[m]);
+        return value.replace(/[&<>"']/g, m => map[m]);
     }
 
     // Toggle notification dropdown
