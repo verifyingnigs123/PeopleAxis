@@ -50,6 +50,7 @@ class UserSeeder extends Seeder
         ];
 
         $inserted = 0;
+        $updated = 0;
         foreach ($seedUsers as $u) {
             $exists = $model->where('email', $u['email'])->orWhere('username', $u['username'])->first();
             if (!$exists) {
@@ -58,11 +59,37 @@ class UserSeeder extends Seeder
                 $u['updated_at'] = date('Y-m-d H:i:s');
                 $model->insert($u);
                 $inserted++;
+            } else {
+                // Keep seed accounts aligned with expected role and active status.
+                $needsUpdate = false;
+                $patch = [
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+
+                if (($exists->role_id ?? null) != ($u['role_id'] ?? null) && !empty($u['role_id'])) {
+                    $patch['role_id'] = $u['role_id'];
+                    $needsUpdate = true;
+                }
+
+                if (($exists->name ?? '') !== ($u['name'] ?? '')) {
+                    $patch['name'] = $u['name'];
+                    $needsUpdate = true;
+                }
+
+                if (($exists->is_active ?? 1) != 1) {
+                    $patch['is_active'] = 1;
+                    $needsUpdate = true;
+                }
+
+                if ($needsUpdate) {
+                    $model->update($exists->id, $patch);
+                    $updated++;
+                }
             }
         }
 
-        if ($inserted > 0) {
-            echo "Inserted {$inserted} users.\n";
+        if ($inserted > 0 || $updated > 0) {
+            echo "Inserted {$inserted} users. Updated {$updated} users.\n";
         } else {
             echo "All role users already exist.\n";
         }

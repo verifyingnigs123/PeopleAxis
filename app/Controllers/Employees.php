@@ -130,42 +130,61 @@ class Employees extends BaseController
             // account has been deleted.  Employees with no account at all are
             // still shown (they were never deleted, just not registered yet).
             $employees = array_filter($employees, function ($emp) use ($adminOnlyEmailSet, $deletedAccountEmailSet) {
-                return !isset($adminOnlyEmailSet[$emp->email])
-                    && !isset($deletedAccountEmailSet[$emp->email]);
+                // Never show Super Admin / HR Admin accounts in the HR view.
+                if (isset($adminOnlyEmailSet[$emp->email])) {
+                    return false;
+                }
+                // Always show rejected employees so HR Admin can see the count,
+                // resubmit, or delete them — even if a deactivated user account
+                // happens to share the same email address.
+                if (strtolower((string)($emp->account_status ?? '')) === 'rejected') {
+                    return true;
+                }
+                return !isset($deletedAccountEmailSet[$emp->email]);
             });
             $employees = array_values($employees);
 
             // Sync account_status in DB for each visible employee so it stays accurate.
-            // IMPORTANT: never overwrite an already-rejected or approved status.
-            // Batch all updates into two single queries (active / pending) instead of
-            // one UPDATE per row to avoid N-query slowness on page load.
+            // IMPORTANT: never auto-promote a pending employee to active based only on
+            // user-account existence. Pending must remain pending until Super Admin
+            // explicitly approves.
+            // For legacy rows without account_status, infer approved if an active
+            // user account exists, otherwise pending.
             // Also reset status=inactive for any pending employee that somehow has status=active
             // (e.g. records created before the inactive-by-default rule was enforced).
-            $toActive  = [];
-            $toPending = [];
+            $toApproved = [];
+            $toPending  = [];
             $toInactive = [];
             foreach ($employees as $emp) {
-                $current = $emp->account_status ?? 'pending';
+                $current = strtolower((string) ($emp->account_status ?? ''));
                 if (in_array($current, ['rejected', 'approved'])) {
                     continue;
                 }
-                $newAccountStatus = isset($userEmailSet[$emp->email]) ? 'active' : 'pending';
+
+                // Preserve explicit pending status until Super Admin action.
+                if ($current === 'pending') {
+                    $newAccountStatus = 'pending';
+                } else {
+                    $newAccountStatus = isset($userEmailSet[$emp->email]) ? 'approved' : 'pending';
+                }
+
                 if ($current !== $newAccountStatus) {
-                    if ($newAccountStatus === 'active') {
-                        $toActive[]  = $emp->id;
+                    if ($newAccountStatus === 'approved') {
+                        $toApproved[] = $emp->id;
                     } else {
-                        $toPending[] = $emp->id;
+                        $toPending[]  = $emp->id;
                     }
                     $emp->account_status = $newAccountStatus;
                 }
+
                 // Ensure pending employees have status=inactive in the DB
                 if ($newAccountStatus === 'pending' && ($emp->status ?? 'inactive') !== 'inactive') {
                     $toInactive[] = $emp->id;
                     $emp->status  = 'inactive';
                 }
             }
-            if (!empty($toActive)) {
-                $db->table('employees')->whereIn('id', $toActive)->update(['account_status' => 'active']);
+            if (!empty($toApproved)) {
+                $db->table('employees')->whereIn('id', $toApproved)->update(['account_status' => 'approved']);
             }
             if (!empty($toPending)) {
                 $db->table('employees')->whereIn('id', $toPending)->update(['account_status' => 'pending']);
@@ -1421,7 +1440,8 @@ class Employees extends BaseController
     public function approveAccount($employeeId)
     {
         // Check access: Super Admin only
-        if (session()->get('role') !== 'admin') {
+        $currentRole = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($currentRole, ['Super Admin', 'admin'])) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
                 'message' => 'Access denied. Super Admin only.'
@@ -1434,6 +1454,15 @@ class Employees extends BaseController
                 return $this->response->setStatusCode(404)->setJSON([
                     'success' => false,
                     'message' => 'Employee not found'
+                ]);
+            }
+
+            // Idempotent approve: if already approved, return success.
+            if (($employee->account_status ?? '') === 'approved' && !empty($employee->user_id)) {
+                return $this->response->setJSON([
+                    'success'   => true,
+                    'message'   => 'Employee is already approved.',
+                    'csrf_hash' => csrf_hash(),
                 ]);
             }
 
@@ -1450,23 +1479,54 @@ class Employees extends BaseController
             // Get HR Admin role (for notification purposes)
             $hrAdminRole = $db->table('roles')->where('name', 'HR Admin')->get()->getRow();
 
-            // Create user account
-            $userData = [
-                'name'      => $employee->first_name . ' ' . $employee->last_name,
-                'email'     => $employee->email,
-                'password'  => $password,
-                'role_id'   => $roleId,
-                'is_active' => 1,
-            ];
+            // Create or reuse existing user account by email.
+            $existingUser = $this->userModel->where('email', $employee->email)->first();
+            $newUserId = null;
 
-            if (!$this->userModel->insert($userData)) {
-                return $this->response->setStatusCode(500)->setJSON([
-                    'success' => false,
-                    'message' => 'Failed to create user account'
-                ]);
+            if ($existingUser) {
+                $generatedUsername = strtolower(preg_replace('/[^a-z0-9]/i', '', ($employee->first_name[0] ?? 'u') . $employee->last_name));
+                $updateData = [
+                    'name'      => $employee->first_name . ' ' . $employee->last_name,
+                    'email'     => $employee->email,
+                    'username'  => $existingUser->username ?: $generatedUsername,
+                    'role_id'   => $roleId,
+                    'is_active' => 1,
+                ];
+
+                // If user has no password yet, set default password on approval.
+                if (empty($existingUser->password)) {
+                    $updateData['password'] = $password;
+                }
+
+                // Skip strict create/update validation here because this is a
+                // controlled system action and may involve legacy records that
+                // do not satisfy current form-level validation rules.
+                if (!$this->userModel->skipValidation(true)->update($existingUser->id, $updateData)) {
+                    return $this->response->setStatusCode(500)->setJSON([
+                        'success' => false,
+                        'message' => 'Failed to update existing user account'
+                    ]);
+                }
+
+                $newUserId = $existingUser->id;
+            } else {
+                $userData = [
+                    'name'      => $employee->first_name . ' ' . $employee->last_name,
+                    'email'     => $employee->email,
+                    'password'  => $password,
+                    'role_id'   => $roleId,
+                    'is_active' => 1,
+                ];
+
+                if (!$this->userModel->insert($userData)) {
+                    return $this->response->setStatusCode(500)->setJSON([
+                        'success' => false,
+                        'message' => 'Failed to create user account'
+                    ]);
+                }
+
+                $newUserId = $this->userModel->getInsertID();
             }
-
-            $newUserId = $this->userModel->getInsertID();
 
             // Update employee with user_id, approved status, and activate employment status
             $this->employeeModel->update($employeeId, [
@@ -1520,7 +1580,8 @@ class Employees extends BaseController
     public function rejectAccount($employeeId)
     {
         // Check access: Super Admin only
-        if (session()->get('role') !== 'admin') {
+        $currentRole = session()->get('role_name') ?? session()->get('role');
+        if (!in_array($currentRole, ['Super Admin', 'admin'])) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
                 'message' => 'Access denied. Super Admin only.'

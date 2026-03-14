@@ -11,5 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call('UserSeeder');
         $this->call('DepartmentSeeder');
         $this->call('PositionSeeder');
+        $this->call('EmployeeSeeder');
+        $this->call('LinkUsersToEmployees');
     }
 }

@@ -66,7 +66,8 @@ abstract class BaseController extends Controller
     }
 
     /**
-     * Returns the departments and employees the logged-in manager is responsible for.
+     * Returns departments managed by the logged-in manager and all employees
+     * approved by Super Admin for manager team-level dashboards.
      *
      * @return array<string, array<int, array<string, mixed>>|array<int, int>>
      */
@@ -93,18 +94,20 @@ abstract class BaseController extends Controller
             ->getResultArray();
 
         $departmentIds = array_map('intval', array_column($departments, 'id'));
-        $teamMembers   = [];
-
-        if ($departmentIds !== []) {
-            $teamMembers = $db->table('employees')
-                ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
-                ->join('departments', 'departments.id = employees.department_id', 'left')
-                ->whereIn('employees.department_id', $departmentIds)
-                ->orderBy('employees.first_name', 'ASC')
-                ->orderBy('employees.last_name', 'ASC')
-                ->get()
-                ->getResultArray();
-        }
+        // Team members = all Super Admin approved employees (active or blank status for legacy rows).
+        $teamMembers = $db->table('employees')
+            ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
+            ->join('departments', 'departments.id = employees.department_id', 'left')
+            ->where('employees.account_status', 'approved')
+            ->groupStart()
+                ->where('employees.status', 'active')
+                ->orWhere('employees.status IS NULL', null, false)
+                ->orWhere('employees.status', '')
+            ->groupEnd()
+            ->orderBy('employees.first_name', 'ASC')
+            ->orderBy('employees.last_name', 'ASC')
+            ->get()
+            ->getResultArray();
 
         $employeeIds = array_map('intval', array_column($teamMembers, 'id'));
 
