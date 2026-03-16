@@ -3,29 +3,49 @@
 <?= $this->section('content') ?>
 
 <style>
-    .page-header {
+    .employee-header {
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: white;
+        padding: 40px 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
+        align-items: flex-start;
+        gap: 30px;
         flex-wrap: wrap;
-        gap: 20px;
+        box-shadow: 0 4px 15px rgba(30, 60, 114, 0.15);
     }
 
-    .page-header h1 {
-        color: #2f5f45;
-        font-weight: 700;
-        margin: 0;
+    .employee-header-info {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .employee-header-info h1 {
+        margin: 0 0 10px;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+
+    .employee-header-info p {
+        margin: 5px 0;
+        font-size: 0.95rem;
+        opacity: 0.95;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .action-buttons {
         display: flex;
-        gap: 10px;
+        gap: 12px;
         flex-wrap: wrap;
     }
 
     .btn {
-        padding: 8px 16px;
+        padding: 10px 18px;
         border: none;
         border-radius: 6px;
         font-size: 0.9rem;
@@ -39,82 +59,115 @@
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
-        color: white;
+        background: white;
+        color: #2f5f45;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .btn-secondary {
-        background: #95a5a6;
+        background: rgba(255, 255, 255, 0.2);
         color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     .btn-secondary:hover {
-        background: #7f8c8d;
-    }
-
-    .btn-danger {
-        background: #e74c3c;
-        color: white;
-    }
-
-    .btn-danger:hover {
-        background: #c0392b;
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.4);
     }
 
     .detail-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 30px;
+        gap: 25px;
         margin-bottom: 30px;
     }
 
     .detail-section {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        padding: 28px;
+        border: 1px solid #f0f3f8;
     }
 
     .section-title {
         color: #2f5f45;
         font-weight: 700;
         font-size: 1.1rem;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #e8eef5;
+        margin: 0 0 20px;
+        padding-bottom: 14px;
+        border-bottom: 2px solid #f0f3f8;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-title i {
+        color: #6ea988;
+        font-size: 1.2rem;
     }
 
     .detail-row {
-        margin-bottom: 18px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .detail-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .detail-left {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .detail-right {
+        flex: 1.5;
+        text-align: right;
     }
 
     .detail-label {
         display: block;
-        color: #7f8c8d;
-        font-size: 0.85rem;
-        font-weight: 600;
+        color: #95a5a6;
+        font-size: 0.78rem;
+        font-weight: 700;
         text-transform: uppercase;
-        margin-bottom: 5px;
-        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+        letter-spacing: 0.6px;
     }
 
     .detail-value {
         color: #2c3e50;
-        font-size: 1rem;
-        font-weight: 500;
+        font-size: 0.98rem;
+        font-weight: 600;
+    }
+
+    .detail-value a {
+        color: #6ea988;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .detail-value a:hover {
+        color: #5b9474;
+        text-decoration: underline;
     }
 
     .badge {
         display: inline-block;
-        padding: 5px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
     }
 
     .badge-active {
@@ -137,9 +190,13 @@
             grid-template-columns: 1fr;
         }
 
-        .page-header {
+        .employee-header {
             flex-direction: column;
-            align-items: flex-start;
+            padding: 30px;
+        }
+
+        .employee-header-info h1 {
+            font-size: 1.6rem;
         }
 
         .action-buttons {
@@ -150,23 +207,45 @@
             flex: 1;
             justify-content: center;
         }
+
+        .detail-row {
+            flex-direction: column;
+        }
+
+        .detail-right {
+            text-align: left;
+            margin-top: 8px;
+        }
     }
 </style>
 
 <!-- Breadcrumbs -->
-<div style="margin-bottom: 20px;">
-    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> /
-    <a href="<?= base_url('employee') ?>">Employees</a> /
-    <span><?= esc($employee->first_name . ' ' . $employee->last_name) ?></span>
+<div style="margin-bottom: 20px; font-size: 0.9rem;">
+    <a href="<?= base_url('dashboard') ?>" style="color: #6ea988; text-decoration: none;">
+        <i class="fas fa-home"></i> Dashboard
+    </a> 
+    <span style="color: #bdc3c7;"> / </span>
+    <a href="<?= base_url('employee') ?>" style="color: #6ea988; text-decoration: none;">Employees</a> 
+    <span style="color: #bdc3c7;"> / </span>
+    <span style="color: #7f8c8d;"><?= esc($employee->first_name . ' ' . $employee->last_name) ?></span>
 </div>
 
-<!-- Page Header with Actions -->
-<div class="page-header">
-    <h1><i class="fas fa-user"></i> <?= esc($employee->first_name . ' ' . $employee->last_name) ?></h1>
+<!-- Employee Header with Actions -->
+<div class="employee-header">
+    <div class="employee-header-info">
+        <h1><i class="fas fa-user-circle" style="margin-right: 12px;"></i><?= esc($employee->first_name . ' ' . $employee->last_name) ?></h1>
+        <p><i class="fas fa-id-card"></i> <strong><?= esc($employee->employee_id) ?></strong></p>
+        <?php if ($department): ?>
+            <p><i class="fas fa-building"></i> <?= esc($department->name) ?></p>
+        <?php endif; ?>
+        <?php if ($position): ?>
+            <p><i class="fas fa-briefcase"></i> <?= esc($position->name) ?></p>
+        <?php endif; ?>
+    </div>
     <div class="action-buttons">
-        <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
+        <?php if (in_array(session()->get('role'), ['hr', 'admin']) || in_array(session()->get('role_name'), ['HR Admin', 'Super Admin'])): ?>
             <?php if (($employee->account_status ?? '') === 'rejected'): ?>
-            <button class="btn btn-reapply" onclick="openEditModal(true)">
+            <button class="btn btn-primary" onclick="openEditModal(true)">
                 <i class="fas fa-redo"></i> Re-apply for Approval
             </button>
             <?php else: ?>
@@ -176,7 +255,7 @@
             <?php endif; ?>
         <?php endif; ?>
         <a href="<?= base_url('employee') ?>" class="btn btn-secondary">
-            <i class="fas fa-list"></i> Back to List
+            <i class="fas fa-arrow-left"></i> Back to List
         </a>
     </div>
 </div>
@@ -188,38 +267,49 @@
         <h3 class="section-title"><i class="fas fa-address-card"></i> Personal Information</h3>
         
         <div class="detail-row">
-            <span class="detail-label">Employee ID</span>
-            <span class="detail-value"><?= esc($employee->employee_id) ?></span>
+            <div class="detail-left">
+                <span class="detail-label">Full Name</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value"><?= esc($employee->first_name . ' ' . $employee->last_name) ?></span>
+            </div>
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Full Name</span>
-            <span class="detail-value"><?= esc($employee->first_name . ' ' . $employee->last_name) ?></span>
+            <div class="detail-left">
+                <span class="detail-label">Email</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value">
+                    <a href="mailto:<?= esc($employee->email) ?>">
+                        <?= esc($employee->email) ?>
+                    </a>
+                </span>
+            </div>
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Email Address</span>
-            <span class="detail-value">
-                <a href="mailto:<?= esc($employee->email) ?>" style="color: #6ea988; text-decoration: none;">
-                    <?= esc($employee->email) ?>
-                </a>
-            </span>
+            <div class="detail-left">
+                <span class="detail-label">Phone</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value"><?= esc($employee->phone ?? '—') ?></span>
+            </div>
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Phone Number</span>
-            <span class="detail-value"><?= esc($employee->phone ?? 'N/A') ?></span>
-        </div>
-
-        <div class="detail-row">
-            <span class="detail-label">Date of Birth</span>
-            <span class="detail-value">
-                <?php if ($employee->date_of_birth): ?>
-                    <?= date('F d, Y', strtotime($employee->date_of_birth)) ?>
-                <?php else: ?>
-                    N/A
-                <?php endif; ?>
-            </span>
+            <div class="detail-left">
+                <span class="detail-label">Date of Birth</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value">
+                    <?php if ($employee->date_of_birth): ?>
+                        <?= date('F d, Y', strtotime($employee->date_of_birth)) ?>
+                    <?php else: ?>
+                        —
+                    <?php endif; ?>
+                </span>
+            </div>
         </div>
     </div>
 
@@ -228,39 +318,50 @@
         <h3 class="section-title"><i class="fas fa-briefcase"></i> Employment Information</h3>
 
         <div class="detail-row">
-            <span class="detail-label">Employee / Biometric ID</span>
-            <span class="detail-value"><strong><?= esc($employee->employee_id ?? 'N/A') ?></strong></span>
+            <div class="detail-left">
+                <span class="detail-label">Department</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value"><?= $department ? esc($department->name) : '—' ?></span>
+            </div>
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Department</span>
-            <span class="detail-value"><?= $department ? esc($department->name) : 'N/A' ?></span>
+            <div class="detail-left">
+                <span class="detail-label">Position</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value"><?= $position ? esc($position->name) : '—' ?></span>
+            </div>
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Position</span>
-            <span class="detail-value"><?= $position ? esc($position->name) : 'N/A' ?></span>
+            <div class="detail-left">
+                <span class="detail-label">Employment Type</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value">
+                    <?php
+                        $empTypeMap = ['full_time'=>'Full-Time','part_time'=>'Part-Time','contractual'=>'Contractual','probationary'=>'Probationary'];
+                        echo esc($empTypeMap[$employee->employment_type ?? ''] ?? '—');
+                    ?>
+                </span>
+            </div>
         </div>
 
         <div class="detail-row">
-            <span class="detail-label">Employment Type</span>
-            <span class="detail-value">
-                <?php
-                    $empTypeMap = ['full_time'=>'Full-Time','part_time'=>'Part-Time','contractual'=>'Contractual','probationary'=>'Probationary'];
-                    echo esc($empTypeMap[$employee->employment_type ?? ''] ?? 'N/A');
-                ?>
-            </span>
-        </div>
-
-        <div class="detail-row">
-            <span class="detail-label">Date Hired</span>
-            <span class="detail-value">
-                <?php if ($employee->date_of_joining): ?>
-                    <?= date('F d, Y', strtotime($employee->date_of_joining)) ?>
-                <?php else: ?>
-                    N/A
-                <?php endif; ?>
-            </span>
+            <div class="detail-left">
+                <span class="detail-label">Date Hired</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value">
+                    <?php if ($employee->date_of_joining): ?>
+                        <?= date('F d, Y', strtotime($employee->date_of_joining)) ?>
+                    <?php else: ?>
+                        —
+                    <?php endif; ?>
+                </span>
+            </div>
         </div>
 
         <?php
@@ -269,255 +370,41 @@
         ?>
         <?php if ($__canViewRate): ?>
         <div class="detail-row">
-            <span class="detail-label">Salary Rate</span>
-            <span class="detail-value">
-                <?php if (!empty($employee->rate)): ?>
-                    <strong style="color:#27ae60;">&#8369;<?= number_format($employee->rate, 2) ?></strong>
-                    <?php if ($employee->rate_type): ?>
-                        <span style="color:#7f8c8d;font-size:.9rem;"> / <?= esc(ucfirst($employee->rate_type)) ?></span>
+            <div class="detail-left">
+                <span class="detail-label">Salary Rate</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value">
+                    <?php if (!empty($employee->rate)): ?>
+                        <strong style="color:#6ea988;">₱<?= number_format($employee->rate, 2) ?></strong>
+                        <?php if ($employee->rate_type): ?>
+                            <span style="color:#95a5a6;font-size:.85rem;"> / <?= esc(ucfirst($employee->rate_type)) ?></span>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        —
                     <?php endif; ?>
-                <?php else: ?>
-                    N/A
-                <?php endif; ?>
-            </span>
+                </span>
+            </div>
         </div>
         <?php endif; ?>
 
         <div class="detail-row">
-            <span class="detail-label">Status</span>
-            <span class="detail-value">
-                <?php 
-                    $statusClass = 'badge-' . strtolower($employee->status);
-                    $statusText = ucfirst($employee->status ?? 'active');
-                ?>
-                <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
-            </span>
+            <div class="detail-left">
+                <span class="detail-label">Status</span>
+            </div>
+            <div class="detail-right">
+                <span class="detail-value">
+                    <?php 
+                        $statusClass = 'badge-' . strtolower($employee->status);
+                        $statusText = ucfirst($employee->status ?? 'active');
+                    ?>
+                    <span class="badge <?= $statusClass ?>"><?= $statusText ?></span>
+                </span>
+            </div>
         </div>
     </div>
 </div>
 
-<?php if (in_array(session()->get('role'), ['hr', 'admin']) || in_array(session()->get('role_name'), ['HR Admin', 'Super Admin'])): ?>
-<!-- ═══ Salary Slip Card ═══ -->
-<div class="detail-section" style="margin-bottom:30px;">
-
-    <?php
-        $rateTypeLabel = ['hourly' => 'Hourly', 'daily' => 'Daily', 'monthly' => 'Monthly'];
-        $empRateType   = $employee->rate_type ?? 'monthly';
-        $empRate       = (float) ($employee->rate ?? 0);
-
-        // Monthly equivalent of the base rate
-        if ($empRateType === 'hourly') {
-            $monthlyEquiv = $empRate * 8 * 26;
-        } elseif ($empRateType === 'daily') {
-            $monthlyEquiv = $empRate * 26;
-        } else {
-            $monthlyEquiv = $empRate;
-        }
-
-        $baseSal    = $salary ? (float)($salary->base_salary ?? $monthlyEquiv) : $monthlyEquiv;
-        $allowances = $salary ? (float)($salary->allowances ?? 0) : 0;
-        $sss        = $salary ? (float)($salary->sss_contribution        ?? 0) : 0;
-        $philhealth = $salary ? (float)($salary->philhealth_contribution ?? 0) : 0;
-        $pagibig    = $salary ? (float)($salary->pagibig_contribution    ?? 0) : 0;
-        $wTax       = $salary ? (float)($salary->withholding_tax         ?? 0) : 0;
-        $extraDed   = $salary ? (float)($salary->deductions              ?? 0) : 0;
-        $gross      = $baseSal + $allowances;
-        $totalDed   = $sss + $philhealth + $pagibig + $wTax + $extraDed;
-        $net        = $salary ? (float)$salary->net_salary : ($gross - $totalDed);
-        $hasSalary  = ($salary || $empRate > 0);
-    ?>
-
-    <!-- Payslip header -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
-        <h3 class="section-title" style="margin:0;border:none;padding:0;">
-            <i class="fas fa-file-invoice-dollar"></i> Salary Slip
-        </h3>
-        <?php if ($hasSalary && $salary && !empty($salary->effective_from)): ?>
-        <span style="font-size:0.82rem;color:#7f8c8d;background:#f8f9fa;padding:4px 10px;border-radius:20px;border:1px solid #dee2e6;">
-            <i class="fas fa-calendar-alt"></i> Effective <?= date('F d, Y', strtotime($salary->effective_from)) ?>
-        </span>
-        <?php endif; ?>
-    </div>
-
-    <?php if ($hasSalary): ?>
-
-    <!-- Rate badge row -->
-    <?php if ($empRate > 0): ?>
-    <div style="background:#eaf4fb;border:1px solid #bee3f8;border-radius:8px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        <div>
-            <span style="font-size:0.78rem;color:#2980b9;font-weight:600;letter-spacing:.4px;text-transform:uppercase;">Rate</span>
-            <div style="font-size:1.35rem;font-weight:800;color:#1a5276;">
-                &#8369;<?= number_format($empRate, 2) ?>
-                <span style="font-size:0.85rem;font-weight:600;color:#5d8aa8;"> / <?= $rateTypeLabel[$empRateType] ?? ucfirst($empRateType) ?></span>
-            </div>
-        </div>
-        <?php if ($empRateType !== 'monthly' && $monthlyEquiv > 0): ?>
-        <div style="border-left:2px solid #bee3f8;padding-left:14px;">
-            <span style="font-size:0.78rem;color:#2980b9;font-weight:600;letter-spacing:.4px;text-transform:uppercase;">Monthly Equivalent</span>
-            <div style="font-size:1.1rem;font-weight:700;color:#1a5276;">&#8369;<?= number_format($monthlyEquiv, 2) ?></div>
-        </div>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
-
-    <!-- Earnings & Deductions table -->
-    <div style="border:1px solid #e8eef5;border-radius:8px;overflow:hidden;margin-bottom:16px;">
-
-        <!-- Earnings header -->
-        <div style="background:#f0faf4;padding:9px 18px;border-bottom:1px solid #c3e6cb;">
-            <span style="font-size:0.78rem;font-weight:700;color:#155724;letter-spacing:.5px;text-transform:uppercase;">
-                <i class="fas fa-plus-circle"></i> Earnings
-            </span>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr auto;padding:12px 18px;border-bottom:1px solid #f1f3f5;font-size:0.93rem;">
-            <span style="color:#495057;">Basic Salary</span>
-            <span style="font-weight:600;color:#27ae60;">&#8369;<?= number_format($baseSal, 2) ?></span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:12px 18px;border-bottom:1px solid #f1f3f5;font-size:0.93rem;">
-            <span style="color:#495057;">Allowances</span>
-            <span style="font-weight:600;color:#2980b9;">&#8369;<?= number_format($allowances, 2) ?></span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:11px 18px;border-bottom:1px solid #dee2e6;background:#f8fff9;font-size:0.93rem;">
-            <span style="font-weight:700;color:#155724;">Gross Pay</span>
-            <span style="font-weight:700;color:#155724;">&#8369;<?= number_format($gross, 2) ?></span>
-        </div>
-
-        <!-- Deductions header -->
-        <div style="background:#fff5f5;padding:9px 18px;border-bottom:1px solid #f5c6ca;">
-            <span style="font-size:0.78rem;font-weight:700;color:#721c24;letter-spacing:.5px;text-transform:uppercase;">
-                <i class="fas fa-minus-circle"></i> Deductions
-            </span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
-            <span style="color:#495057;">SSS Contribution <small style="color:#aaa;">(Emp. Share 4.5%)</small></span>
-            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($sss, 2) ?></span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
-            <span style="color:#495057;">PhilHealth <small style="color:#aaa;">(Emp. Share 2.5%)</small></span>
-            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($philhealth, 2) ?></span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
-            <span style="color:#495057;">Pag-IBIG / HMDF</span>
-            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($pagibig, 2) ?></span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
-            <span style="color:#495057;">Withholding Tax <small style="color:#aaa;">(BIR TRAIN Law)</small></span>
-            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($wTax, 2) ?></span>
-        </div>
-        <?php if ($extraDed > 0): ?>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:10px 18px;border-bottom:1px solid #f1f3f5;font-size:0.9rem;">
-            <span style="color:#495057;">Other Deductions</span>
-            <span style="font-weight:600;color:#e74c3c;">&#8369;<?= number_format($extraDed, 2) ?></span>
-        </div>
-        <?php endif; ?>
-        <div style="display:grid;grid-template-columns:1fr auto;padding:11px 18px;background:#fff0f0;border-top:1px solid #f5c6ca;font-size:0.93rem;">
-            <span style="font-weight:700;color:#721c24;">Total Deductions</span>
-            <span style="font-weight:700;color:#721c24;">&#8369;<?= number_format($totalDed, 2) ?></span>
-        </div>
-
-    </div>
-
-    <!-- Net Pay footer (Monthly) -->
-    <div style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border-radius:8px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-        <div>
-            <div style="color:rgba(255,255,255,.75);font-size:0.78rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Monthly Net Pay (Take-Home)</div>
-            <div style="color:rgba(255,255,255,.6);font-size:0.72rem;margin-top:2px;">Full month &middot; all deductions applied</div>
-            <div style="color:#fff;font-size:1.75rem;font-weight:800;letter-spacing:-.5px;">&#8369;<?= number_format($net, 2) ?></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
-            <button onclick="openEditModalSalary()"
-                    style="font-size:0.82rem;padding:8px 16px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;cursor:pointer;font-weight:600;">
-                <i class="fas fa-pen"></i> Edit Salary Rate
-            </button>
-            <?php endif; ?>
-            <?php if (in_array(session()->get('role'), ['admin']) || in_array(session()->get('role_name'), ['Super Admin'])): ?>
-            <a href="<?= base_url('employees/salary') ?>" class="btn btn-primary"
-               style="font-size:0.85rem;padding:8px 18px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;">
-                <i class="fas fa-cog"></i> Manage Salary
-            </a>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Semi-Monthly (15-day) Breakdown -->
-    <?php
-        $halfGross = $gross / 2;
-        $sm2Net    = $halfGross - $totalDed;
-    ?>
-    <div style="margin-top:14px;">
-        <div style="font-size:0.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
-                    background:#f0f3ff;color:#2f5f45;padding:7px 12px;border-radius:6px;margin-bottom:10px;">
-            <i class="fas fa-calendar-alt"></i> Semi-Monthly Pay &mdash;
-            <span style="font-weight:400;font-size:.68rem;">(PH standard &middot; 15th &amp; end-of-month)</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-
-            <!-- 1st Payroll -->
-            <div style="border:1.5px solid #a9dfbf;border-radius:8px;padding:13px 15px;background:#f0faf4;">
-                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#1e8449;margin-bottom:8px;">
-                    1st Payroll &mdash; 15th
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#555;">
-                    <span>Gross (half)</span>
-                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
-                </div>
-                <div style="font-size:.72rem;color:#aaa;padding:2px 0;">No deductions on 15th</div>
-                <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;
-                            border-top:1.5px solid #a9dfbf;margin-top:6px;padding-top:6px;color:#1e8449;">
-                    <span>Take-Home</span>
-                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
-                </div>
-            </div>
-
-            <!-- 2nd Payroll -->
-            <div style="border:1.5px solid #f5b7b1;border-radius:8px;padding:13px 15px;background:#fdf0f0;">
-                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#a93226;margin-bottom:8px;">
-                    2nd Payroll &mdash; End of Month
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#555;">
-                    <span>Gross (half)</span>
-                    <span>&#8369;<?= number_format($halfGross, 2) ?></span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;color:#c0392b;">
-                    <span>All Deductions</span>
-                    <span>&#8369;<?= number_format($totalDed, 2) ?></span>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;
-                            border-top:1.5px solid #f5b7b1;margin-top:6px;padding-top:6px;color:#a93226;">
-                    <span>Take-Home</span>
-                    <span>&#8369;<?= number_format($sm2Net, 2) ?></span>
-                </div>
-            </div>
-
-        </div>
-        <div style="font-size:.68rem;color:#999;margin-top:6px;padding:0 2px;">
-            <i class="fas fa-info-circle"></i>
-            SSS, PhilHealth, Pag-IBIG &amp; Withholding Tax are deducted in full on the 2nd payroll (common PH practice).
-        </div>
-    </div>
-
-    <?php else: ?>
-        <div style="text-align:center;padding:36px 20px;color:#95a5a6;">
-            <i class="fas fa-file-invoice-dollar" style="font-size:2.8rem;margin-bottom:14px;display:block;opacity:.4;"></i>
-            <p style="margin:0 0 6px;font-size:1rem;font-weight:600;color:#7f8c8d;">No salary information yet</p>
-            <p style="margin:0;font-size:0.88rem;">Set the salary rate via the Edit Employee form.</p>
-            <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
-            <button onclick="openEditModalSalary()" class="btn btn-primary" style="margin-top:16px;font-size:0.85rem;padding:8px 18px;">
-                <i class="fas fa-plus"></i> Set Salary Rate
-            </button>
-            <?php endif; ?>
-            <?php if (in_array(session()->get('role'), ['admin']) || in_array(session()->get('role_name'), ['Super Admin'])): ?>
-            <a href="<?= base_url('employees/salary') ?>" class="btn btn-primary" style="margin-top:16px;font-size:0.85rem;padding:8px 18px;">
-                <i class="fas fa-plus"></i> Set Up Salary
-            </a>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
-
-</div>
-<?php endif; ?>
 
 <?php if (in_array(session()->get('role'), ['hr']) || in_array(session()->get('role_name'), ['HR Admin'])): ?>
 <!-- ═══ Edit Employee Modal ═══ -->
@@ -574,8 +461,13 @@
                     <div class="edit-form-group">
                         <label class="edit-label">Phone Number</label>
                         <input type="tel" class="edit-input" id="edit_phone" name="phone"
-                               value="<?= esc($employee->phone ?? '') ?>" autocomplete="off">
-                        <span class="edit-field-error" id="err_phone"></span>
+                               value="<?= esc($employee->phone ?? '') ?>" autocomplete="off"
+                               placeholder="09xxxxxxxxx or +639xxxxxxxxx" maxlength="15"
+                               oninput="validatePhilippinePhone(this, 'err_phone')">
+                        <span class="edit-field-error" id="err_phone" style="font-size:0.8rem;"></span>
+                        <div style="font-size:0.75rem;color:#7f8c8d;margin-top:4px;">
+                            <i class="fas fa-info-circle"></i> Format: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+                        </div>
                     </div>
                 </div>
 
@@ -810,9 +702,48 @@
         first_name:     { label: 'First Name',    required: true,  pattern: /^[A-Za-z\s\-\']+$/, msg: 'First name must contain only letters, spaces, hyphens or apostrophes — no special characters.' },
         last_name:      { label: 'Last Name',     required: true,  pattern: /^[A-Za-z\s\-\']+$/, msg: 'Last name must contain only letters, spaces, hyphens or apostrophes — no special characters.' },
         email:          { label: 'Email',         required: true,  pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, msg: 'Please enter a valid email address.' },
-        phone:          { label: 'Phone',         required: false, pattern: /^[0-9\s\+\-\(\)]*$/, msg: 'Phone must contain only digits, spaces, +, -, or parentheses — no special characters.' },
+        phone:          { label: 'Phone',         required: false, msg: 'Please enter a valid Philippine phone number (09XXXXXXXXX or +639XXXXXXXXX)' },
     };
 
+    function validatePhilippinePhone(input, errId) {
+        const value = input.value.trim();
+        const errSpan = document.getElementById(errId);
+
+        // If empty, it's optional so no error
+        if (value === '') {
+            if (errSpan) {
+                errSpan.textContent = '';
+                errSpan.classList.remove('visible');
+            }
+            input.classList.remove('is-invalid');
+            return true;
+        }
+
+        // Extract only digits for validation
+        const digitsOnly = value.replace(/\D/g, '');
+
+        // Valid formats:
+        // 1. 09XXXXXXXXX (11 digits: 09 + 9 more)
+        // 2. 639XXXXXXXXX (12 digits: 639 + 9 more) from +639XXXXXXXXX
+        const isValid = /^09\d{9}$/.test(digitsOnly) || /^639\d{9}$/.test(digitsOnly);
+
+        if (!isValid) {
+            if (errSpan) {
+                errSpan.textContent = 'Invalid Philippine number. Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).';
+                errSpan.classList.add('visible');
+            }
+            input.classList.add('is-invalid');
+            return false;
+        } else {
+            if (errSpan) {
+                errSpan.textContent = '';
+                errSpan.classList.remove('visible');
+            }
+            input.classList.remove('is-invalid');
+            return true;
+        }
+    }
+    
     function showFieldError(id, msg) {
         const input = document.getElementById('edit_' + id);
         const span  = document.getElementById('err_' + id);

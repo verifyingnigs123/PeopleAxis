@@ -331,6 +331,19 @@ class Employees extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
+        // Philippine phone validation: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+        $phone = trim($this->request->getPost('phone') ?? '');
+        if ($phone !== '') {
+            $digitsOnly = preg_replace('/\D/', '', $phone);
+            // Valid: 09 followed by 9 digits, OR 639 followed by 9 digits (from +639...)
+            if (!preg_match('/^09\d{9}$/', $digitsOnly) && !preg_match('/^639\d{9}$/', $digitsOnly)) {
+                $err = ['phone' => 'Phone must be a valid Philippine number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).'];
+                $isAjaxCheck = $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+                if ($isAjaxCheck) return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
+                return redirect()->back()->withInput()->with('errors', $err);
+            }
+        }
+
         // Birthdate validation: must not be 2026 or later, and employee must be at least 18 years old
         $dateOfBirth = trim($this->request->getPost('date_of_birth') ?? '');
         if ($dateOfBirth !== '') {
@@ -716,8 +729,13 @@ class Employees extends BaseController
         if (!preg_match("/^[A-Za-z\s\-']+$/u", $lastName)) {
             $specialCharErrors['last_name'] = 'Last name must contain only letters, spaces, hyphens or apostrophes — no special characters.';
         }
-        if ($phone !== '' && !preg_match('/^[0-9\s\+\-\(\)]+$/u', $phone)) {
-            $specialCharErrors['phone'] = 'Phone must contain only digits, spaces, +, -, or parentheses — no special characters.';
+        // Philippine phone validation: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+        if ($phone !== '') {
+            $digitsOnly = preg_replace('/\D/', '', $phone);
+            // Valid: 09 followed by 9 digits, OR 639 followed by 9 digits (from +639...)
+            if (!preg_match('/^09\d{9}$/', $digitsOnly) && !preg_match('/^639\d{9}$/', $digitsOnly)) {
+                $specialCharErrors['phone'] = 'Phone must be a valid Philippine number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).';
+            }
         }
 
         if (!empty($specialCharErrors)) {
@@ -886,8 +904,13 @@ class Employees extends BaseController
         if (!preg_match("/^[A-Za-z\s\-']+$/u", $lastName)) {
             $specialErrors['last_name'] = 'Last name must contain only letters, spaces, hyphens or apostrophes.';
         }
-        if ($phone !== '' && !preg_match('/^[0-9\s\+\-\(\)]+$/u', $phone)) {
-            $specialErrors['phone'] = 'Phone must contain only digits, spaces, +, -, or parentheses.';
+        // Philippine phone validation: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+        if ($phone !== '') {
+            $digitsOnly = preg_replace('/\D/', '', $phone);
+            // Valid: 09 followed by 9 digits, OR 639 followed by 9 digits (from +639...)
+            if (!preg_match('/^09\d{9}$/', $digitsOnly) && !preg_match('/^639\d{9}$/', $digitsOnly)) {
+                $specialErrors['phone'] = 'Phone must be a valid Philippine number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).';
+            }
         }
         if (!empty($specialErrors)) {
             return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $specialErrors, 'csrf_hash' => csrf_hash()]);
@@ -1252,7 +1275,7 @@ class Employees extends BaseController
             $employees = [];
         }
 
-        $isAdmin = in_array($role, ['Super Admin', 'admin']);
+        $isAdmin = in_array($role, ['Super Admin', 'HR Admin', 'admin', 'hr']);
         $data['employees'] = $employees;
         $data['isAdmin']   = $isAdmin;
         return view('salary/manage', $data);
@@ -1267,10 +1290,11 @@ class Employees extends BaseController
             return $this->response->setStatusCode(401)->setJSON(['success' => false]);
         }
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['Super Admin', 'admin'])) {
+        if (!in_array($role, ['Super Admin', 'HR Admin', 'admin', 'hr'])) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Access denied.']);
         }
 
+        $employee = $this->employeeModel->find($employeeId);
         $salary = $this->salaryModel->getEmployeeSalary($employeeId);
         return $this->response->setJSON([
             'success' => true,
@@ -1284,6 +1308,8 @@ class Employees extends BaseController
                 'deductions'              => (float) ($salary->deductions              ?? 0),
                 'net_salary'              => (float) ($salary->net_salary              ?? 0),
                 'effective_from'          => $salary->effective_from ?? '',
+                'rate'                    => (float) ($employee->rate ?? 0),
+                'rate_type'               => $employee->rate_type ?? 'monthly',
             ] : null,
         ]);
     }
@@ -1294,10 +1320,10 @@ class Employees extends BaseController
     public function updateSalary()
     {
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['Super Admin', 'admin'])) {
+        if (!in_array($role, ['Super Admin', 'HR Admin', 'admin', 'hr'])) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied.'
             ]);
         }
 
@@ -1306,6 +1332,8 @@ class Employees extends BaseController
         $allowances    = (float) ($this->request->getPost('allowances') ?? 0);
         $deductions    = (float) ($this->request->getPost('deductions') ?? 0);
         $effectiveFrom = $this->request->getPost('effective_from') ?: date('Y-m-d');
+        $rate          = (float) ($this->request->getPost('rate') ?? 0);
+        $rateType      = $this->request->getPost('rate_type') ?? 'monthly';
 
         if (!$employeeId || $baseSalary === null || $baseSalary === '') {
             return $this->response->setStatusCode(422)->setJSON([
@@ -1314,9 +1342,22 @@ class Employees extends BaseController
             ]);
         }
 
+        // Validate rate_type
+        if (!in_array($rateType, ['hourly', 'daily', 'monthly'])) {
+            $rateType = 'monthly';
+        }
+
         // Compute statutory deductions from base salary; deductions field = extra custom deductions
         $ded = PhDeductions::compute((float)$baseSalary, $allowances);
         $netSalary = $ded['net_salary'] - $deductions;
+
+        // Update employee rate and rate_type
+        if ($rate > 0) {
+            $this->employeeModel->update($employeeId, [
+                'rate'      => $rate,
+                'rate_type' => $rateType,
+            ]);
+        }
 
         $existing = $this->salaryModel->getEmployeeSalary($employeeId);
 

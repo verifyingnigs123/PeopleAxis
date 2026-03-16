@@ -255,7 +255,7 @@
         justify-content: center;
         font-size: 0.7rem;
         font-weight: 700;
-        animation: pulse 2s infinite;
+        animation: pulse 4s infinite;
         box-shadow: 0 2px 6px rgba(110, 169, 136, 0.35);
         z-index: 1001;
         line-height: 1;

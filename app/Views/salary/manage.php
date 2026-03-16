@@ -375,7 +375,7 @@
 
 <?php
     $totalEmp = count($employees ?? []);
-    $withSalary = count(array_filter($employees ?? [], fn($employeeSummary) => !empty($employeeSummary->salary_id)));
+    $withSalary = count(array_filter($employees ?? [], fn($employeeSummary) => !empty($employeeSummary->rate)));
     $withoutSalary = max($totalEmp - $withSalary, 0);
     $coverageRate = $totalEmp > 0 ? round(($withSalary / $totalEmp) * 100) . '%' : '0%';
 ?>
@@ -446,7 +446,7 @@
         <div>
             <h2 style="margin:0;"><i class="fas fa-list"></i> Employee Salary Rates (<?= count($employees ?? []) ?>)</h2>
             <?php if (empty($isAdmin)): ?>
-            <p style="margin:6px 0 0;font-size:0.85rem;opacity:0.85;"><i class="fas fa-info-circle"></i> You have view-only access. Contact a Super Admin to modify salary records.</p>
+            <p style="margin:6px 0 0;font-size:0.85rem;opacity:0.85;"><i class="fas fa-info-circle"></i> You have view-only access. Contact an HR Admin or Super Admin to modify salary records.</p>
             <?php endif; ?>
         </div>
         <!-- Search -->
@@ -555,10 +555,18 @@
 
                             <?php if (!empty($isAdmin)):
                                 $btnSalaryJson = $hasSalary ? esc(json_encode([
+                                    'rate'           => $empRate,
+                                    'rate_type'      => $empRateType,
                                     'base_salary'    => $base,
                                     'allowances'     => $allowances,
                                     'deductions'     => $extraDed,
                                     'effective_from' => $emp->effective_from ?? '',
+                                    'sss'            => $sss,
+                                    'philhealth'     => $philhealth,
+                                    'pagibig'        => $pagibig,
+                                    'w_tax'          => $wTax,
+                                    'gross'          => $gross,
+                                    'net'            => $net,
                                 ])) : '';
                             ?>
                             <td>
@@ -725,9 +733,45 @@
             <div class="salary-modal-body">
                 <input type="hidden" id="sm_employee_id" name="employee_id">
                 <?= csrf_field() ?>
+                
+                <!-- Current Saved Data Summary -->
+                <div id="savedDataSummary" style="display:none; background:#f0faf4; border:1px solid #c7ddd0; border-radius:8px; padding:12px 14px; margin-bottom:16px;">
+                    <div style="font-size:.75rem; font-weight:700; color:#355444; text-transform:uppercase; margin-bottom:10px;">
+                        <i class="fas fa-check-circle" style="color:#27ae60; margin-right:6px;"></i>Current Saved Data
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:.82rem;">
+                        <div><span style="color:#7f90a0; font-weight:600;">Rate:</span> <span style="color:#2f5f45; font-weight:700;" id="savedRate">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Type:</span> <span style="color:#2f5f45; font-weight:700;" id="savedRateType">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Base Salary:</span> <span style="color:#2f5f45; font-weight:700;" id="savedBase">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Allowances:</span> <span style="color:#2980b9; font-weight:700;" id="savedAllow">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Extra Ded.:</span> <span style="color:#c0392b; font-weight:700;" id="savedDeduct">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Effective From:</span> <span style="color:#2f5f45; font-weight:700;" id="savedEffective">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Gross:</span> <span style="color:#8e44ad; font-weight:700;" id="savedGross">—</span></div>
+                        <div><span style="color:#7f90a0; font-weight:600;">Net Pay:</span> <span style="color:#27ae60; font-weight:700;" id="savedNet">—</span></div>
+                    </div>
+                    <div style="border-top:1px solid #b6d3c1; margin-top:10px; padding-top:10px; font-size:.75rem; color:#7f90a0;">
+                        <i class="fas fa-info-circle"></i> Update the fields below to make changes
+                    </div>
+                </div>
+                
                 <div class="sm-alert" id="smAlert"></div>
 
                 <!-- Inputs -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="sm-form-group">
+                        <label class="sm-label">Rate (&#8369;) <span style="color:#e74c3c;">*</span></label>
+                        <input type="number" class="sm-input" id="sm_rate" name="rate"
+                               min="0" step="0.01" placeholder="0.00" oninput="calcNet()">
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">Rate Type <span style="color:#e74c3c;">*</span></label>
+                        <select class="sm-input" id="sm_rate_type" name="rate_type" onchange="calcNet()">
+                            <option value="monthly">Monthly</option>
+                            <option value="daily">Daily</option>
+                            <option value="hourly">Hourly</option>
+                        </select>
+                    </div>
+                </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div class="sm-form-group">
                         <label class="sm-label">Base Salary (&#8369;) <span style="color:#e74c3c;">*</span></label>
@@ -904,15 +948,34 @@ function openSalaryModal(btn) {
         (hasSalary ? 'Edit Salary Rate' : 'Set Salary Rate');
     document.getElementById('smAlert').style.display = 'none';
 
+    // Show/hide saved data summary
     if (hasSalary && existingData) {
-        // Fill directly from table data — instant, no AJAX
-        document.getElementById('sm_base').value    = existingData.base_salary    || '';
-        document.getElementById('sm_allow').value   = existingData.allowances     || 0;
-        document.getElementById('sm_deduct').value  = existingData.deductions     || 0;
-        document.getElementById('sm_effective').value = existingData.effective_from ||
+        document.getElementById('savedDataSummary').style.display = 'block';
+        
+        // Populate summary with saved values
+        document.getElementById('savedRate').textContent = existingData.rate ? peso(existingData.rate) : '—';
+        document.getElementById('savedRateType').textContent = (existingData.rate_type || 'monthly').toUpperCase();
+        document.getElementById('savedBase').textContent = peso(existingData.base_salary || 0);
+        document.getElementById('savedAllow').textContent = peso(existingData.allowances || 0);
+        document.getElementById('savedDeduct').textContent = peso(existingData.deductions || 0);
+        document.getElementById('savedEffective').textContent = existingData.effective_from ? 
+            new Date(existingData.effective_from).toLocaleDateString('en-PH', {year:'numeric', month:'short', day:'numeric'}) : '—';
+        document.getElementById('savedGross').textContent = peso(existingData.gross || 0);
+        document.getElementById('savedNet').textContent = peso(existingData.net || 0);
+        
+        // Pre-fill form fields with saved data
+        document.getElementById('sm_rate').value       = existingData.rate || '';
+        document.getElementById('sm_rate_type').value  = existingData.rate_type || 'monthly';
+        document.getElementById('sm_base').value       = existingData.base_salary || '';
+        document.getElementById('sm_allow').value      = existingData.allowances || 0;
+        document.getElementById('sm_deduct').value     = existingData.deductions || 0;
+        document.getElementById('sm_effective').value  = existingData.effective_from || 
             new Date().toISOString().split('T')[0];
         calcNet();
     } else {
+        document.getElementById('savedDataSummary').style.display = 'none';
+        document.getElementById('sm_rate').value      = '';
+        document.getElementById('sm_rate_type').value = 'monthly';
         document.getElementById('sm_effective').value = new Date().toISOString().split('T')[0];
         resetForm();
     }
@@ -927,6 +990,8 @@ function closeModal() {
 }
 
 function resetForm() {
+    document.getElementById('sm_rate').value      = '';
+    document.getElementById('sm_rate_type').value = 'monthly';
     document.getElementById('sm_base').value   = '';
     document.getElementById('sm_allow').value  = '0';
     document.getElementById('sm_deduct').value = '0';

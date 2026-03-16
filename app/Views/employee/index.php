@@ -681,9 +681,12 @@
                     <div class="form-group-modal">
                         <label for="phone" class="form-label">Phone Number</label>
                         <input type="tel" class="form-control-modal" id="phone" name="phone" 
-                               placeholder="Enter phone number"
-                               oninput="validateSpecialChars(this,'add_phone_err','phone')">
-                        <span id="add_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;">Phone cannot contain special characters.</span>
+                               placeholder="09xxxxxxxxx or +639xxxxxxxxx" maxlength="15"
+                               oninput="validatePhilippinePhoneCreate(this,'add_phone_err')">
+                        <span id="add_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;"></span>
+                        <div style="font-size:0.75rem;color:#7f8c8d;margin-top:4px;">
+                            <i class="fas fa-info-circle"></i> Format: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+                        </div>
                     </div>
                 </div>
 
@@ -812,9 +815,12 @@
                     </div>
                     <div class="form-group-modal">
                         <label class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" placeholder="Enter phone number"
-                               oninput="validateSpecialChars(this,'edit_phone_err','phone')">
-                        <span id="edit_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;">Phone cannot contain special characters.</span>
+                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" placeholder="09xxxxxxxxx or +639xxxxxxxxx" maxlength="15"
+                               oninput="validatePhilippinePhoneEdit(this,'edit_phone_err')">
+                        <span id="edit_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;"></span>
+                        <div style="font-size:0.75rem;color:#7f8c8d;margin-top:4px;">
+                            <i class="fas fa-info-circle"></i> Format: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
+                        </div>
                     </div>
                 </div>
                 <!-- Biometric ID and Department -->
@@ -1248,13 +1254,67 @@
         }
     }
 
+    function validatePhilippinePhoneCreate(input, errId) {
+        const value = input.value.trim();
+        const errSpan = document.getElementById(errId);
+        
+        if (value === '') {
+            // Optional field - no error
+            errSpan.style.display = 'none';
+            input.classList.remove('is-invalid');
+            return true;
+        }
+        
+        const digitsOnly = value.replace(/\D/g, '');
+        // Valid formats: 09XXXXXXXXX (11 digits) OR 639XXXXXXXXX (12 digits from +639XXXXXXXXX)
+        const isValid = /^09\d{9}$/.test(digitsOnly) || /^639\d{9}$/.test(digitsOnly);
+        
+        if (!isValid) {
+            errSpan.textContent = 'Invalid Philippine number. Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).';
+            errSpan.style.display = 'block';
+            input.classList.add('is-invalid');
+            return false;
+        } else {
+            errSpan.style.display = 'none';
+            input.classList.remove('is-invalid');
+            return true;
+        }
+    }
+
+    function validatePhilippinePhoneEdit(input, errId) {
+        const value = input.value.trim();
+        const errSpan = document.getElementById(errId);
+        
+        if (value === '') {
+            // Optional field - no error
+            errSpan.style.display = 'none';
+            input.classList.remove('is-invalid');
+            return true;
+        }
+        
+        const digitsOnly = value.replace(/\D/g, '');
+        // Valid formats: 09XXXXXXXXX (11 digits) OR 639XXXXXXXXX (12 digits from +639XXXXXXXXX)
+        const isValid = /^09\d{9}$/.test(digitsOnly) || /^639\d{9}$/.test(digitsOnly);
+        
+        if (!isValid) {
+            errSpan.textContent = 'Invalid Philippine number. Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).';
+            errSpan.style.display = 'block';
+            input.classList.add('is-invalid');
+            return false;
+        } else {
+            errSpan.style.display = 'none';
+            input.classList.remove('is-invalid');
+            return true;
+        }
+    }
+
     document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
         if (!currentEditId) return;
         // Validate before submit
         const fnOk = validateSpecialChars(document.getElementById('edit_first_name'), 'edit_first_name_err', 'name');
         const lnOk = validateSpecialChars(document.getElementById('edit_last_name'),  'edit_last_name_err',  'name');
-        const phOk = validateSpecialChars(document.getElementById('edit_phone'),       'edit_phone_err',      'phone');
+        const phOk = validatePhilippinePhoneEdit(document.getElementById('edit_phone'),       'edit_phone_err');
         if (!fnOk || !lnOk || !phOk) return;
 
         const formData = new FormData(this);
@@ -1314,7 +1374,7 @@
         // Validate before submit
         const fnOk = validateSpecialChars(document.getElementById('first_name'), 'add_first_name_err', 'name');
         const lnOk = validateSpecialChars(document.getElementById('last_name'),  'add_last_name_err',  'name');
-        const phOk = validateSpecialChars(document.getElementById('phone'),      'add_phone_err',      'phone');
+        const phOk = validatePhilippinePhoneCreate(document.getElementById('phone'),      'add_phone_err');
         if (!fnOk || !lnOk || !phOk) return;
         
         const formData = new FormData(this);

@@ -340,10 +340,10 @@
             <a href="<?= base_url('users') ?>" class="btn btn-outline-primary">Open Users</a>
         </div>
         <div class="action-card">
-            <i class="fas fa-lock"></i>
-            <h3>Roles & Permissions</h3>
-            <p>Manage role assignments and keep permission boundaries aligned with policy.</p>
-            <a href="<?= base_url('roles') ?>" class="btn btn-outline-primary">Manage Roles</a>
+            <i class="fas fa-hourglass-half"></i>
+            <h3>Pending & Rejections</h3>
+            <p>Review pending requests and manage rejections with detailed feedback.</p>
+            <a href="<?= base_url('employee/pending-approvals') ?>" class="btn btn-outline-primary">Manage Requests</a>
         </div>
         <div class="action-card">
             <i class="fas fa-history"></i>

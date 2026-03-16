@@ -2,6 +2,14 @@
 
 <?= $this->section('content') ?>
 
+<!-- ============================================================
+     ROLES MANAGEMENT MODULE
+     Professional Structure with Clear Sections
+     ============================================================ -->
+
+<!-- ============================================================
+     STYLESHEET SECTION
+     ============================================================ -->
 <style>
     .page-header {
         display: flex;
@@ -247,7 +255,10 @@
     }
 </style>
 
-<!-- Breadcrumbs -->
+<!-- ============================================================
+     MARKUP SECTION
+     ============================================================ -->
+
 <div style="margin-bottom: 20px;">
     <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a> /
     <span>Roles</span>
@@ -341,6 +352,10 @@
         <?php endif; ?>
     </div>
 </div>
+
+<!-- ============================================================
+     MODAL DIALOGS SECTION
+     ============================================================ -->
 
 <!-- Add Role Modal -->
 <div class="modal fade" id="addRoleModal" tabindex="-1" aria-labelledby="addRoleModalLabel" aria-hidden="true">
@@ -546,13 +561,20 @@
     </div>
 </div>
 
+<!-- ============================================================
+     JAVASCRIPT SECTION
+     Role Management Functionality
+     ============================================================ -->
 <script>
-let pendingDeleteRoleId = null;
-let pendingDeleteRoleName = null;
-let pendingRestoreRoleId = null;
-let pendingRestoreRoleName = null;
+    // ===== STATE MANAGEMENT =====
+    let roleState = {
+        deleteId: null,
+        deleteName: null,
+        restoreId: null,
+        restoreName: null
+    };
 
-function editRole(roleId) {
+    // ===== EDIT ROLE FUNCTION =====
     fetch('<?= base_url('roles/getRole') ?>/' + roleId)
         .then(response => response.json())
         .then(data => {
