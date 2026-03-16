@@ -288,11 +288,11 @@
     </div>
 <?php endif; ?>
 
-<?php if (empty($managedDepartments)): ?>
+<?php if ($teamCount === 0): ?>
     <div class="panel">
         <div class="empty-state">
-            <i class="fas fa-building" style="font-size: 2.8rem;"></i>
-            <p>No departments are assigned to your manager account yet.</p>
+            <i class="fas fa-users" style="font-size: 2.8rem;"></i>
+            <p>No approved team members found yet. Employees approved by Super Admin will appear here.</p>
         </div>
     </div>
 <?php else: ?>

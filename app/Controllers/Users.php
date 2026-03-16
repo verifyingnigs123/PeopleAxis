@@ -384,6 +384,8 @@ class Users extends BaseController
             }
 
             if ($this->userModel->deactivateUser($id)) {
+                $this->invalidateUserSessions((int) $id);
+
                 // Log audit
                 $userId = session()->get('user_id');
                 $user = $this->userModel->find($id);
@@ -448,6 +450,8 @@ class Users extends BaseController
             ]);
 
             if ($result) {
+                $this->invalidateUserSessions((int) $id);
+
                 // Log audit
                 $userId = session()->get('user_id');
                 Audit::log($userId, 'DELETE', 'User', 'Deleted user: ' . esc($user->name ?? 'Unknown') . ' (ID: ' . $id . ')');
