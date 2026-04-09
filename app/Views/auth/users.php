@@ -817,6 +817,19 @@
                                        placeholder="Enter phone number">
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserDepartment" class="form-label">Department</label>
+                                <select class="form-select" id="addUserDepartment" name="department_id">
+                                    <option value="" selected>Select department</option>
+                                    <?php if (!empty($departments)): ?>
+                                        <?php foreach ($departments as $department): ?>
+                                            <option value="<?= (int) $department->id ?>"><?= esc($department->name) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row">
