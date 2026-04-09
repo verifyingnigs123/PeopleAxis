@@ -237,6 +237,17 @@
             </div>
         </div>
 
+        <div class="form-row full">
+            <div class="form-group">
+                <label for="rfid_number" class="form-label">RFID Number <span class="required-star">*</span></label>
+                <input type="text" class="form-control" id="rfid_number" name="rfid_number"
+                       placeholder="Scan or enter RFID number" required value="<?= esc($employee->rfid_number ?? '') ?>">
+                <?php if (service('validation')->hasError('rfid_number')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('rfid_number')) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Department Row -->
         <div class="form-row full">
             <div class="form-group">

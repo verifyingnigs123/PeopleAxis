@@ -631,13 +631,13 @@
 
 <!-- Add Employee Modal -->
 <div id="addEmployeeModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
+    <div class="modal-content add-employee-modal-content">
+        <div class="modal-header add-employee-modal-header">
             <h2><i class="fas fa-user-plus"></i> Add New Employee</h2>
             <button class="modal-close" onclick="closeAddEmployeeModal()">&times;</button>
         </div>
 
-        <div class="modal-body">
+        <div class="modal-body add-employee-modal-body">
             <form id="addEmployeeForm" method="POST" action="<?= base_url('employee/store') ?>">
                 <?= csrf_field() ?>
 
@@ -653,75 +653,72 @@
                     <div id="successMessage"></div>
                 </div>
 
+                <?php
+                $employeePositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
+                $employeeTypeOptions = ['Manager', 'Employee'];
+                ?>
+
                 <!-- First Name and Last Name Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="first_name" class="form-label">First Name <span class="required-star">*</span></label>
                         <input type="text" class="form-control-modal" id="first_name" name="first_name" 
-                               placeholder="Enter first name" required
+                               placeholder="Enter first name" required value="<?= esc(old('first_name') ?? '') ?>"
                                oninput="validateSpecialChars(this,'add_first_name_err','name')">
                         <span id="add_first_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">First name cannot contain special characters.</span>
                     </div>
                     <div class="form-group-modal">
                         <label for="last_name" class="form-label">Last Name <span class="required-star">*</span></label>
                         <input type="text" class="form-control-modal" id="last_name" name="last_name" 
-                               placeholder="Enter last name" required
+                               placeholder="Enter last name" required value="<?= esc(old('last_name') ?? '') ?>"
                                oninput="validateSpecialChars(this,'add_last_name_err','name')">
                         <span id="add_last_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">Last name cannot contain special characters.</span>
                     </div>
                 </div>
 
-                <!-- Email and Phone Row -->
+                <!-- RFID Number and Email Row -->
                 <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label for="rfid_number" class="form-label">RFID Number <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="rfid_number" name="rfid_number"
+                               placeholder="Enter RFID number" required value="<?= esc(old('rfid_number') ?? '') ?>">
+                    </div>
                     <div class="form-group-modal">
                         <label for="email" class="form-label">Email <span class="required-star">*</span></label>
                         <input type="email" class="form-control-modal" id="email" name="email" 
-                               placeholder="Enter email address" required>
+                               placeholder="Enter email address" required value="<?= esc(old('email') ?? '') ?>">
                     </div>
+                </div>
+
+                <!-- Phone Row -->
+                <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="phone" class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control-modal" id="phone" name="phone" 
-                               placeholder="09xxxxxxxxx or +639xxxxxxxxx" maxlength="15"
-                               oninput="validatePhilippinePhoneCreate(this,'add_phone_err')">
+                        <input type="tel" class="form-control-modal" id="phone" name="phone"
+                               placeholder="Enter phone number" value="<?= esc(old('phone') ?? '') ?>"
+                               oninput="validateSpecialChars(this,'add_phone_err','phone')">
                         <span id="add_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;"></span>
-                        <div style="font-size:0.75rem;color:#7f8c8d;margin-top:4px;">
-                            <i class="fas fa-info-circle"></i> Format: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
-                        </div>
                     </div>
                 </div>
 
-                <!-- Department Row -->
+                <!-- Position and Type Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label for="department_id" class="form-label">Department</label>
-                        <select class="form-control-modal" id="department_id" name="department_id">
-                            <option value="">Select Department</option>
-                            <?php foreach ($departments ?? [] as $dept): ?>
-                                <option value="<?= $dept->id ?>"><?= esc($dept->name ?? 'N/A') ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Position and Employment Type Row -->
-                <div class="form-row-modal">
-                    <div class="form-group-modal">
-                        <label for="role_id" class="form-label">Position</label>
-                        <select class="form-control-modal" id="role_id" name="role_id">
-                            <option value="">Select Position</option>
-                            <?php foreach ($positions ?? [] as $pos): ?>
-                                <option value="<?= $pos->id ?>"><?= esc($pos->name) ?></option>
+                        <label for="position" class="form-label">Position <span class="required-star">*</span></label>
+                        <select class="form-control-modal" id="position" name="position" required>
+                            <option value="" disabled <?= old('position') ? '' : 'selected' ?>>Select position</option>
+                            <?php foreach ($employeePositionOptions as $option): ?>
+                                <option value="<?= esc($option) ?>" <?= old('position') === $option ? 'selected' : '' ?>><?= esc($option) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group-modal">
-                        <label for="employment_type" class="form-label">Employment Type</label>
-                        <select class="form-control-modal" id="employment_type" name="employment_type">
-                            <option value="">Select Type</option>
-                            <option value="full_time">Full-Time</option>
-                            <option value="part_time">Part-Time</option>
-                            <option value="contractual">Contractual</option>
-                            <option value="probationary">Probationary</option>
+                        <label for="employee_type" class="form-label">Type <span class="required-star">*</span></label>
+                        <select class="form-control-modal" id="employee_type" name="employee_type" required>
+                            <option value="" disabled <?= old('employee_type') ? '' : 'selected' ?>>Select type</option>
+                            <?php foreach ($employeeTypeOptions as $option): ?>
+                                <option value="<?= esc($option) ?>" <?= old('employee_type') === $option ? 'selected' : '' ?>><?= esc($option) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -729,34 +726,26 @@
                 <!-- Date of Birth and Date Hired Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label for="date_of_birth" class="form-label">Date of Birth</label>
-                        <input type="date" class="form-control-modal" id="date_of_birth" name="date_of_birth">
+                        <label for="date_of_birth" class="form-label">Date of Birth <span class="required-star">*</span></label>
+                        <input type="date" class="form-control-modal" id="date_of_birth" name="date_of_birth" required value="<?= esc(old('date_of_birth') ?? '') ?>">
                     </div>
                     <div class="form-group-modal">
-                        <label for="date_of_joining" class="form-label">Date Hired <span class="required-star">*</span></label>
-                        <input type="date" class="form-control-modal" id="date_of_joining" name="date_of_joining" required>
+                        <label for="date_of_joining" class="form-label">Date of Hired <span class="required-star">*</span></label>
+                        <input type="date" class="form-control-modal" id="date_of_joining" name="date_of_joining" required value="<?= esc(old('date_of_joining') ?? date('Y-m-d')) ?>">
                     </div>
                 </div>
 
-                <!-- Salary Rate and Rate Type Row -->
-                <div class="form-row-modal">
+                <!-- Status Row -->
+                <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
-                        <label for="rate" class="form-label">Salary Rate</label>
-                        <input type="number" class="form-control-modal" id="rate" name="rate"
-                               placeholder="0.00" min="0" step="0.01">
-                    </div>
-                    <div class="form-group-modal">
-                        <label for="rate_type" class="form-label">Rate Type</label>
-                        <select class="form-control-modal" id="rate_type" name="rate_type">
-                            <option value="">Select Rate Type</option>
-                            <option value="hourly">Hourly</option>
-                            <option value="daily">Daily</option>
-                            <option value="monthly">Monthly</option>
+                        <label for="status" class="form-label">Status <span class="required-star">*</span></label>
+                        <select class="form-control-modal" id="status" name="status" required>
+                            <option value="active" <?= old('status', 'active') === 'active' ? 'selected' : '' ?>>Active</option>
+                            <option value="inactive" <?= old('status') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                            <option value="suspended" <?= old('status') === 'suspended' ? 'selected' : '' ?>>Suspended</option>
                         </select>
                     </div>
                 </div>
-
-                <!-- Status is always 'inactive' for new employees until Super Admin approves -->
 
                 <!-- Form Actions -->
                 <div class="modal-actions">
@@ -823,7 +812,13 @@
                         </div>
                     </div>
                 </div>
-                <!-- Biometric ID and Department -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label">RFID Number <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="edit_rfid_number" name="rfid_number" placeholder="Scan or enter RFID number" required>
+                    </div>
+                </div>
+                <!-- RFID Number and Department -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label class="form-label">Department</label>
@@ -1087,6 +1082,70 @@
         box-shadow: 0 4px 12px rgba(192,57,43,0.35);
     }
 
+    /* Add Employee modal styling to match HR admin target layout */
+    #addEmployeeModal .add-employee-modal-content {
+        max-width: 760px;
+        border-radius: 8px;
+    }
+
+    #addEmployeeModal .add-employee-modal-header {
+        padding: 22px 26px;
+        border-bottom: none;
+        background: linear-gradient(135deg, #3e7c5f 0%, #5e9e7f 100%);
+    }
+
+    #addEmployeeModal .add-employee-modal-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #addEmployeeModal .add-employee-modal-body {
+        padding: 26px 28px 20px;
+        background: #f4f5f7;
+    }
+
+    #addEmployeeModal .form-row-modal {
+        gap: 22px;
+        margin-bottom: 18px;
+    }
+
+    #addEmployeeModal .full-width-row {
+        grid-template-columns: 1fr;
+    }
+
+    #addEmployeeModal .form-label {
+        margin-bottom: 10px;
+        color: #21374b;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    #addEmployeeModal .required-star {
+        color: #e75b69;
+        margin-left: 5px;
+    }
+
+    #addEmployeeModal .form-control-modal {
+        height: 50px;
+        padding: 0 14px;
+        border: 1px solid #ced7df;
+        border-radius: 8px;
+        background: #ffffff;
+        font-size: 1.02rem;
+    }
+
+    #addEmployeeModal select.form-control-modal {
+        padding-right: 36px;
+    }
+
+    #addEmployeeModal .modal-actions {
+        margin-top: 14px;
+        padding-top: 20px;
+    }
+
     @media (max-width: 600px) {
         .modal-content {
             width: 95%;
@@ -1212,6 +1271,7 @@
             document.getElementById('edit_last_name').value       = e.last_name     ?? '';
             document.getElementById('edit_email').value           = e.email         ?? '';
             document.getElementById('edit_phone').value           = e.phone         ?? '';
+            document.getElementById('edit_rfid_number').value     = e.rfid_number   ?? '';
             document.getElementById('edit_date_of_birth').value   = e.date_of_birth ?? '';
             document.getElementById('edit_date_of_joining').value = e.date_of_joining ?? '';
             document.getElementById('edit_department_id').value   = e.department_id ?? '';
@@ -1374,8 +1434,13 @@
         // Validate before submit
         const fnOk = validateSpecialChars(document.getElementById('first_name'), 'add_first_name_err', 'name');
         const lnOk = validateSpecialChars(document.getElementById('last_name'),  'add_last_name_err',  'name');
-        const phOk = validatePhilippinePhoneCreate(document.getElementById('phone'),      'add_phone_err');
-        if (!fnOk || !lnOk || !phOk) return;
+        const phoneOk = validateSpecialChars(document.getElementById('phone'), 'add_phone_err', 'phone');
+        const requiredFields = ['rfid_number', 'position', 'employee_type', 'date_of_birth', 'date_of_joining', 'status'];
+        const missingRequired = requiredFields.some(function(fieldId) {
+            const field = document.getElementById(fieldId);
+            return !field || field.value.trim() === '';
+        });
+        if (!fnOk || !lnOk || !phoneOk || missingRequired) return;
         
         const formData = new FormData(this);
         const errorDiv = document.getElementById('modalErrors');

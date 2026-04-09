@@ -194,6 +194,11 @@
     <form method="POST" action="<?= base_url('employee/store') ?>" id="employeeForm">
         <?= csrf_field() ?>
 
+        <?php
+        $employeePositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
+        $employeeTypeOptions = ['Manager', 'Employee'];
+        ?>
+
         <!-- First Name and Last Name Row -->
         <div class="form-row">
             <div class="form-group">
@@ -202,8 +207,8 @@
                        placeholder="Enter first name" required value="<?= old('first_name') ?>"
                        oninput="validateSpecialChars(this,'err_first_name','name')">
                 <span id="err_first_name" style="display:none;color:#dc3545;font-size:0.85rem;">First name cannot contain special characters.</span>
-                <?php if (has_error('first_name')): ?>
-                    <div class="error-text"><?= error('first_name') ?></div>
+                <?php if (service('validation')->hasError('first_name')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('first_name')) ?></div>
                 <?php endif; ?>
             </div>
             <div class="form-group">
@@ -212,67 +217,69 @@
                        placeholder="Enter last name" required value="<?= old('last_name') ?>"
                        oninput="validateSpecialChars(this,'err_last_name','name')">
                 <span id="err_last_name" style="display:none;color:#dc3545;font-size:0.85rem;">Last name cannot contain special characters.</span>
-                <?php if (has_error('last_name')): ?>
-                    <div class="error-text"><?= error('last_name') ?></div>
+                <?php if (service('validation')->hasError('last_name')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('last_name')) ?></div>
                 <?php endif; ?>
             </div>
         </div>
 
-        <!-- Email and Phone Row -->
+        <!-- RFID Number and Email Row -->
         <div class="form-row">
+            <div class="form-group">
+                <label for="rfid_number" class="form-label">RFID Number <span class="required-star">*</span></label>
+                <input type="text" class="form-control" id="rfid_number" name="rfid_number"
+                       placeholder="Enter RFID number" required value="<?= old('rfid_number') ?>">
+                <?php if (service('validation')->hasError('rfid_number')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('rfid_number')) ?></div>
+                <?php endif; ?>
+            </div>
             <div class="form-group">
                 <label for="email" class="form-label">Email <span class="required-star">*</span></label>
                 <input type="email" class="form-control" id="email" name="email" 
                        placeholder="Enter email address" required value="<?= old('email') ?>">
-                <?php if (has_error('email')): ?>
-                    <div class="error-text"><?= error('email') ?></div>
+                <?php if (service('validation')->hasError('email')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('email')) ?></div>
                 <?php endif; ?>
             </div>
-            <div class="form-group">
-                <label for="phone" class="form-label">Phone Number</label>
-                <input type="tel" class="form-control" id="phone" name="phone" 
-                       placeholder="Enter phone number" value="<?= old('phone') ?>"
-                       oninput="validateSpecialChars(this,'err_phone','phone')">
-                <span id="err_phone" style="display:none;color:#dc3545;font-size:0.85rem;">Phone cannot contain special characters.</span>
-            </div>
         </div>
 
-        <!-- Department Row -->
+        <!-- Phone Row -->
         <div class="form-row full">
             <div class="form-group">
-                <label for="department_id" class="form-label">Department</label>
-                <select class="form-control" id="department_id" name="department_id">
-                    <option value="">Select Department</option>
-                    <?php foreach ($departments as $dept): ?>
-                        <option value="<?= $dept->id ?>" <?= old('department_id') == $dept->id ? 'selected' : '' ?>>
-                            <?= esc($dept->name ?? 'N/A') ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phone" name="phone"
+                       placeholder="Enter phone number" value="<?= old('phone') ?>"
+                       oninput="validateSpecialChars(this,'err_phone','phone')">
+                <span id="err_phone" style="display:none;color:#dc3545;font-size:0.85rem;">Phone number can only contain digits and common separators.</span>
+                <?php if (service('validation')->hasError('phone')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('phone')) ?></div>
+                <?php endif; ?>
             </div>
         </div>
 
-        <!-- Position and Employment Type Row -->
+        <!-- Position and Type Row -->
         <div class="form-row">
             <div class="form-group">
-                <label for="role_id" class="form-label">Position</label>
-                <select class="form-control" id="role_id" name="role_id">
-                    <option value="">Select Position</option>
-                    <?php foreach ($roles as $pos): ?>
-                        <option value="<?= $pos->id ?>" <?= old('role_id') == $pos->id ? 'selected' : '' ?>>
-                            <?= esc($pos->name) ?>
+                <label for="position" class="form-label">Position <span class="required-star">*</span></label>
+                <select class="form-control" id="position" name="position" required>
+                    <option value="" disabled <?= old('position') ? '' : 'selected' ?>>Select position</option>
+                    <?php foreach ($employeePositionOptions as $option): ?>
+                        <option value="<?= esc($option) ?>" <?= old('position') === $option ? 'selected' : '' ?>>
+                            <?= esc($option) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
+
             <div class="form-group">
-                <label for="employment_type" class="form-label">Employment Type</label>
-                <select class="form-control" id="employment_type" name="employment_type">
-                    <option value="">Select Type</option>
-                    <option value="full_time" <?= old('employment_type') == 'full_time' ? 'selected' : '' ?>>Full-Time</option>
-                    <option value="part_time" <?= old('employment_type') == 'part_time' ? 'selected' : '' ?>>Part-Time</option>
-                    <option value="contractual" <?= old('employment_type') == 'contractual' ? 'selected' : '' ?>>Contractual</option>
-                    <option value="probationary" <?= old('employment_type') == 'probationary' ? 'selected' : '' ?>>Probationary</option>
+                <label for="employee_type" class="form-label">Type <span class="required-star">*</span></label>
+                <select class="form-control" id="employee_type" name="employee_type" required>
+                    <option value="" disabled <?= old('employee_type') ? '' : 'selected' ?>>Select type</option>
+                    <?php foreach ($employeeTypeOptions as $option): ?>
+                        <option value="<?= esc($option) ?>" <?= old('employee_type') === $option ? 'selected' : '' ?>>
+                            <?= esc($option) ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
         </div>
@@ -280,45 +287,28 @@
         <!-- Date of Birth and Date Hired Row -->
         <div class="form-row">
             <div class="form-group">
-                <label for="date_of_birth" class="form-label">Date of Birth</label>
-                <input type="date" class="form-control <?= has_error('date_of_birth') ? 'is-invalid' : '' ?>" id="date_of_birth" name="date_of_birth" 
+                <label for="date_of_birth" class="form-label">Date of Birth <span class="required-star">*</span></label>
+                <input type="date" class="form-control <?= service('validation')->hasError('date_of_birth') ? 'is-invalid' : '' ?>" id="date_of_birth" name="date_of_birth" 
+                       required
                        value="<?= old('date_of_birth') ?>">
-                <?php if (has_error('date_of_birth')): ?>
-                    <div class="error-text"><?= error('date_of_birth') ?></div>
+                <?php if (service('validation')->hasError('date_of_birth')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('date_of_birth')) ?></div>
                 <?php endif; ?>
             </div>
             <div class="form-group">
-                <label for="date_of_joining" class="form-label">Date Hired <span class="required-star">*</span></label>
+                <label for="date_of_joining" class="form-label">Date of Hired <span class="required-star">*</span></label>
                 <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" 
                        required value="<?= old('date_of_joining', date('Y-m-d')) ?>">
-                <?php if (has_error('date_of_joining')): ?>
-                    <div class="error-text"><?= error('date_of_joining') ?></div>
+                <?php if (service('validation')->hasError('date_of_joining')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('date_of_joining')) ?></div>
                 <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Salary Rate and Rate Type Row -->
-        <div class="form-row">
-            <div class="form-group">
-                <label for="rate" class="form-label">Salary Rate</label>
-                <input type="number" class="form-control" id="rate" name="rate"
-                       placeholder="0.00" min="0" step="0.01" value="<?= old('rate') ?>">
-            </div>
-            <div class="form-group">
-                <label for="rate_type" class="form-label">Rate Type</label>
-                <select class="form-control" id="rate_type" name="rate_type">
-                    <option value="">Select Rate Type</option>
-                    <option value="hourly" <?= old('rate_type') == 'hourly' ? 'selected' : '' ?>>Hourly</option>
-                    <option value="daily" <?= old('rate_type') == 'daily' ? 'selected' : '' ?>>Daily</option>
-                    <option value="monthly" <?= old('rate_type') == 'monthly' ? 'selected' : '' ?>>Monthly</option>
-                </select>
             </div>
         </div>
 
         <!-- Status -->
         <div class="form-row full">
             <div class="form-group">
-                <label for="status" class="form-label">Status</label>
+                <label for="status" class="form-label">Status <span class="required-star">*</span></label>
                 <select class="form-control" id="status" name="status">
                     <option value="active" <?= old('status') == 'active' ? 'selected' : '' ?>>Active</option>
                     <option value="inactive" <?= old('status') == 'inactive' ? 'selected' : '' ?>>Inactive</option>
@@ -360,8 +350,13 @@ function validateSpecialChars(input, errId, type) {
 document.getElementById('employeeForm').addEventListener('submit', function(e) {
     const fnOk = validateSpecialChars(document.getElementById('first_name'), 'err_first_name', 'name');
     const lnOk = validateSpecialChars(document.getElementById('last_name'),  'err_last_name',  'name');
-    const phOk = validateSpecialChars(document.getElementById('phone'),      'err_phone',      'phone');
-    if (!fnOk || !lnOk || !phOk) e.preventDefault();
+    const phOk = validateSpecialChars(document.getElementById('phone'), 'err_phone', 'phone');
+    const requiredFields = ['rfid_number', 'position', 'employee_type', 'date_of_birth', 'date_of_joining', 'status'];
+    const missingRequired = requiredFields.some(function(fieldId) {
+        const field = document.getElementById(fieldId);
+        return !field || field.value.trim() === '';
+    });
+    if (!fnOk || !lnOk || !phOk || missingRequired) e.preventDefault();
 });
 </script>
 

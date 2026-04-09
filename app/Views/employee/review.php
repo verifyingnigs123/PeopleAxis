@@ -305,6 +305,10 @@
             <span class="detail-value"><?= esc($employee->email) ?></span>
         </div>
         <div class="detail-row">
+            <span class="detail-label">RFID Number</span>
+            <span class="detail-value"><?= esc($employee->rfid_number ?? 'N/A') ?></span>
+        </div>
+        <div class="detail-row">
             <span class="detail-label">Phone Number</span>
             <span class="detail-value"><?= esc($employee->phone ?? 'N/A') ?></span>
         </div>
