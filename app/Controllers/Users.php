@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\EmployeeModel;
+use App\Models\DepartmentModel;
+use App\Models\NotificationModel;
 use App\Models\PositionModel;
 use App\Models\UserModel;
 use App\Controllers\Audit;
@@ -11,6 +13,8 @@ class Users extends BaseController
 {
     protected $userModel;
     protected $employeeModel;
+    protected $departmentModel;
+    protected $notificationModel;
     protected $positionModel;
 
     private const ROLE_NAME_TO_SLUG = [
@@ -24,6 +28,8 @@ class Users extends BaseController
     {
         $this->userModel = new UserModel();
         $this->employeeModel = new EmployeeModel();
+        $this->departmentModel = new DepartmentModel();
+        $this->notificationModel = new NotificationModel();
         $this->positionModel = new PositionModel();
     }
 
@@ -152,6 +158,7 @@ class Users extends BaseController
             $employeeEmailMap[$emp['email']] = $emp;
         }
         $data['employeeEmailMap'] = $employeeEmailMap;
+        $data['departments'] = $this->departmentModel->getActiveDepartments();
 
         return view('auth/users', $data);
     }
@@ -168,6 +175,7 @@ class Users extends BaseController
             'phone'          => 'permit_empty|max_length[20]',
             'rfid_number'    => 'required|max_length[100]|is_unique[employees.rfid_number]',
             'position'       => 'required|in_list[Front Counter,Kitchen/Prep,Drive-Thru,Dining Room]',
+            'department_id'  => 'permit_empty|numeric',
             'role_id'        => 'required|numeric',
             'date_of_birth'  => 'required|valid_date',
             'date_of_joining'=> 'required|valid_date',
@@ -191,12 +199,12 @@ class Users extends BaseController
         $rfidNumber = trim((string) $this->request->getPost('rfid_number'));
         $positionName = trim((string) $this->request->getPost('position'));
         $positionId = $this->resolvePositionIdByName($positionName);
+        $departmentId = (int) ($this->request->getPost('department_id') ?? 0);
         $roleId = (int) $this->request->getPost('role_id');
         $dateOfBirth = trim((string) $this->request->getPost('date_of_birth'));
         $dateOfJoining = trim((string) $this->request->getPost('date_of_joining'));
         $isActive = (int) $this->request->getPost('is_active');
         $generatedPassword = bin2hex(random_bytes(8));
-        $hashedPassword = password_hash($generatedPassword, PASSWORD_BCRYPT);
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -204,7 +212,7 @@ class Users extends BaseController
         $userId = $this->userModel->insert([
             'name'       => $name,
             'email'      => $this->request->getPost('email'),
-            'password'   => $hashedPassword,
+            'password'   => $generatedPassword,
             'role'       => $this->getRoleSlugByRoleId($roleId),
             'role_id'    => $roleId,
             'is_active'  => $isActive,
@@ -212,13 +220,21 @@ class Users extends BaseController
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $this->employeeModel->skipValidation(true)->insert([
+        if (!$userId) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('errors',
+                $this->userModel->errors() ?: ['store' => 'Unable to create user account.']
+            );
+        }
+
+        $employeeInsertResult = $this->employeeModel->skipValidation(true)->insert([
             'employee_id'     => $this->generateEmployeeId(),
             'first_name'      => $firstName !== '' ? $firstName : $name,
             'last_name'       => $lastName,
             'email'           => $this->request->getPost('email'),
             'phone'           => $phone,
             'rfid_number'     => $rfidNumber,
+            'department_id'   => $departmentId > 0 ? $departmentId : null,
             'position_id'     => $positionId,
             'role_id'         => $roleId,
             'date_of_birth'   => $dateOfBirth,
@@ -231,6 +247,14 @@ class Users extends BaseController
             'updated_at'      => date('Y-m-d H:i:s'),
         ]);
 
+        if (!$employeeInsertResult) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('errors',
+                $this->employeeModel->errors() ?: ['store' => 'Unable to create employee record.']
+            );
+        }
+        $newEmployeeId = (int) $this->employeeModel->getInsertID();
+
         $db->transComplete();
 
         if (! $db->transStatus()) {
@@ -239,11 +263,36 @@ class Users extends BaseController
             ]);
         }
 
+        // Notify all active Super Admins that a new employee account is waiting for approval.
+        $actorName = session()->get('name') ?? session()->get('username') ?? 'HR Admin';
+        $dbNotif = \Config\Database::connect();
+        $superAdminRole = $dbNotif->table('roles')->where('name', 'Super Admin')->get()->getRow();
+        if ($superAdminRole && $newEmployeeId > 0) {
+            $superAdmins = $this->userModel
+                ->where('role_id', $superAdminRole->id)
+                ->where('is_active', 1)
+                ->findAll();
+
+            foreach ($superAdmins as $superAdmin) {
+                $this->notificationModel->insert([
+                    'user_id' => $superAdmin->id,
+                    'role'    => 'Super Admin',
+                    'title'   => 'New Employee Awaiting Approval',
+                    'message' => "HR Admin {$actorName} added '{$firstName} {$lastName}' and submitted the account for your approval.",
+                    'status'  => 'unread',
+                    'type'    => 'warning',
+                    'icon'    => 'fas fa-user-check',
+                    'link'    => site_url('employee/review/' . $newEmployeeId),
+                    'is_read' => false,
+                ]);
+            }
+        }
+
         // Log audit
         $userId = session()->get('user_id');
         Audit::log($userId, 'CREATE', 'User', 'Created user: ' . esc($name) . ' (' . esc($this->request->getPost('email')) . ')');
 
-        return redirect()->to('/users')->with('success', 'User created successfully!');
+        return redirect()->to('/users')->with('success', 'User created successfully. Super Admin has been notified for approval.');
     }
 
     public function edit($id)
