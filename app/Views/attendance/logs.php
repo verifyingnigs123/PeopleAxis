@@ -265,12 +265,11 @@
                     <tr>
                         <th>#</th>
                         <th>Employee</th>
+                        <th>RFID Number</th>
                         <th>Date</th>
-                        <th>Check-In Time</th>
-                        <th>Check-Out Time</th>
+                        <th>Time In</th>
+                        <th>Time Out</th>
                         <th>Status</th>
-                        <th>Duration</th>
-                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -282,21 +281,22 @@
                                 <br>
                                 <small style="color: #7f8c8d;"><?= esc($record->employee_id ?? 'N/A') ?></small>
                             </td>
+                            <td><?= esc($record->rfid_number ?? 'N/A') ?></td>
                             <td>
-                                <strong><?= date('M d, Y', strtotime($record->attendance_date ?? now())) ?></strong>
+                                <strong><?= !empty($record->date) ? date('M d, Y', strtotime($record->date)) : 'N/A' ?></strong>
                                 <br>
-                                <small style="color: #7f8c8d;"><?= date('l', strtotime($record->attendance_date ?? now())) ?></small>
+                                <small style="color: #7f8c8d;"><?= !empty($record->date) ? date('l', strtotime($record->date)) : 'N/A' ?></small>
                             </td>
                             <td>
-                                <?php if ($record->check_in_time): ?>
-                                    <span class="time-badge"><?= date('H:i', strtotime($record->check_in_time)) ?></span>
+                                <?php if (!empty($record->time_in)): ?>
+                                    <span class="time-badge"><?= date('H:i', strtotime($record->time_in)) ?></span>
                                 <?php else: ?>
                                     <span style="color: #95a5a6;">-</span>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if ($record->check_out_time): ?>
-                                    <span class="time-badge"><?= date('H:i', strtotime($record->check_out_time)) ?></span>
+                                <?php if (!empty($record->time_out)): ?>
+                                    <span class="time-badge"><?= date('H:i', strtotime($record->time_out)) ?></span>
                                 <?php else: ?>
                                     <span style="color: #95a5a6;">-</span>
                                 <?php endif; ?>
@@ -312,21 +312,6 @@
                                     };
                                 ?>
                                 <span class="badge <?= $statusBadge ?>"><?= ucfirst($status) ?></span>
-                            </td>
-                            <td>
-                                <?php
-                                    if ($record->check_in_time && $record->check_out_time) {
-                                        $start = strtotime($record->check_in_time);
-                                        $end = strtotime($record->check_out_time);
-                                        $duration = round(($end - $start) / 3600, 1);
-                                        echo '<strong>' . $duration . ' hrs</strong>';
-                                    } else {
-                                        echo '<span style="color: #95a5a6;">-</span>';
-                                    }
-                                ?>
-                            </td>
-                            <td>
-                                <small><?= esc($record->notes ?? '-') ?></small>
                             </td>
                         </tr>
                     <?php endforeach; ?>
