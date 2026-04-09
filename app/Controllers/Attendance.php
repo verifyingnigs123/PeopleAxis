@@ -135,10 +135,10 @@ class Attendance extends BaseController
 
         try {
             $attendance = $this->attendanceModel
-                ->select("attendance.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id")
-                ->join('employees', 'employees.id = attendance.employee_id', 'left')
-                ->orderBy('attendance.date', 'DESC')
-                ->orderBy('attendance.time_in', 'DESC')
+                ->select("attendance_logs.*, CONCAT(employees.first_name, ' ', employees.last_name) as employee_name, employees.employee_id")
+                ->join('employees', 'employees.id = attendance_logs.employee_id', 'left')
+                ->orderBy('attendance_logs.date', 'DESC')
+                ->orderBy('attendance_logs.time_in', 'DESC')
                 ->paginate(50);
 
             $data['attendance'] = $attendance;
@@ -149,6 +149,70 @@ class Attendance extends BaseController
             log_message('error', 'Attendance logs error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Unable to load attendance logs');
         }
+    }
+
+    /**
+     * RFID attendance scanner page.
+     */
+    public function scanner()
+    {
+        if (! session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        return view('attendance/rfid_scanner');
+    }
+
+    /**
+     * Process an RFID scan and record attendance.
+     */
+    public function scan()
+    {
+        if (! $this->request->is('post')) {
+            return redirect()->to('/attendance/scanner');
+        }
+
+        $rfidNumber = trim((string) $this->request->getPost('rfid_number'));
+        if ($rfidNumber === '') {
+            return redirect()->to('/attendance/scanner')->with('error', 'RFID not recognized. Please contact HR.');
+        }
+
+        $employee = $this->employeeModel
+            ->where('rfid_number', $rfidNumber)
+            ->first();
+
+        if (! $employee) {
+            return redirect()->to('/attendance/scanner')->with('error', 'RFID not recognized. Please contact HR.');
+        }
+
+        $now = new \DateTimeImmutable('now');
+        $date = $now->format('Y-m-d');
+        $time = $now->format('H:i:s');
+        $existing = $this->attendanceModel
+            ->where('employee_id', $employee->id)
+            ->where('date', $date)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        if (! $existing) {
+            $this->attendanceModel->insert([
+                'employee_id' => $employee->id,
+                'rfid_number' => $rfidNumber,
+                'date'        => $date,
+                'time_in'     => $time,
+                'time_out'    => null,
+                'status'      => (strtotime($time) > strtotime('08:00:00')) ? 'Late' : 'Present',
+            ]);
+        } elseif (empty($existing->time_out)) {
+            $this->attendanceModel->update($existing->id, [
+                'rfid_number' => $rfidNumber,
+                'time_out'    => $time,
+            ]);
+        } else {
+            return redirect()->to('/attendance/scanner')->with('error', 'Attendance already completed for today.');
+        }
+
+        return redirect()->to('/attendance/scanner')->with('success', 'Attendance Recorded Successfully');
     }
 
     /**

@@ -12,7 +12,7 @@ class AttendanceModel extends Model
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['employee_id', 'date', 'time_in', 'time_out', 'status'];
+    protected $allowedFields    = ['employee_id', 'rfid_number', 'date', 'time_in', 'time_out', 'status'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -20,9 +20,9 @@ class AttendanceModel extends Model
     protected $updatedField  = 'updated_at';
 
     protected $validationRules = [
-        'employee_id'     => 'required|integer',
-        'attendance_date' => 'required|valid_date',
-        'status'          => 'required',
+        'employee_id' => 'required|integer',
+        'date'        => 'required|valid_date',
+        'status'      => 'required',
     ];
 
     public function getEmployeeAttendance($employeeId, $month = null)
