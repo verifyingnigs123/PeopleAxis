@@ -357,6 +357,7 @@ class Employees extends BaseController
             'email'           => 'required|valid_email|is_unique[employees.email]',
             'phone'           => 'permit_empty|max_length[20]',
             'rfid_number'     => 'required|max_length[100]|is_unique[employees.rfid_number]',
+            'department_id'   => 'permit_empty|numeric',
             'position'        => 'required|in_list[Front Counter,Kitchen/Prep,Drive-Thru,Dining Room]',
             'employee_type'   => 'required|in_list[Manager,Employee]',
             'date_of_birth'   => 'required|valid_date',
@@ -434,6 +435,7 @@ class Employees extends BaseController
 
         $dateHired = trim($this->request->getPost('date_of_joining') ?? '');
         $rfidNumber = trim($this->request->getPost('rfid_number') ?? '');
+        $departmentId = (int) ($this->request->getPost('department_id') ?? 0);
         $positionName = trim((string) $this->request->getPost('position'));
         $employeeType = trim((string) $this->request->getPost('employee_type'));
         $positionId = $this->resolvePositionId($positionName);
@@ -445,6 +447,7 @@ class Employees extends BaseController
             'email'           => trim($this->request->getPost('email')),
             'phone'           => $phone ?: null,
             'rfid_number'     => $rfidNumber,
+            'department_id'   => $departmentId > 0 ? $departmentId : null,
             'position_id'     => $positionId,
             'role_id'         => $roleId,
             'date_of_birth'   => $dateOfBirth,
@@ -1615,6 +1618,7 @@ class Employees extends BaseController
 
             // Notify HR Admin
             if ($hrAdminRole) {
+                $superAdminName = session()->get('name') ?? session()->get('username') ?? 'Super Admin';
                 $hrAdmins = $this->userModel
                     ->where('role_id', $hrAdminRole->id)
                     ->where('is_active', 1)
@@ -1625,7 +1629,7 @@ class Employees extends BaseController
                         'user_id' => $hrAdmin->id,
                         'role'    => 'HR Admin',
                         'title'   => 'Employee Account Approved',
-                        'message' => "The employee account for '{$employee->first_name} {$employee->last_name}' has been approved by Super Admin. Account credentials have been sent to their email.",
+                        'message' => "Super Admin {$superAdminName} approved '{$employee->first_name} {$employee->last_name}' (ID: {$employee->employee_id}). Account credentials were sent to the employee email.",
                         'status'  => 'unread',
                         'type'    => 'success',
                         'icon'    => 'fas fa-check-circle',
