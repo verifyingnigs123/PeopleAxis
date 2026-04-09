@@ -67,23 +67,53 @@ class Auth extends BaseController
             return redirect()->to('/login')->with('error', 'Invalid email or password');
         }
 
-        // Determine role name
-        $roleName = $this->userModel->getRoleName($user->id) ?? ($user->role ?? '');
+        // Determine role name and slug (role slug is source-of-truth when present).
+        $roleName = $this->userModel->getRoleName($user->id) ?? '';
+        $storedRoleSlug = strtolower((string) ($user->role ?? ''));
 
-        // Map human role to short slug for existing views
+        // Map canonical DB role slugs into legacy session role values used by existing checks.
         $roleSlug = 'user';
-        switch ($roleName) {
-            case 'Super Admin':
+        switch ($storedRoleSlug) {
+            case 'super_admin':
                 $roleSlug = 'admin';
+                if ($roleName === '') {
+                    $roleName = 'Super Admin';
+                }
                 break;
-            case 'HR Admin':
+            case 'hr_admin':
                 $roleSlug = 'hr';
+                if ($roleName === '') {
+                    $roleName = 'HR Admin';
+                }
                 break;
-            case 'Manager':
+            case 'manager':
                 $roleSlug = 'manager';
+                if ($roleName === '') {
+                    $roleName = 'Manager';
+                }
+                break;
+            case 'employee':
+                $roleSlug = 'user';
+                if ($roleName === '') {
+                    $roleName = 'Employee';
+                }
                 break;
             default:
-                $roleSlug = 'user';
+                // Fallback for legacy records that only have role_id/role_name.
+                switch ($roleName) {
+                    case 'Super Admin':
+                        $roleSlug = 'admin';
+                        break;
+                    case 'HR Admin':
+                        $roleSlug = 'hr';
+                        break;
+                    case 'Manager':
+                        $roleSlug = 'manager';
+                        break;
+                    default:
+                        $roleSlug = 'user';
+                        $roleName = $roleName !== '' ? $roleName : 'Employee';
+                }
         }
 
         // Create session
@@ -128,6 +158,7 @@ class Auth extends BaseController
             'username' => $username,
             'password' => $password,
             'name'     => $name,
+            'role'     => 'employee',
             'role_id'  => $role->id ?? null,
         ];
 

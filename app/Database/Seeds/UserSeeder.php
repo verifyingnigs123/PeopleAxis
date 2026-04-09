@@ -24,6 +24,7 @@ class UserSeeder extends Seeder
                 'email' => 'superadmin@peopleaxis.com',
                 'password' => 'SuperAdmin123!',
                 'name' => 'Super Admin',
+                'role' => 'super_admin',
                 'role_id' => $roleMap['Super Admin'] ?? null,
             ],
             [
@@ -31,6 +32,7 @@ class UserSeeder extends Seeder
                 'email' => 'hradmin@peopleaxis.com',
                 'password' => 'HrAdmin123!',
                 'name' => 'HR Admin',
+                'role' => 'hr_admin',
                 'role_id' => $roleMap['HR Admin'] ?? null,
             ],
             [
@@ -38,6 +40,7 @@ class UserSeeder extends Seeder
                 'email' => 'manager@peopleaxis.com',
                 'password' => 'Manager123!',
                 'name' => 'Manager',
+                'role' => 'manager',
                 'role_id' => $roleMap['Manager'] ?? null,
             ],
             [
@@ -45,6 +48,7 @@ class UserSeeder extends Seeder
                 'email' => 'employee@peopleaxis.com',
                 'password' => 'Employee123!',
                 'name' => 'Employee',
+                'role' => 'employee',
                 'role_id' => $roleMap['Employee'] ?? null,
             ],
         ];
@@ -73,6 +77,11 @@ class UserSeeder extends Seeder
 
                 if (($exists->name ?? '') !== ($u['name'] ?? '')) {
                     $patch['name'] = $u['name'];
+                    $needsUpdate = true;
+                }
+
+                if (($exists->role ?? '') !== ($u['role'] ?? '')) {
+                    $patch['role'] = $u['role'];
                     $needsUpdate = true;
                 }
 
