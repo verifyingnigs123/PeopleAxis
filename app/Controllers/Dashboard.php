@@ -6,6 +6,7 @@ use App\Models\UserModel;
 use App\Models\EmployeeModel;
 use App\Models\AttendanceModel;
 use App\Models\LeaveModel;
+use Config\Database;
 
 class Dashboard extends BaseController
 {
@@ -38,6 +39,29 @@ class Dashboard extends BaseController
                 $data['totalEmployees'] = $employeeModel->countAllResults();
                 $data['pendingLeaves'] = $leaveModel->where('status', 'pending')->countAllResults();
                 $data['attendanceSummary'] = $attendanceModel->getSummary();
+
+                $statusCounts = [
+                    'pending'  => 0,
+                    'approved' => 0,
+                    'rejected' => 0,
+                ];
+
+                $statusRows = Database::connect()
+                    ->table('employees')
+                    ->select('LOWER(account_status) as account_status, COUNT(*) as total', false)
+                    ->whereIn('account_status', ['pending', 'approved', 'rejected'])
+                    ->groupBy('account_status')
+                    ->get()
+                    ->getResultArray();
+
+                foreach ($statusRows as $row) {
+                    $status = strtolower((string) ($row['account_status'] ?? ''));
+                    if (array_key_exists($status, $statusCounts)) {
+                        $statusCounts[$status] = (int) ($row['total'] ?? 0);
+                    }
+                }
+
+                $data['employeeAccountStatusCounts'] = $statusCounts;
                 break;
 
             case 'Manager':

@@ -1,4 +1,11 @@
-<?php $role = session()->get('role') ?? ''; $roleName = session()->get('role_name') ?? ''; ?>
+<?php
+$role = strtolower((string) (session()->get('role') ?? ''));
+$roleName = strtolower((string) (session()->get('role_name') ?? ''));
+$isSuperAdmin = in_array($role, ['admin', 'super_admin'], true) || $roleName === 'super admin';
+$isHRAdmin = in_array($role, ['hr', 'hr_admin'], true) || $roleName === 'hr admin';
+$isEmployee = in_array($role, ['user', 'employee'], true) || $roleName === 'employee';
+$canManageUsers = $isSuperAdmin || $isHRAdmin;
+?>
 
 <style>
     .layout-container {
@@ -508,7 +515,7 @@
 <!-- ===== MAIN CONTENT LAYOUT ===== -->
 <div class="layout-container">
 
-    <?php if ($role === 'user'): ?>
+    <?php if ($isEmployee): ?>
         <!-- ===== EMPLOYEE SIDEBAR ===== -->
         <aside class="sidebar">
             <nav>
@@ -549,8 +556,8 @@
             </nav>
         </aside>
 
-    <?php elseif ($role === 'admin'): ?>
-        <!-- ===== SUPER ADMIN SIDEBAR ===== -->
+    <?php elseif ($isSuperAdmin || $isHRAdmin): ?>
+        <!-- ===== ADMIN SIDEBAR (SUPER ADMIN / HR ADMIN) ===== -->
         <aside class="sidebar">
             <nav>
                 <!-- Dashboard -->
@@ -563,49 +570,37 @@
                 <!-- User Management Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">User Management</div>
+                    <?php if ($canManageUsers): ?>
                     <a href="<?= base_url('users') ?>" class="sidebar-link">
-                        <i class="fas fa-users"></i> Manage Users
+                        <i class="fas fa-users-cog"></i> Manage Users
+                    </a>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Employees Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Employees</div>
+                    <a href="<?= base_url('employees') ?>" class="sidebar-link">
+                        <i class="fas fa-id-badge"></i> Employees
                     </a>
                 </div>
 
-                <!-- System Configuration Section -->
+                <!-- Attendance Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">System</div>
-                    <a href="<?= base_url('settings') ?>" class="sidebar-link">
-                        <i class="fas fa-cog"></i> Configure System Settings
+                    <div class="sidebar-section-title">Attendance</div>
+                    <a href="<?= base_url('attendance') ?>" class="sidebar-link">
+                        <i class="fas fa-calendar-check"></i> Attendance
                     </a>
-                    <a href="<?= base_url('activity-logs') ?>" class="sidebar-link">
-                        <i class="fas fa-history"></i> View Audit Logs
-                    </a>
-                </div>
-
-                <!-- Biometric Management Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Biometric</div>
-                    <a href="<?= base_url('biometric/connect') ?>" class="sidebar-link">
-                        <i class="fas fa-link"></i> Connect & Sync Device
-                    </a>
-                    <form action="<?= base_url('biometric/manual-sync') ?>" method="post" class="sidebar-sync-form">
-                        <?= csrf_field() ?>
-                        <button type="submit" title="Sync biometric device logs">
-                            <i class="fas fa-sync-alt"></i> Sync Device
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Salary Management Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Salary</div>
-                    <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
-                        <i class="fas fa-dollar-sign"></i> Edit Employee Salary Rates
+                    <a href="<?= base_url('attendance/scanner') ?>" class="sidebar-link">
+                        <i class="fas fa-id-card"></i> RFID Scanner
                     </a>
                 </div>
 
-                <!-- Employee Approvals Section -->
+                <!-- Leave Requests Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">Employee Approvals</div>
-                    <a href="<?= base_url('employee/pending-approvals') ?>" class="sidebar-link">
-                        <i class="fas fa-user-check"></i> Pending &amp; Rejected
+                    <div class="sidebar-section-title">Leave Requests</div>
+                    <a href="<?= base_url('leaves') ?>" class="sidebar-link">
+                        <i class="fas fa-clipboard-list"></i> Leave Requests
                     </a>
                 </div>
 
@@ -613,73 +608,16 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Reports</div>
                     <a href="<?= base_url('reports') ?>" class="sidebar-link">
-                        <i class="fas fa-file-pdf"></i> View All Reports
+                        <i class="fas fa-file-alt"></i> Reports
                     </a>
                 </div>
-            </nav>
-        </aside>
 
-    <?php elseif ($role === 'hr'): ?>
-        <!-- ===== HR ADMIN SIDEBAR ===== -->
-        <aside class="sidebar">
-            <nav>
-                <!-- Dashboard -->
+                <!-- Profile Section -->
                 <div class="sidebar-section">
-                    <a href="<?= base_url('dashboard') ?>" class="sidebar-link">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    <div class="sidebar-section-title">Profile</div>
+                    <a href="<?= base_url('profile') ?>" class="sidebar-link">
+                        <i class="fas fa-user"></i> Profile
                     </a>
-                </div>
-
-                <!-- Employee Records Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Employees</div>
-                    <a href="<?= base_url('employees') ?>" class="sidebar-link">
-                        <i class="fas fa-users"></i> Manage Employee Records
-                    </a>
-                    <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
-                        <i class="fas fa-money-bill"></i> View Employee Salary Rate
-                    </a>
-                </div>
-
-                <!-- Attendance Section - BIOMETRIC LOGS LINK -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Attendance</div>
-                    <a class="sidebar-link" href="<?= base_url('biometric/logs') ?>">
-                        <i class="fas fa-fingerprint"></i> View Biometric Logs
-                    </a>
-                </div>
-
-                <!-- Leave Approvals Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Leave Requests</div>
-                    <a class="sidebar-link" href="<?= base_url('leaves') ?>">
-                        <i class="fas fa-calendar-check"></i> Approve & Manage Leaves
-                    </a>
-                </div>
-
-                <!-- Reports Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Reports</div>
-                    <a class="sidebar-link" href="<?= base_url('reports/attendance') ?>">
-                        <i class="fas fa-file-alt"></i> Generate Attendance Reports
-                    </a>
-                </div>
-
-                <!-- Biometric Sync Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Sync</div>
-                    <form action="<?= base_url('biometric/manual-sync') ?>" method="post" class="sidebar-sync-form">
-                        <?= csrf_field() ?>
-                        <button type="submit" title="Sync biometric logs from device">
-                            <i class="fas fa-sync-alt"></i> Sync Biometric Logs
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Restrictions Note -->
-                <div class="permission-note">
-                    <i class="fas fa-ban"></i>
-                    <span>Cannot change system configuration</span>
                 </div>
             </nav>
         </aside>
@@ -722,7 +660,7 @@
                 <!-- Restrictions Note -->
                 <div class="permission-note">
                     <i class="fas fa-lock"></i>
-                    <span>Cannot access salary rates or biometric sync</span>
+                    <span>Cannot access salary rates or scanner settings</span>
                 </div>
             </nav>
         </aside>

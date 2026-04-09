@@ -407,9 +407,19 @@
             <a href="<?= base_url('employees') ?>" class="btn btn-outline-primary">Employees</a>
         </div>
         <div class="action-card">
+            <i class="fas fa-users-cog"></i>
+            <h3>Manage Users</h3>
+            <p>
+                Pending: <?= $employeeAccountStatusCounts['pending'] ?? 0 ?>,
+                Approved: <?= $employeeAccountStatusCounts['approved'] ?? 0 ?>,
+                Rejected: <?= $employeeAccountStatusCounts['rejected'] ?? 0 ?>
+            </p>
+            <a href="<?= base_url('users') ?>" class="btn btn-outline-primary">Open Users</a>
+        </div>
+        <div class="action-card">
             <i class="fas fa-clock"></i>
             <h3>Attendance Logs</h3>
-            <p>View biometric attendance logs</p>
+            <p>View RFID attendance logs</p>
             <a href="<?= base_url('attendance/logs') ?>" class="btn btn-outline-primary">View Logs</a>
         </div>
         <div class="action-card">
@@ -420,12 +430,9 @@
         </div>
         <div class="action-card">
             <i class="fas fa-sync"></i>
-            <h3>Sync Biometric</h3>
-            <p>Manually sync biometric device logs</p>
-            <form action="<?= base_url('biometric/manual-sync') ?>" method="post" style="display:inline-block">
-                <?= csrf_field() ?>
-                <button class="btn btn-outline-primary">Sync</button>
-            </form>
+            <h3>RFID Scanner</h3>
+            <p>Open the RFID attendance scanner</p>
+            <a href="<?= base_url('attendance/scanner') ?>" class="btn btn-outline-primary">Open Scanner</a>
         </div>
     </div>
 

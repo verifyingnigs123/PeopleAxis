@@ -82,10 +82,9 @@ $routes->get('/attendance', 'Attendance::index');
 $routes->get('/attendance/logs', 'Attendance::logs');
 $routes->get('/attendance/team', 'Attendance::team');
 
-// Biometric routes
-$routes->get('/biometric/logs', 'Biometric::logs');
-$routes->get('/biometric/connect', 'Biometric::connect');
-$routes->post('/biometric/manual-sync', 'Biometric::manualSync');
+// RFID attendance routes
+$routes->get('/attendance/scanner', 'Attendance::scanner');
+$routes->post('/attendance/scan', 'Attendance::scan');
 
 // Activity Logs / Audit routes
 $routes->get('/activity-logs', 'Audit::index');
