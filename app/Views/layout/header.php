@@ -778,26 +778,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== Dashboard Navigation =====
     function setupSidebarNavigation() {
-        const sidebarLinks = document.querySelectorAll('.sidebar-link');
-        
-        sidebarLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                // Allow form submissions
-                if (this.tagName === 'FORM') return;
-                
-                // For regular links, add active class
-                sidebarLinks.forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
-
-                if (window.innerWidth <= 768) {
-                    const sidebar = document.querySelector('.sidebar');
-                    if (sidebar) {
-                        sidebar.classList.remove('open');
-                        document.body.style.overflow = 'auto';
-                    }
-                }
-            });
-        });
+        // Active link highlighting is handled by setActiveLink()
+        // No need for click handlers here as global navigation handler in template manages loading states
     }
 
     // ===== Mobile Sidebar Toggle =====

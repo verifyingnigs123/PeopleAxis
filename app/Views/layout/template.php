@@ -278,6 +278,46 @@
         .loading-spinner.active {
             display: flex;
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(240, 247, 242, 0.95);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: var(--pa-text);
+        }
+
+        .loading-content i {
+            font-size: 2rem;
+            color: var(--pa-primary);
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-content p {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <?php
@@ -289,6 +329,14 @@
     ], true);
 ?>
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <i class="fas fa-circle-notch"></i>
+            <p>Loading...</p>
+        </div>
+    </div>
+    
     <?php if (! $hideSharedNavigation): ?>
         <?= $this->include('layout/header') ?>
     <?php endif; ?>
@@ -302,6 +350,67 @@
     
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+
+    <script>
+        // Global loading overlay management
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        function showLoading() {
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('active');
+            }
+        }
+        
+        function hideLoading() {
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('active');
+            }
+        }
+        
+        // Show loading on page navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle all internal links
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a[href]');
+                if (link && link.href && link.href.startsWith(window.location.origin) && !link.hasAttribute('download') && !link.getAttribute('target')) {
+                    // Don't show loading for anchor links on same page
+                    if (link.getAttribute('href').startsWith('#')) return;
+                    
+                    // Don't show loading for external links or downloads
+                    e.preventDefault();
+                    showLoading();
+                    
+                    // Small delay to ensure overlay is visible before navigation
+                    setTimeout(() => {
+                        window.location.href = link.href;
+                    }, 50);
+                }
+            });
+            
+            // Handle form submissions
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (form && form.method !== 'get') {
+                    showLoading();
+                }
+            });
+            
+            // Hide loading when page is fully loaded
+            window.addEventListener('load', function() {
+                hideLoading();
+            });
+            
+            // Hide loading on page unload (navigation away)
+            window.addEventListener('beforeunload', function() {
+                showLoading();
+            });
+            
+            // Hide loading when back/forward buttons are used
+            window.addEventListener('popstate', function() {
+                hideLoading();
+            });
+        });
+    </script>
 
     <?= $this->renderSection('scripts') ?>
 </body>
