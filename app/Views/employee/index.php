@@ -701,6 +701,25 @@
                     </div>
                 </div>
 
+                <!-- Department Row -->
+                <div class="form-row-modal full-width-row">
+                    <div class="form-group-modal">
+                        <label for="department_id" class="form-label">Department</label>
+                        <select class="form-control-modal" id="department_id" name="department_id">
+                            <option value="" <?= old('department_id') ? '' : 'selected' ?>>Select department</option>
+                            <?php foreach (($departments ?? []) as $dept): ?>
+                                <?php
+                                $deptId = is_object($dept) ? ($dept->id ?? '') : ($dept['id'] ?? '');
+                                $deptName = is_object($dept) ? ($dept->name ?? '') : ($dept['name'] ?? '');
+                                ?>
+                                <option value="<?= (int) $deptId ?>" <?= (string) old('department_id') === (string) $deptId ? 'selected' : '' ?>>
+                                    <?= esc($deptName) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Position and Type Row -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
