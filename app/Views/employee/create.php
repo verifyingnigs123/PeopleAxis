@@ -257,6 +257,24 @@
             </div>
         </div>
 
+        <!-- Department Row -->
+        <div class="form-row full">
+            <div class="form-group">
+                <label for="department_id" class="form-label">Department</label>
+                <select class="form-control" id="department_id" name="department_id">
+                    <option value="" <?= old('department_id') ? '' : 'selected' ?>>Select department</option>
+                    <?php foreach (($departments ?? []) as $dept): ?>
+                        <option value="<?= (int) $dept->id ?>" <?= (string) old('department_id') === (string) $dept->id ? 'selected' : '' ?>>
+                            <?= esc($dept->name) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if (service('validation')->hasError('department_id')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('department_id')) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Position and Type Row -->
         <div class="form-row">
             <div class="form-group">
