@@ -2,16 +2,80 @@
 
 namespace App\Controllers;
 
+use App\Models\EmployeeModel;
+use App\Models\PositionModel;
 use App\Models\UserModel;
 use App\Controllers\Audit;
 
 class Users extends BaseController
 {
     protected $userModel;
+    protected $employeeModel;
+    protected $positionModel;
+
+    private const ROLE_NAME_TO_SLUG = [
+        'super admin' => 'super_admin',
+        'hr admin'    => 'hr_admin',
+        'manager'     => 'manager',
+        'employee'    => 'employee',
+    ];
 
     public function __construct()
     {
         $this->userModel = new UserModel();
+        $this->employeeModel = new EmployeeModel();
+        $this->positionModel = new PositionModel();
+    }
+
+    private function getRoleSlugByRoleId(int $roleId): string
+    {
+        $db = \Config\Database::connect();
+        $role = $db->table('roles')->select('name')->where('id', $roleId)->get()->getRow();
+        $roleName = strtolower((string) ($role->name ?? 'employee'));
+
+        return self::ROLE_NAME_TO_SLUG[$roleName] ?? 'employee';
+    }
+
+    private function canManageUsers(): bool
+    {
+        $role = strtolower((string) session()->get('role'));
+        $roleName = strtolower((string) session()->get('role_name'));
+
+        return in_array($role, ['admin', 'super_admin', 'hr', 'hr_admin'], true)
+            || in_array($roleName, ['super admin', 'hr admin'], true);
+    }
+
+    private function resolvePositionIdByName(string $positionName): ?int
+    {
+        $positionName = trim($positionName);
+        if ($positionName === '') {
+            return null;
+        }
+
+        $position = $this->positionModel->where('name', $positionName)->first();
+        if ($position) {
+            return (int) $position->id;
+        }
+
+        $insertId = $this->positionModel->skipValidation(true)->insert([
+            'name'        => $positionName,
+            'description' => $positionName,
+            'is_active'   => 1,
+        ]);
+
+        return $insertId ? (int) $insertId : null;
+    }
+
+    private function generateEmployeeId(): string
+    {
+        $lastEmployee = $this->employeeModel->orderBy('id', 'DESC')->first();
+        $nextNumber = 1;
+
+        if ($lastEmployee && preg_match('/PPA-(\d+)/', (string) $lastEmployee->employee_id, $matches)) {
+            $nextNumber = ((int) $matches[1]) + 1;
+        }
+
+        return 'PPA-' . str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -19,10 +83,8 @@ class Users extends BaseController
      */
     public function create()
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        if (! $this->canManageUsers()) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
         }
         
         // Redirect to users page - the add user modal is now on the main page
@@ -34,10 +96,8 @@ class Users extends BaseController
      */
     public function index()
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        if (! $this->canManageUsers()) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
         }
         
         // Load users with role information to avoid N+1 queries in the view
@@ -98,31 +158,24 @@ class Users extends BaseController
 
     public function store()
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        if (! $this->canManageUsers()) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
         }
         
         $rules = [
-            'name'              => 'required|min_length[3]|max_length[100]',
-            'email'             => 'required|valid_email|is_unique[users.email]',
-            'password'          => 'required|min_length[6]|max_length[255]',
-            'confirm_password'  => 'required|matches[password]',
-            'role_id'           => 'required|numeric',
-            'is_active'         => 'permit_empty|in_list[0,1]'
+            'name'           => 'required|min_length[3]|max_length[100]',
+            'email'          => 'required|valid_email|is_unique[users.email]',
+            'phone'          => 'permit_empty|max_length[20]',
+            'rfid_number'    => 'required|max_length[100]|is_unique[employees.rfid_number]',
+            'position'       => 'required|in_list[Front Counter,Kitchen/Prep,Drive-Thru,Dining Room]',
+            'role_id'        => 'required|numeric',
+            'date_of_birth'  => 'required|valid_date',
+            'date_of_joining'=> 'required|valid_date',
+            'is_active'      => 'required|in_list[0,1]'
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-
-        // Require at least one special character in the password
-        $password = $this->request->getPost('password');
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            return redirect()->back()->withInput()->with('errors', [
-                'password' => 'Password must contain at least one special character (e.g. !, @, #, $).'
-            ]);
         }
 
         $name = trim((string) $this->request->getPost('name'));
@@ -132,15 +185,59 @@ class Users extends BaseController
             ]);
         }
 
-        $this->userModel->insert([
+        $firstName = trim((string) $this->request->getPost('first_name'));
+        $lastName = trim((string) $this->request->getPost('last_name'));
+        $phone = trim((string) $this->request->getPost('phone'));
+        $rfidNumber = trim((string) $this->request->getPost('rfid_number'));
+        $positionName = trim((string) $this->request->getPost('position'));
+        $positionId = $this->resolvePositionIdByName($positionName);
+        $roleId = (int) $this->request->getPost('role_id');
+        $dateOfBirth = trim((string) $this->request->getPost('date_of_birth'));
+        $dateOfJoining = trim((string) $this->request->getPost('date_of_joining'));
+        $isActive = (int) $this->request->getPost('is_active');
+        $generatedPassword = bin2hex(random_bytes(8));
+        $hashedPassword = password_hash($generatedPassword, PASSWORD_BCRYPT);
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $userId = $this->userModel->insert([
             'name'       => $name,
             'email'      => $this->request->getPost('email'),
-            'password'   => $this->request->getPost('password'),
-            'role_id'    => (int)$this->request->getPost('role_id'),
-            'is_active'  => $this->request->getPost('is_active') ?? 1,
+            'password'   => $hashedPassword,
+            'role'       => $this->getRoleSlugByRoleId($roleId),
+            'role_id'    => $roleId,
+            'is_active'  => $isActive,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
+
+        $this->employeeModel->skipValidation(true)->insert([
+            'employee_id'     => $this->generateEmployeeId(),
+            'first_name'      => $firstName !== '' ? $firstName : $name,
+            'last_name'       => $lastName,
+            'email'           => $this->request->getPost('email'),
+            'phone'           => $phone,
+            'rfid_number'     => $rfidNumber,
+            'position_id'     => $positionId,
+            'role_id'         => $roleId,
+            'date_of_birth'   => $dateOfBirth,
+            'date_of_joining' => $dateOfJoining,
+            'date_hired'      => $dateOfJoining,
+            'status'          => $isActive === 1 ? 'active' : 'inactive',
+            'account_status'  => 'pending',
+            'user_id'         => $userId,
+            'created_at'      => date('Y-m-d H:i:s'),
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ]);
+
+        $db->transComplete();
+
+        if (! $db->transStatus()) {
+            return redirect()->back()->withInput()->with('errors', [
+                'store' => 'Unable to create the new user at this time.'
+            ]);
+        }
 
         // Log audit
         $userId = session()->get('user_id');
@@ -151,10 +248,8 @@ class Users extends BaseController
 
     public function edit($id)
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        if (! $this->canManageUsers()) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
         }
         
         $user = $this->userModel->find($id);
@@ -167,10 +262,8 @@ class Users extends BaseController
 
     public function update($id)
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+        if (! $this->canManageUsers()) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
         }
         
         try {
@@ -240,10 +333,12 @@ class Users extends BaseController
             }
 
             // Prepare update data
+            $normalizedRoleId = (int) $roleId;
             $updateData = [
                 'name' => $name,
                 'email' => $email,
-                'role_id' => (int)$roleId,
+                'role' => $this->getRoleSlugByRoleId($normalizedRoleId),
+                'role_id' => $normalizedRoleId,
                 'is_active' => (int)$isActive,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
@@ -307,12 +402,10 @@ class Users extends BaseController
      */
     public function activate($id)
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+        if (! $this->canManageUsers()) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied. Super Admin or HR Admin only.'
             ]);
         }
 
@@ -357,12 +450,10 @@ class Users extends BaseController
      */
     public function deactivate($id)
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+        if (! $this->canManageUsers()) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied. Super Admin or HR Admin only.'
             ]);
         }
 
@@ -417,12 +508,10 @@ class Users extends BaseController
      */
     public function delete($id)
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+        if (! $this->canManageUsers()) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied. Super Admin or HR Admin only.'
             ]);
         }
 
@@ -482,12 +571,10 @@ class Users extends BaseController
      */
     public function restore($id)
     {
-        // Check if user is Super Admin
-        $roleName = session()->get('role_name');
-        if ($roleName !== 'Super Admin' && session()->get('role') !== 'admin') {
+        if (! $this->canManageUsers()) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Access denied. Super Admin or HR Admin only.'
             ]);
         }
 

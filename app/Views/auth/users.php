@@ -437,6 +437,59 @@
         display: inline-block;
     }
 
+    .add-user-modal-content {
+        border-radius: 8px;
+        overflow: hidden;
+        border: none;
+    }
+
+    .add-user-modal-header {
+        background: linear-gradient(135deg, #3e7c5f 0%, #5e9e7f 100%);
+        color: #ffffff;
+        border: none;
+        padding: 20px 24px;
+    }
+
+    .add-user-modal-header .modal-title {
+        font-size: 2rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .add-user-modal-body {
+        background: #f4f5f7;
+        padding: 24px 28px 20px;
+    }
+
+    .add-user-modal-body .form-label {
+        margin-bottom: 10px;
+        color: #21374b;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .add-user-modal-body .form-control,
+    .add-user-modal-body .form-select {
+        height: 50px;
+        border: 1px solid #ced7df;
+        border-radius: 8px;
+        font-size: 1.02rem;
+        padding: 0 14px;
+        background: #ffffff;
+    }
+
+    .add-user-modal-body .row {
+        margin-bottom: 2px;
+    }
+
+    .add-user-modal-footer {
+        border: none;
+        padding: 15px 28px 24px;
+        background: #f4f5f7;
+    }
+
     @media (max-width: 992px) {
         .page-header h1 {
             font-size: 1.75rem;
@@ -489,7 +542,7 @@
         <p>Manage all registered users in the system</p>
     </div>
     <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">
-        <i class="fas fa-user-plus"></i> Add User
+        <i class="fas fa-user-plus"></i> Add Employee
     </button>
 </div>
 
@@ -530,6 +583,7 @@
         // Load roles for select boxes (only active/non-deleted roles)
         $db = \Config\Database::connect();
         $rolesList = $db->table('roles')->select('id, name')->where('deleted_at', null)->orderBy('name','ASC')->get()->getResult();
+        $isHrAdminUserManagement = strtolower((string) session()->get('role_name')) === 'hr admin';
     ?>
     <div class="table-responsive">
         <?php if (!empty($users)): ?>
@@ -540,9 +594,13 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <th>Status</th>
+                        <?php if (!$isHrAdminUserManagement): ?>
+                            <th>Status</th>
+                        <?php endif; ?>
                         <th>Joined</th>
-                        <th>Actions</th>
+                        <?php if (!$isHrAdminUserManagement): ?>
+                            <th>Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -583,34 +641,38 @@
                                     <?= esc($roleName) ?>
                                 </span>
                             </td>
-                            <td>
-                                <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
-                                    <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
-                                </span>
-                            </td>
+                            <?php if (!$isHrAdminUserManagement): ?>
+                                <td>
+                                    <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
+                                        <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
+                                    </span>
+                                </td>
+                            <?php endif; ?>
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button type="button" class="btn btn-sm btn-edit" style="<?= !$u->is_active ? 'display: none;' : '' ?>" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <?php if ($u->is_active): ?>
-                                        <?php if ($u->id != $currentUserId): ?>
-                                            <button type="button" class="btn btn-sm btn-delete" data-user-id="<?= $u->id ?>" data-user-name="<?= esc($u->name) ?>" onclick="showDeleteModal(this, <?= $u->id ?>, '<?= esc($u->name) ?>')" title="Delete User">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
+                            <?php if (!$isHrAdminUserManagement): ?>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button type="button" class="btn btn-sm btn-edit" style="<?= !$u->is_active ? 'display: none;' : '' ?>" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <?php if ($u->is_active): ?>
+                                            <?php if ($u->id != $currentUserId): ?>
+                                                <button type="button" class="btn btn-sm btn-delete" data-user-id="<?= $u->id ?>" data-user-name="<?= esc($u->name) ?>" onclick="showDeleteModal(this, <?= $u->id ?>, '<?= esc($u->name) ?>')" title="Delete User">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" class="btn btn-sm btn-disabled" disabled title="You cannot delete your own account">
+                                                    <i class="fas fa-shield-alt"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <button type="button" class="btn btn-sm btn-disabled" disabled title="You cannot delete your own account">
-                                                <i class="fas fa-shield-alt"></i>
+                                            <button type="button" class="btn btn-sm btn-restore" data-user-id="<?= $u->id ?>" onclick="showRestoreModal(<?= $u->id ?>, '<?= esc($u->name) ?>')" title="Restore User">
+                                                <i class="fas fa-undo"></i> Restore
                                             </button>
                                         <?php endif; ?>
-                                    <?php else: ?>
-                                        <button type="button" class="btn btn-sm btn-restore" data-user-id="<?= $u->id ?>" onclick="showRestoreModal(<?= $u->id ?>, '<?= esc($u->name) ?>')" title="Restore User">
-                                            <i class="fas fa-undo"></i> Restore
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
+                                    </div>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -683,8 +745,8 @@
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="border-radius:10px;overflow:hidden;border:none;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);color:white;border:none;">
+        <div class="modal-content add-user-modal-content">
+            <div class="modal-header add-user-modal-header">
                 <h5 class="modal-title" id="addUserModalLabel">
                     <i class="fas fa-user-plus me-2"></i> Add New User
                 </h5>
@@ -692,31 +754,55 @@
             </div>
             <form id="addUserForm" action="<?= base_url('users/store') ?>" method="POST">
                 <?= csrf_field() ?>
-                <div class="modal-body" style="padding:30px;">
-                    <!-- Form Header -->
-                    <div style="margin-bottom: 25px; text-align: center;">
-                        <h6 style="color: #2f5f45; font-weight: 700; margin: 0;">User Information</h6>
-                        <p style="color: #95a5a6; margin-top: 5px; margin-bottom: 0;">Create a new user account with appropriate role and permissions</p>
-                    </div>
-
+                <div class="modal-body add-user-modal-body">
                     <!-- Validation Errors -->
                     <div id="addUserErrors" class="alert alert-danger" style="display:none;">
                         <strong>Please fix the following errors:</strong>
                         <ul style="margin-bottom:0;margin-top:10px;" id="addUserErrorsList"></ul>
                     </div>
 
+                    <input type="hidden" id="addUserName" name="name">
+
+                    <?php
+                        $addUserPositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
+                        $addUserTypeOptions = [];
+                        foreach ($rolesList as $roleOption) {
+                            $roleName = strtolower((string) ($roleOption->name ?? ''));
+                            if (in_array($roleName, ['manager', 'employee'], true)) {
+                                $addUserTypeOptions[] = $roleOption;
+                            }
+                        }
+                    ?>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="addUserName" class="form-label fw-600">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="addUserName" name="name"
-                                       placeholder="Enter full name" required>
-                                <small id="nameError" class="text-danger" style="display:none;"></small>
+                                <label for="addUserFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="addUserFirstName" name="first_name"
+                                       placeholder="Enter first name" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="addUserEmail" class="form-label fw-600">Email Address <span class="text-danger">*</span></label>
+                                <label for="addUserLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="addUserLastName" name="last_name"
+                                       placeholder="Enter last name" required>
+                                <small id="nameError" class="text-danger" style="display:none;"></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserRfidNumber" class="form-label">RFID Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="addUserRfidNumber" name="rfid_number"
+                                       placeholder="Enter RFID number" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserEmail" class="form-label">Email <span class="text-danger">*</span></label>
                                 <input type="email" class="form-control" id="addUserEmail" name="email"
                                        placeholder="Enter email address" required>
                             </div>
@@ -726,43 +812,52 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="addUserPassword" class="form-label fw-600">Password <span class="text-danger">*</span></label>
-                                <div class="password-wrapper">
-                                   <input type="password" class="form-control" id="addUserPassword" name="password"
-                                       placeholder="Enter password (min 6 characters)" required minlength="6" value="HRmanage!" style="padding-right:2.8rem;">
-                                   <button type="button" id="toggleAddPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddPasswordVisibility(event)">
-                                       <i class="fas fa-eye-slash" aria-hidden="true"></i>
-                                   </button>
-                                </div>
-                                <small class="text-muted">Default password: HRmanage! (change as needed)</small>
+                                <label for="addUserPhone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="addUserPhone" name="phone"
+                                       placeholder="Enter phone number">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addUserPosition" class="form-label">Position <span class="text-danger">*</span></label>
+                                <select class="form-select" id="addUserPosition" name="position" required>
+                                    <option value="" disabled selected>Select position</option>
+                                    <?php foreach ($addUserPositionOptions as $positionOption): ?>
+                                        <option value="<?= esc($positionOption) ?>"><?= esc($positionOption) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="addUserConfirmPassword" class="form-label fw-600">Confirm Password <span class="text-danger">*</span></label>
-                                <div class="password-wrapper">
-                                   <input type="password" class="form-control" id="addUserConfirmPassword" name="confirm_password"
-                                       placeholder="Confirm password" required minlength="6" value="HRmanage!" style="padding-right:2.8rem;">
-                                   <button type="button" id="toggleAddConfirmPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleAddConfirmPasswordVisibility(event)">
-                                       <i class="fas fa-eye-slash" aria-hidden="true"></i>
-                                   </button>
-                                </div>
+                                <label for="addUserType" class="form-label">Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="addUserType" name="role_id" required>
+                                    <option value="" disabled selected>Select type</option>
+                                    <?php foreach ($addUserTypeOptions as $typeOption): ?>
+                                        <option value="<?= $typeOption->id ?>"><?= esc($typeOption->name) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="addUserRole" class="form-label fw-600">Role <span class="text-danger">*</span></label>
-                                <select class="form-select" id="addUserRole" name="role_id" required>
-                                    <option value="" disabled selected>Select role</option>
-                                    <?php foreach ($rolesList as $r): ?>
-                                        <option value="<?= $r->id ?>"><?= esc($r->name) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                            <label for="addUserDateOfBirth" class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="addUserDateOfBirth" name="date_of_birth" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="addUserStatus" class="form-label fw-600">Status <span class="text-danger">*</span></label>
+                            <label for="addUserDateHired" class="form-label">Date of Hired <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="addUserStatus" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="addUserStatus" name="is_active" required>
                                 <option value="1" selected>Active</option>
                                 <option value="0">Inactive</option>
@@ -770,15 +865,8 @@
                         </div>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="addUserSendEmail" name="send_welcome" value="1">
-                        <label class="form-check-label" for="addUserSendEmail">
-                            Send welcome email to user
-                        </label>
-                    </div>
-
                 </div>
-                <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
+                <div class="modal-footer add-user-modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);border:none;padding:8px 24px;">
                         <i class="fas fa-save me-1"></i> Create User
@@ -919,23 +1007,45 @@ function validateNameField(value) {
 // Real-time validation for name fields
 document.addEventListener('DOMContentLoaded', function() {
     const nameInput = document.getElementById('addUserName');
+    const firstNameInput = document.getElementById('addUserFirstName');
+    const lastNameInput = document.getElementById('addUserLastName');
     const nameErrorDiv = document.getElementById('nameError');
     const editNameInput = document.getElementById('editName');
     const editNameErrorDiv = document.getElementById('editNameError');
+
+    function syncAddUserNameFromParts() {
+        if (!nameInput) {
+            return '';
+        }
+        const first = firstNameInput ? firstNameInput.value.trim() : '';
+        const last = lastNameInput ? lastNameInput.value.trim() : '';
+        const full = (first + ' ' + last).trim();
+        nameInput.value = full;
+        return full;
+    }
+
+    function validateAddNameParts() {
+        const full = syncAddUserNameFromParts();
+        if (!nameErrorDiv) {
+            return;
+        }
+        const error = validateNameField(full);
+        if (error) {
+            nameErrorDiv.textContent = error;
+            nameErrorDiv.style.display = 'block';
+            if (firstNameInput) firstNameInput.classList.add('is-invalid');
+            if (lastNameInput) lastNameInput.classList.add('is-invalid');
+        } else {
+            nameErrorDiv.style.display = 'none';
+            if (firstNameInput) firstNameInput.classList.remove('is-invalid');
+            if (lastNameInput) lastNameInput.classList.remove('is-invalid');
+        }
+    }
     
-    // Add User name field validation
-    if (nameInput && nameErrorDiv) {
-        nameInput.addEventListener('input', function() {
-            const error = validateNameField(this.value);
-            if (error) {
-                nameErrorDiv.textContent = error;
-                nameErrorDiv.style.display = 'block';
-                this.classList.add('is-invalid');
-            } else {
-                nameErrorDiv.style.display = 'none';
-                this.classList.remove('is-invalid');
-            }
-        });
+    // Add User first/last name field validation
+    if (firstNameInput && lastNameInput) {
+        firstNameInput.addEventListener('input', validateAddNameParts);
+        lastNameInput.addEventListener('input', validateAddNameParts);
     }
     
     // Edit User name field validation
@@ -1460,8 +1570,23 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
 
 // Handle add user form submission
 document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    const firstNameInput = document.getElementById('addUserFirstName');
+    const lastNameInput = document.getElementById('addUserLastName');
     const nameInput = document.getElementById('addUserName');
     const emailInput = document.getElementById('addUserEmail');
+    const rfidInput = document.getElementById('addUserRfidNumber');
+    const positionInput = document.getElementById('addUserPosition');
+    const typeInput = document.getElementById('addUserType');
+    const phoneInput = document.getElementById('addUserPhone');
+    const dobInput = document.getElementById('addUserDateOfBirth');
+    const hiredInput = document.getElementById('addUserDateHired');
+    const statusInput = document.getElementById('addUserStatus');
+    const firstName = firstNameInput ? firstNameInput.value.trim() : '';
+    const lastName = lastNameInput ? lastNameInput.value.trim() : '';
+    const fullName = (firstName + ' ' + lastName).trim();
+    if (nameInput) {
+        nameInput.value = fullName;
+    }
     const name = nameInput ? nameInput.value.trim() : '';
     const email = emailInput ? emailInput.value.trim() : '';
     const errorsBox = document.getElementById('addUserErrors');
@@ -1472,7 +1597,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
 
     const errors = [];
 
-    if (!name || !email) {
+    if (!firstName || !lastName || !rfidInput?.value.trim() || !positionInput?.value.trim() || !typeInput?.value.trim() || !dobInput?.value.trim() || !hiredInput?.value.trim() || !statusInput?.value.trim() || !email) {
         errors.push('Please fill in all required fields.');
     }
     
@@ -1496,65 +1621,6 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
 </script>
 
 <script>
-// Toggle for Add User password
-function toggleAddPasswordVisibility(e) {
-    try {
-        if (e && e.preventDefault) e.preventDefault();
-        var pwd = document.getElementById('addUserPassword');
-        var btn = document.getElementById('toggleAddPassword');
-        if (!pwd || !btn) return;
-        var show = pwd.getAttribute('type') === 'password';
-        pwd.setAttribute('type', show ? 'text' : 'password');
-        btn.setAttribute('aria-pressed', String(show));
-        var icon = btn.querySelector('i');
-        if (icon) {
-            icon.classList.toggle('fa-eye', show);
-            icon.classList.toggle('fa-eye-slash', !show);
-        }
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-// Toggle for Add User confirm password
-function toggleAddConfirmPasswordVisibility(e) {
-    try {
-        if (e && e.preventDefault) e.preventDefault();
-        var pwd = document.getElementById('addUserConfirmPassword');
-        var btn = document.getElementById('toggleAddConfirmPassword');
-        if (!pwd || !btn) return;
-        var show = pwd.getAttribute('type') === 'password';
-        pwd.setAttribute('type', show ? 'text' : 'password');
-        btn.setAttribute('aria-pressed', String(show));
-        var icon = btn.querySelector('i');
-        if (icon) {
-            icon.classList.toggle('fa-eye', show);
-            icon.classList.toggle('fa-eye-slash', !show);
-        }
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-// Validate passwords match in add user form
-document.addEventListener('DOMContentLoaded', function() {
-    const addUserForm = document.getElementById('addUserForm');
-    if (addUserForm) {
-        addUserForm.addEventListener('submit', function(e) {
-            const password = document.getElementById('addUserPassword').value;
-            const confirmPassword = document.getElementById('addUserConfirmPassword').value;
-            
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Password and confirm password do not match!');
-                return false;
-            }
-            
-            return true;
-        });
-    }
-});
-
 // Toggle for Edit User password
 function toggleEditPasswordVisibility(e) {
     try {
@@ -1577,15 +1643,11 @@ function toggleEditPasswordVisibility(e) {
 
 // Delegated listeners (fallback)
 document.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('#toggleAddPassword');
-    if (a) return toggleAddPasswordVisibility(e);
     var b = e.target.closest && e.target.closest('#toggleEditPassword');
     if (b) return toggleEditPasswordVisibility(e);
 });
 
 // Also attach directly to inner icons for reliability
-var addEye = document.querySelector('#toggleAddPassword i');
-if (addEye) addEye.addEventListener('click', function (e) { e.stopPropagation(); toggleAddPasswordVisibility(e); });
 var editEye = document.querySelector('#toggleEditPassword i');
 if (editEye) editEye.addEventListener('click', function (e) { e.stopPropagation(); toggleEditPasswordVisibility(e); });
 </script>
