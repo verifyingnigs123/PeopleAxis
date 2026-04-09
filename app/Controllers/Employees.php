@@ -6,6 +6,7 @@ use App\Models\EmployeeModel;
 use App\Models\SalaryModel;
 use App\Models\DepartmentModel;
 use App\Models\RoleModel;
+use App\Models\PositionModel;
 use App\Models\NotificationModel;
 use App\Models\UserModel;
 use App\Libraries\PhDeductions;
@@ -17,6 +18,7 @@ class Employees extends BaseController
     protected $salaryModel;
     protected $departmentModel;
     protected $roleModel;
+    protected $positionModel;
     protected $notificationModel;
     protected $userModel;
 
@@ -26,8 +28,45 @@ class Employees extends BaseController
         $this->salaryModel = new SalaryModel();
         $this->departmentModel = new DepartmentModel();
         $this->roleModel = new RoleModel();
+        $this->positionModel = new PositionModel();
         $this->notificationModel = new NotificationModel();
         $this->userModel = new UserModel();
+    }
+
+    private function resolvePositionId(string $positionName): ?int
+    {
+        $positionName = trim($positionName);
+        if ($positionName === '') {
+            return null;
+        }
+
+        $position = $this->positionModel->where('name', $positionName)->first();
+        if ($position) {
+            return (int) $position->id;
+        }
+
+        $insertId = $this->positionModel->skipValidation(true)->insert([
+            'name'        => $positionName,
+            'description' => $positionName,
+            'is_active'   => 1,
+        ]);
+
+        return $insertId ? (int) $insertId : null;
+    }
+
+    private function resolveRoleId(string $roleName): ?int
+    {
+        $roleName = trim($roleName);
+        if ($roleName === '') {
+            return null;
+        }
+
+        $role = $this->roleModel->where('name', $roleName)->first();
+        if ($role) {
+            return (int) $role->id;
+        }
+
+        return null;
     }
 
     /**
@@ -168,20 +207,12 @@ class Employees extends BaseController
                     $newAccountStatus = isset($userEmailSet[$emp->email]) ? 'approved' : 'pending';
                 }
 
-                if ($current !== $newAccountStatus) {
-                    if ($newAccountStatus === 'approved') {
-                        $toApproved[] = $emp->id;
-                    } else {
-                        $toPending[]  = $emp->id;
-                    }
-                    $emp->account_status = $newAccountStatus;
-                }
-
-                // Ensure pending employees have status=inactive in the DB
                 if ($newAccountStatus === 'pending' && ($emp->status ?? 'inactive') !== 'inactive') {
                     $toInactive[] = $emp->id;
-                    $emp->status  = 'inactive';
+                    $emp->status = 'inactive';
                 }
+
+                $emp->account_status = $newAccountStatus;
             }
             if (!empty($toApproved)) {
                 $db->table('employees')->whereIn('id', $toApproved)->update(['account_status' => 'approved']);
@@ -203,7 +234,6 @@ class Employees extends BaseController
             $pendingEmployees = [];
             $userEmailSet = [];
         }
-
         $data = [
             'employees'     => $employees,
             'departments'   => $departments,
@@ -325,16 +355,15 @@ class Employees extends BaseController
             'first_name'      => 'required|min_length[2]',
             'last_name'       => 'required|min_length[2]',
             'email'           => 'required|valid_email|is_unique[employees.email]',
-            'phone'           => 'permit_empty',
-            'department_id'   => 'permit_empty|integer',
-            'role_id'         => 'permit_empty|integer',
-            'date_of_birth'   => 'permit_empty|valid_date',
+            'phone'           => 'permit_empty|max_length[20]',
+            'rfid_number'     => 'required|max_length[100]|is_unique[employees.rfid_number]',
+            'position'        => 'required|in_list[Front Counter,Kitchen/Prep,Drive-Thru,Dining Room]',
+            'employee_type'   => 'required|in_list[Manager,Employee]',
+            'date_of_birth'   => 'required|valid_date',
             'date_of_joining' => 'required|valid_date',
-            'status'          => 'permit_empty|in_list[active,inactive,suspended]',
-            'biometric_id'    => 'permit_empty',
+            'status'          => 'required|in_list[active,inactive,suspended]',
             'rate'            => 'permit_empty',
             'rate_type'       => 'permit_empty|in_list[hourly,daily,monthly]',
-            'employment_type' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]',
         ];
 
         if (!$this->validate($rules)) {
@@ -348,19 +377,6 @@ class Employees extends BaseController
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors());
-        }
-
-        // Philippine phone validation: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars)
-        $phone = trim($this->request->getPost('phone') ?? '');
-        if ($phone !== '') {
-            $digitsOnly = preg_replace('/\D/', '', $phone);
-            // Valid: 09 followed by 9 digits, OR 639 followed by 9 digits (from +639...)
-            if (!preg_match('/^09\d{9}$/', $digitsOnly) && !preg_match('/^639\d{9}$/', $digitsOnly)) {
-                $err = ['phone' => 'Phone must be a valid Philippine number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).'];
-                $isAjaxCheck = $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
-                if ($isAjaxCheck) return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
-                return redirect()->back()->withInput()->with('errors', $err);
-            }
         }
 
         // Birthdate validation: must not be 2026 or later, and employee must be at least 18 years old
@@ -391,6 +407,18 @@ class Employees extends BaseController
             }
         }
 
+        $phone = trim($this->request->getPost('phone') ?? '');
+        if ($phone !== '') {
+            $digitsOnly = preg_replace('/\D/', '', $phone);
+            if (!preg_match('/^09\d{9}$/', $digitsOnly) && !preg_match('/^639\d{9}$/', $digitsOnly)) {
+                $err = ['phone' => 'Phone must be a valid Philippine number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 chars).'];
+                if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+                    return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
+                }
+                return redirect()->back()->withInput()->with('errors', $err);
+            }
+        }
+
         // Auto-generate Employee ID in format PPA-00001
         $lastEmployee = $this->employeeModel->orderBy('id', 'DESC')->first();
         $nextNumber = 1;
@@ -405,23 +433,27 @@ class Employees extends BaseController
         $employeeId = 'PPA-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
 
         $dateHired = trim($this->request->getPost('date_of_joining') ?? '');
+        $rfidNumber = trim($this->request->getPost('rfid_number') ?? '');
+        $positionName = trim((string) $this->request->getPost('position'));
+        $employeeType = trim((string) $this->request->getPost('employee_type'));
+        $positionId = $this->resolvePositionId($positionName);
+        $roleId = $this->resolveRoleId($employeeType);
         $data = [
             'employee_id'     => $employeeId,
             'first_name'      => trim($this->request->getPost('first_name')),
             'last_name'       => trim($this->request->getPost('last_name')),
             'email'           => trim($this->request->getPost('email')),
-            'phone'           => $this->request->getPost('phone'),
-            'department_id'   => $this->request->getPost('department_id') ?: null,
-            'role_id'         => $this->request->getPost('role_id') ?: null,
-            'date_of_birth'   => $dateOfBirth ?: null,
-            'date_of_joining' => $dateHired ?: null,
-            'date_hired'      => $dateHired ?: null,
-            'status'          => 'inactive',  // always inactive until Super Admin approves
+            'phone'           => $phone ?: null,
+            'rfid_number'     => $rfidNumber,
+            'position_id'     => $positionId,
+            'role_id'         => $roleId,
+            'date_of_birth'   => $dateOfBirth,
+            'date_of_joining' => $dateHired,
+            'date_hired'      => $dateHired,
+            'status'          => $this->request->getPost('status') ?? 'active',
             'account_status'  => 'pending',
-            'biometric_id'    => $employeeId,
             'rate'            => $this->request->getPost('rate') ?: null,
             'rate_type'       => $this->request->getPost('rate_type') ?: null,
-            'employment_type' => $this->request->getPost('employment_type') ?: null,
         ];
 
         try {
@@ -712,13 +744,13 @@ class Employees extends BaseController
             'first_name'     => ['label' => 'First Name',     'rules' => 'required|min_length[2]|max_length[100]'],
             'last_name'      => ['label' => 'Last Name',      'rules' => 'required|min_length[2]|max_length[100]'],
             'email'          => ['label' => 'Email',          'rules' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']'],
+            'rfid_number'    => ['label' => 'RFID Number',    'rules' => 'required|max_length[100]|is_unique[employees.rfid_number,id,' . $id . ']'],
             'phone'          => ['label' => 'Phone',          'rules' => 'permit_empty|max_length[20]'],
             'department_id'  => ['label' => 'Department',     'rules' => 'permit_empty|integer'],
             'role_id'        => ['label' => 'Role',            'rules' => 'permit_empty|integer'],
             'date_of_birth'  => ['label' => 'Date of Birth',  'rules' => 'permit_empty|valid_date'],
             'date_of_joining'=> ['label' => 'Date Hired',      'rules' => 'required|valid_date'],
             'status'         => ['label' => 'Status',         'rules' => 'permit_empty|in_list[active,inactive,suspended]'],
-            'biometric_id'   => ['label' => 'Biometric ID',   'rules' => 'permit_empty'],
             'rate'           => ['label' => 'Salary Rate',    'rules' => 'permit_empty'],
             'rate_type'      => ['label' => 'Rate Type',      'rules' => 'permit_empty|in_list[hourly,daily,monthly]'],
             'employment_type'=> ['label' => 'Employment Type','rules' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]'],
@@ -796,10 +828,12 @@ class Employees extends BaseController
         }
 
         $dateHiredUpd = trim($this->request->getPost('date_of_joining') ?? '');
+        $rfidNumber   = trim($this->request->getPost('rfid_number') ?? '');
         $data = [
             'first_name'      => $firstName,
             'last_name'       => $lastName,
             'email'           => trim($this->request->getPost('email')),
+            'rfid_number'     => $rfidNumber,
             'phone'           => $phone ?: null,
             'department_id'   => $this->request->getPost('department_id') ?: null,
             'role_id'         => $this->request->getPost('role_id') ?: null,
@@ -807,7 +841,6 @@ class Employees extends BaseController
             'date_of_joining' => $dateHiredUpd ?: null,
             'date_hired'      => $dateHiredUpd ?: null,
             'status'          => $this->request->getPost('status') ?? 'active',
-            'biometric_id'    => $employee->employee_id,
             'rate'            => $this->request->getPost('rate') ?: null,
             'rate_type'       => $this->request->getPost('rate_type') ?: null,
             'employment_type' => $this->request->getPost('employment_type') ?: null,
@@ -891,13 +924,13 @@ class Employees extends BaseController
             'first_name'      => ['label' => 'First Name',     'rules' => 'required|min_length[2]|max_length[100]'],
             'last_name'       => ['label' => 'Last Name',      'rules' => 'required|min_length[2]|max_length[100]'],
             'email'           => ['label' => 'Email',          'rules' => 'required|valid_email|is_unique[employees.email,id,' . $id . ']'],
+            'rfid_number'     => ['label' => 'RFID Number',    'rules' => 'required|max_length[100]|is_unique[employees.rfid_number,id,' . $id . ']'],
             'phone'           => ['label' => 'Phone',          'rules' => 'permit_empty|max_length[20]'],
             'department_id'   => ['label' => 'Department',     'rules' => 'permit_empty|integer'],
             'role_id'         => ['label' => 'Role',            'rules' => 'permit_empty|integer'],
             'date_of_birth'   => ['label' => 'Date of Birth',  'rules' => 'permit_empty|valid_date'],
             'date_of_joining' => ['label' => 'Date Hired',     'rules' => 'required|valid_date'],
             'status'          => ['label' => 'Status',         'rules' => 'permit_empty|in_list[active,inactive,suspended]'],
-            'biometric_id'    => ['label' => 'Biometric ID',   'rules' => 'permit_empty'],
             'rate'            => ['label' => 'Salary Rate',    'rules' => 'permit_empty'],
             'rate_type'       => ['label' => 'Rate Type',      'rules' => 'permit_empty|in_list[hourly,daily,monthly]'],
             'employment_type' => ['label' => 'Employment Type','rules' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]'],
@@ -950,10 +983,12 @@ class Employees extends BaseController
         }
 
         $dateHiredRA = trim($this->request->getPost('date_of_joining') ?? '');
+        $rfidNumber  = trim($this->request->getPost('rfid_number') ?? '');
         $data = [
             'first_name'      => $firstName,
             'last_name'       => $lastName,
             'email'           => trim($this->request->getPost('email')),
+            'rfid_number'     => $rfidNumber,
             'phone'           => $phone ?: null,
             'department_id'   => $this->request->getPost('department_id') ?: null,
             'role_id'         => $this->request->getPost('role_id') ?: null,
@@ -963,7 +998,6 @@ class Employees extends BaseController
             'status'          => $this->request->getPost('status') ?? 'active',
             'account_status'  => 'pending',
             'approval_notes'  => null,
-            'biometric_id'    => $employee->employee_id,
             'rate'            => $this->request->getPost('rate') ?: null,
             'rate_type'       => $this->request->getPost('rate_type') ?: null,
             'employment_type' => $this->request->getPost('employment_type') ?: null,

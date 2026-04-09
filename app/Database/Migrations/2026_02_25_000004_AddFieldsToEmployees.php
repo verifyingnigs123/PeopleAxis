@@ -9,7 +9,7 @@ class AddFieldsToEmployees extends Migration
     public function up()
     {
         $fields = [
-            'biometric_id' => [
+            'rfid_number' => [
                 'type' => 'VARCHAR',
                 'constraint' => 100,
                 'null' => true,
@@ -40,7 +40,7 @@ class AddFieldsToEmployees extends Migration
 
     public function down()
     {
-        $this->forge->dropColumn('employees', 'biometric_id');
+        $this->forge->dropColumn('employees', 'rfid_number');
         $this->forge->dropColumn('employees', 'rate');
         $this->forge->dropColumn('employees', 'rate_type');
         $this->forge->dropColumn('employees', 'employment_type');
