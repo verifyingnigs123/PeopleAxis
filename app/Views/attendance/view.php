@@ -260,6 +260,41 @@
         background: #f8fafc;
     }
 
+    .realtime-clock {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .realtime-clock-time {
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+    }
+
+    .elapsed-time {
+        color: #f39c12;
+        font-weight: 700;
+        font-family: 'Courier New', monospace;
+    }
+
+    .active-session-badge {
+        display: inline-block;
+        background: #27ae60;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 6px;
+    }
+
     @media (max-width: 992px) {
         .page-header {
             padding: 14px;
@@ -291,6 +326,10 @@
     <div>
         <h1><i class="fas fa-clipboard-list"></i> Attendance Dashboard</h1>
         <p>Monthly attendance overview for <?= esc($monthLabel ?? date('F Y')) ?>.</p>
+        <div class="realtime-clock" style="margin-top: 12px;">
+            <i class="fas fa-clock"></i>
+            <span class="realtime-clock-time" id="attendanceClock"></span>
+        </div>
     </div>
 
     <form action="<?= base_url('attendance') ?>" method="GET" class="filter-form">
@@ -439,6 +478,8 @@
                                     <span class="time-badge"><?= date('H:i', strtotime($record->time_out)) ?></span>
                                 <?php else: ?>
                                     <span style="color: #95a5a6;">-</span>
+                                    <span class="active-session-badge">ACTIVE</span>
+                                    <span class="elapsed-time" data-checkin="<?= $record->time_in ?>"></span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -478,5 +519,47 @@
     <?php endif; ?>
 </div>
 <?php endif; ?>
+
+<script>
+// Realtime clock and elapsed time tracking
+function updateClock() {
+    const clockEl = document.getElementById('attendanceClock');
+    if (clockEl) {
+        const now = new Date();
+        clockEl.textContent = now.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+}
+
+function updateElapsedTimes() {
+    const elapsedElements = document.querySelectorAll('.elapsed-time[data-checkin]');
+    elapsedElements.forEach(el => {
+        const checkInTime = el.getAttribute('data-checkin');
+        if (!checkInTime) return;
+
+        const checkInDate = new Date();
+        const [hours, minutes, seconds] = checkInTime.split(':').map(Number);
+        checkInDate.setHours(hours, minutes, seconds, 0);
+
+        const now = new Date();
+        const diffMs = now - checkInDate;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const hrs = Math.floor(diffSeconds / 3600);
+        const mins = Math.floor((diffSeconds % 3600) / 60);
+        const secs = diffSeconds % 60;
+
+        el.textContent = ` (${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')})`;
+    });
+}
+
+// Initialize and update every second
+updateClock();
+updateElapsedTimes();
+setInterval(updateClock, 1000);
+setInterval(updateElapsedTimes, 1000);
+</script>
 
 <?= $this->endSection() ?>

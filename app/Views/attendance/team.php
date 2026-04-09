@@ -253,6 +253,42 @@
         background: #f8fafc;
     }
 
+    .realtime-clock {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .realtime-clock-time {
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+    }
+
+    .elapsed-time-team {
+        color: #f39c12;
+        font-weight: 700;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+    }
+
+    .active-indicator {
+        display: inline-block;
+        background: #27ae60;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-left: 4px;
+    }
+
     @media (max-width: 992px) {
         .dashboard-grid {
             grid-template-columns: 1fr;
@@ -269,6 +305,10 @@
     <div>
         <h1><i class="fas fa-users-clock"></i> Team Attendance Dashboard</h1>
         <p>Daily attendance visibility for your managed departments on <?= date('M d, Y', strtotime($selectedDate)) ?>.</p>
+        <div class="realtime-clock" style="margin-top: 12px;">
+            <i class="fas fa-clock"></i>
+            <span class="realtime-clock-time" id="teamAttendanceClock"></span>
+        </div>
     </div>
 
     <form action="<?= base_url('attendance/team') ?>" method="get" class="filter-form">
@@ -400,7 +440,14 @@
                                 </td>
                                 <td><?= esc($record->department_name ?? 'Unassigned') ?></td>
                                 <td><?= $record->time_in ? date('H:i', strtotime($record->time_in)) : '-' ?></td>
-                                <td><?= $record->time_out ? date('H:i', strtotime($record->time_out)) : '-' ?></td>
+                                <td>
+                                    <?php if ($record->time_out): ?>
+                                        <?= date('H:i', strtotime($record->time_out)) ?>
+                                    <?php else: ?>
+                                        <span class="active-indicator">ACTIVE</span>
+                                        <span class="elapsed-time-team" data-checkin="<?= $record->time_in ?>"></span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <span class="badge <?= $badgeClass ?>"><?= esc(ucwords(str_replace('-', ' ', $record->status ?? 'present'))) ?></span>
                                 </td>
@@ -423,5 +470,47 @@
         <?php endif; ?>
     </div>
 <?php endif; ?>
+
+<script>
+// Realtime clock and elapsed time tracking for team attendance
+function updateTeamClock() {
+    const clockEl = document.getElementById('teamAttendanceClock');
+    if (clockEl) {
+        const now = new Date();
+        clockEl.textContent = now.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+}
+
+function updateTeamElapsedTimes() {
+    const elapsedElements = document.querySelectorAll('.elapsed-time-team[data-checkin]');
+    elapsedElements.forEach(el => {
+        const checkInTime = el.getAttribute('data-checkin');
+        if (!checkInTime) return;
+
+        const checkInDate = new Date();
+        const [hours, minutes, seconds] = checkInTime.split(':').map(Number);
+        checkInDate.setHours(hours, minutes, seconds, 0);
+
+        const now = new Date();
+        const diffMs = now - checkInDate;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const hrs = Math.floor(diffSeconds / 3600);
+        const mins = Math.floor((diffSeconds % 3600) / 60);
+        const secs = diffSeconds % 60;
+
+        el.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    });
+}
+
+// Initialize and update every second
+updateTeamClock();
+updateTeamElapsedTimes();
+setInterval(updateTeamClock, 1000);
+setInterval(updateTeamElapsedTimes, 1000);
+</script>
 
 <?= $this->endSection() ?>
