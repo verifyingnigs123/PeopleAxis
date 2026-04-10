@@ -108,6 +108,26 @@ $routes->post('/api/notifications/(:num)/delete', 'Notification::delete/$1');
 $routes->post('/api/notifications/delete-all', 'Notification::deleteAll');
 $routes->delete('/api/notifications/(:num)', 'Notification::delete/$1');
 
+// Delete Request routes for HR Admin
+$routes->get('/delete-requests', 'DeleteRequestController::index');
+$routes->get('/delete-requests/create', 'DeleteRequestController::create');
+$routes->post('/delete-requests/store', 'DeleteRequestController::store');
+$routes->get('/delete-requests/(:num)', 'DeleteRequestController::show/$1');
+$routes->get('/delete-requests/get-employee/(:num)', 'DeleteRequestController::getEmployeeDetails/$1');
+$routes->post('/delete-requests/cancel/(:num)', 'DeleteRequestController::cancel/$1');
+$routes->get('/delete-requests/get-pending-count', 'DeleteRequestController::getPendingCount');
+
+// Admin routes for Super Admin
+$routes->get('/admin', 'AdminController::index');
+$routes->get('/admin/delete-requests', 'AdminController::deleteRequests');
+$routes->get('/admin/review-delete-request/(:num)', 'AdminController::reviewDeleteRequest/$1');
+$routes->post('/admin/approve-delete-request/(:num)', 'AdminController::approveDeleteRequest/$1');
+$routes->post('/admin/reject-delete-request/(:num)', 'AdminController::rejectDeleteRequest/$1');
+$routes->get('/admin/all-delete-requests', 'AdminController::allDeleteRequests');
+$routes->get('/admin/notifications', 'AdminController::getNotifications');
+$routes->post('/admin/mark-notification-read/(:num)', 'AdminController::markNotificationRead/$1');
+$routes->get('/admin/dashboard-stats', 'AdminController::getDashboardStats');
+
 // Forgot Password routes
 $routes->get('/forgot-password', 'Auth::forgotPassword');
 $routes->post('/forgot-password', 'Auth::forgotPasswordProcess');
