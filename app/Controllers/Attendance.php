@@ -185,31 +185,110 @@ class Attendance extends BaseController
             return redirect()->to('/attendance/scanner')->with('error', 'RFID not recognized. Please contact HR.');
         }
 
-        $now = new \DateTimeImmutable('now');
+        $now = new \DateTimeImmutable('now', new \DateTimeZone(app_timezone()));
         $date = $now->format('Y-m-d');
         $time = $now->format('H:i:s');
-        $existing = $this->attendanceModel
+        $currentHour = (int) $now->format('H');
+        $currentMinute = (int) $now->format('i');
+        $currentTime = $currentHour * 60 + $currentMinute; // Convert to minutes for easier comparison
+
+        $morningCheckInStart = 7 * 60;          // 7:00 AM
+        $morningCheckInEnd = (7 * 60) + 59;     // 7:59 AM
+        $morningLateStart = 8 * 60;             // 8:00 AM
+        $morningLateEnd = (10 * 60) + 59;       // 10:59 AM
+        $morningCheckOutStart = 11 * 60;        // 11:00 AM
+        $morningCheckOutEnd = (11 * 60) + 59;   // 11:59 AM
+        $afternoonCheckInStart = 12 * 60;       // 12:00 PM
+        $afternoonCheckInEnd = (12 * 60) + 59;  // 12:59 PM
+        $afternoonLateStart = 13 * 60;          // 1:00 PM
+        $afternoonLateEnd = (15 * 60) + 59;     // 3:59 PM
+        $afternoonCheckOutStart = 16 * 60;      // 4:00 PM
+        $afternoonCheckOutEnd = (16 * 60) + 59; // 4:59 PM
+
+        $todayRecords = $this->attendanceModel
             ->where('employee_id', $employee->id)
             ->where('date', $date)
-            ->orderBy('id', 'DESC')
-            ->first();
+            ->orderBy('id', 'ASC')
+            ->findAll();
 
-        if (! $existing) {
+        $latest = ! empty($todayRecords) ? end($todayRecords) : null;
+
+        $isWithin = static function (int $current, int $start, int $end): bool {
+            return $current >= $start && $current <= $end;
+        };
+
+        // If there is no record yet for today, allow either morning or afternoon check-in window.
+        if (! $latest) {
+            $isMorningCheckInWindow = $isWithin($currentTime, $morningCheckInStart, $morningCheckInEnd);
+            $isMorningLateWindow = $isWithin($currentTime, $morningLateStart, $morningLateEnd);
+            $isAfternoonCheckInWindow = $isWithin($currentTime, $afternoonCheckInStart, $afternoonCheckInEnd);
+            $isAfternoonLateWindow = $isWithin($currentTime, $afternoonLateStart, $afternoonLateEnd);
+
+            if (! $isMorningCheckInWindow && ! $isMorningLateWindow && ! $isAfternoonCheckInWindow && ! $isAfternoonLateWindow) {
+                return redirect()->to('/attendance/scanner')->with('error', 'Check-in is only available from 7:00-10:59 AM or 12:00-3:59 PM.');
+            }
+
+            $status = ($isMorningCheckInWindow || $isAfternoonCheckInWindow) ? 'Present' : 'Late';
+
             $this->attendanceModel->insert([
                 'employee_id' => $employee->id,
                 'rfid_number' => $rfidNumber,
                 'date'        => $date,
                 'time_in'     => $time,
                 'time_out'    => null,
-                'status'      => (strtotime($time) > strtotime('08:00:00')) ? 'Late' : 'Present',
+                'status'      => $status,
             ]);
-        } elseif (empty($existing->time_out)) {
-            $this->attendanceModel->update($existing->id, [
+        } elseif (empty($latest->time_out)) {
+            // The most recent session is still open; determine if it is morning or afternoon session.
+            $timeInParts = explode(':', (string) $latest->time_in);
+            $timeInHour = isset($timeInParts[0]) ? (int) $timeInParts[0] : 0;
+            $timeInMinute = isset($timeInParts[1]) ? (int) $timeInParts[1] : 0;
+            $timeInMinutes = ($timeInHour * 60) + $timeInMinute;
+
+            $isMorningSession = $isWithin($timeInMinutes, $morningCheckInStart, $morningCheckInEnd);
+            $isAfternoonSession = $isWithin($timeInMinutes, $afternoonCheckInStart, $afternoonCheckInEnd);
+            $isLateMorningSession = $isWithin($timeInMinutes, $morningLateStart, $morningLateEnd);
+            $isLateAfternoonSession = $isWithin($timeInMinutes, $afternoonLateStart, $afternoonLateEnd);
+
+            if ($isMorningSession || $isLateMorningSession) {
+                if (! $isWithin($currentTime, $morningCheckOutStart, $morningCheckOutEnd)) {
+                    return redirect()->to('/attendance/scanner')->with('error', 'Morning check-out is only available from 11:00-11:59 AM.');
+                }
+            } elseif ($isAfternoonSession || $isLateAfternoonSession) {
+                if (! $isWithin($currentTime, $afternoonCheckOutStart, $afternoonCheckOutEnd)) {
+                    return redirect()->to('/attendance/scanner')->with('error', 'Afternoon check-out is only available from 4:00-4:59 PM.');
+                }
+            } else {
+                return redirect()->to('/attendance/scanner')->with('error', 'Unable to determine session type for check-out.');
+            }
+
+            $this->attendanceModel->update($latest->id, [
                 'rfid_number' => $rfidNumber,
                 'time_out'    => $time,
             ]);
         } else {
-            return redirect()->to('/attendance/scanner')->with('error', 'Attendance already completed for today.');
+            // Last session is complete; allow only one additional session (afternoon) within check-in window.
+            if (count($todayRecords) >= 2) {
+                return redirect()->to('/attendance/scanner')->with('error', 'Attendance already completed for today.');
+            }
+
+            $isAfternoonCheckInWindow = $isWithin($currentTime, $afternoonCheckInStart, $afternoonCheckInEnd);
+            $isAfternoonLateWindow = $isWithin($currentTime, $afternoonLateStart, $afternoonLateEnd);
+
+            if (! $isAfternoonCheckInWindow && ! $isAfternoonLateWindow) {
+                return redirect()->to('/attendance/scanner')->with('error', 'Afternoon check-in is only available from 12:00-3:59 PM.');
+            }
+
+            $status = $isAfternoonCheckInWindow ? 'Present' : 'Late';
+
+            $this->attendanceModel->insert([
+                'employee_id' => $employee->id,
+                'rfid_number' => $rfidNumber,
+                'date'        => $date,
+                'time_in'     => $time,
+                'time_out'    => null,
+                'status'      => $status,
+            ]);
         }
 
         return redirect()->to('/attendance/scanner')->with('success', 'Attendance Recorded Successfully');

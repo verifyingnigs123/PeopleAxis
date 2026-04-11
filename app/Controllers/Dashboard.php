@@ -39,7 +39,6 @@ class Dashboard extends BaseController
                 $data['totalEmployees'] = $employeeModel->countAllResults();
                 $data['pendingLeaves'] = $leaveModel->where('status', 'pending')->countAllResults();
                 $data['attendanceSummary'] = $attendanceModel->getSummary();
-
                 $statusCounts = [
                     'pending'  => 0,
                     'approved' => 0,
@@ -154,17 +153,27 @@ class Dashboard extends BaseController
                     $employee = $employeeModel->where('user_id', $session->get('user_id'))->first();
                     if ($employee) {
                         $data['employee'] = $employee;
-                        $data['attendance'] = $attendanceModel->where('employee_id', $employee->id)->findAll();
+                        $db = Database::connect();
+                        $data['attendanceCount'] = (int) $db->table('attendance_logs')
+                            ->where('employee_id', $employee->id)
+                            ->countAllResults();
+                        $data['attendance'] = $attendanceModel
+                            ->where('employee_id', $employee->id)
+                            ->orderBy('date', 'DESC')
+                            ->orderBy('time_in', 'DESC')
+                            ->findAll(10);
                         $data['leaves'] = $leaveModel->where('employee_id', $employee->id)->findAll();
                     } else {
                         // No employee record exists yet - create placeholder data
                         $data['employee'] = null;
+                        $data['attendanceCount'] = 0;
                         $data['attendance'] = [];
                         $data['leaves'] = [];
                     }
                 } catch (\Exception $e) {
                     log_message('error', 'Dashboard Employee Error: ' . $e->getMessage());
                     $data['employee'] = null;
+                    $data['attendanceCount'] = 0;
                     $data['attendance'] = [];
                     $data['leaves'] = [];
                     $data['error'] = 'Unable to load employee data.';

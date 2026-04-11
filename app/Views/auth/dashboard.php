@@ -532,7 +532,7 @@
             <div class="col-md-4">
                 <div class="stat-card">
                     <i class="fas fa-clock"></i>
-                    <div class="stat-value"><?= isset($attendance) ? count($attendance) : 0 ?></div>
+                    <div class="stat-value"><?= $attendanceCount ?? (isset($attendance) ? count($attendance) : 0) ?></div>
                     <div class="stat-label">My Attendance Records</div>
                 </div>
             </div>
@@ -559,6 +559,44 @@
                         <i class="fas fa-clock"></i> Attendance
                     </div>
                     <div class="card-body">
+                        <p class="mb-3" style="color:#64748b;">Your most recent attendance entries are shown below.</p>
+                        <?php if (!empty($attendance)): ?>
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Check In</th>
+                                            <th>Check Out</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($attendance as $record): ?>
+                                            <?php
+                                                $status = strtolower((string) ($record->status ?? 'present'));
+                                                $statusClass = match ($status) {
+                                                    'late' => 'warning',
+                                                    'absent' => 'danger',
+                                                    'half-day', 'half day' => 'info',
+                                                    default => 'success',
+                                                };
+                                            ?>
+                                            <tr>
+                                                <td><?= !empty($record->date) ? date('M d, Y', strtotime($record->date)) : '-' ?></td>
+                                                <td><?= !empty($record->time_in) ? date('H:i', strtotime($record->time_in)) : '-' ?></td>
+                                                <td><?= !empty($record->time_out) ? date('H:i', strtotime($record->time_out)) : '-' ?></td>
+                                                <td><span class="badge bg-<?= $statusClass ?>"><?= esc(ucwords(str_replace('-', ' ', $status))) ?></span></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-info mb-3">
+                                No attendance records found yet.
+                            </div>
+                        <?php endif; ?>
                         <a href="<?= base_url('attendance') ?>" class="btn btn-outline-primary">Attendance Dashboard</a>
                         <a href="<?= base_url('attendance') ?>" class="btn btn-outline-primary">View History</a>
                     </div>

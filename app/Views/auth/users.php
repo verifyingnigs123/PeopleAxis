@@ -584,6 +584,9 @@
         $db = \Config\Database::connect();
         $rolesList = $db->table('roles')->select('id, name')->where('deleted_at', null)->orderBy('name','ASC')->get()->getResult();
         $isHrAdminUserManagement = strtolower((string) session()->get('role_name')) === 'hr admin';
+        $sessionRole = strtolower((string) session()->get('role'));
+        $sessionRoleName = strtolower((string) session()->get('role_name'));
+        $isSuperAdminUserManagement = in_array($sessionRole, ['super_admin', 'admin'], true) || $sessionRoleName === 'super admin';
     ?>
     <div class="table-responsive">
         <?php if (!empty($users)): ?>
@@ -922,10 +925,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="editPassword" class="form-label fw-600">Password <span style="color:#999;font-size:0.85rem;">(Leave blank to keep current)</span></label>
+                        <label for="editPassword" class="form-label fw-600">Password <span style="color:#999;font-size:0.85rem;"><?= $isSuperAdminUserManagement ? '(Auto-set to password123)' : '(Leave blank to keep current)' ?></span></label>
                         <div class="password-wrapper">
                             <input type="password" class="form-control" id="editPassword" name="password"
-                                   placeholder="Leave blank to keep current password" minlength="6" style="padding-right:2.8rem;">
+                                   placeholder="<?= $isSuperAdminUserManagement ? 'Default password: password123' : 'Leave blank to keep current password' ?>" minlength="6" style="padding-right:2.8rem;">
                             <button type="button" id="toggleEditPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleEditPasswordVisibility(event)">
                                 <i class="fas fa-eye-slash" aria-hidden="true"></i>
                             </button>
@@ -1428,6 +1431,8 @@ function showEditModalAlert(message, type) {
     alertBox.style.display = 'block';
 }
 
+const isSuperAdminUserManagement = <?= $isSuperAdminUserManagement ? 'true' : 'false' ?>;
+
 function editUser(userId, name, email, roleId, isActive) {
     // Clear previous alerts
     const alertBox = document.getElementById('editUserAlert');
@@ -1440,8 +1445,8 @@ function editUser(userId, name, email, roleId, isActive) {
     document.getElementById('editRole').value = roleId;
     document.getElementById('editIsActive').value = isActive;
     
-    // Clear password field
-    document.getElementById('editPassword').value = '';
+    // Super Admin edit defaults password for easier account handoff.
+    document.getElementById('editPassword').value = isSuperAdminUserManagement ? 'password123' : '';
     
     // Show the modal
     const editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal'));

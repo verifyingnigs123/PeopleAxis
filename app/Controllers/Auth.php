@@ -219,20 +219,45 @@ class Auth extends BaseController
     }
 
     // ---------------------------------------------------------------
-    // PHPMailer helper — credentials hardcoded to bypass .env issues
+    // PHPMailer helper
     // ---------------------------------------------------------------
     private function sendOtpEmail(string $to, string $htmlBody)
     {
+        if (!class_exists(PHPMailer::class)) {
+            return $this->sendOtpEmailFallback($to, $htmlBody);
+        }
+
+        $emailConfig = config('Email');
+        $smtpHost = (string) ($emailConfig->SMTPHost ?? '');
+        $smtpUser = (string) ($emailConfig->SMTPUser ?? '');
+        $smtpPass = (string) ($emailConfig->SMTPPass ?? '');
+        $smtpPort = (int) ($emailConfig->SMTPPort ?? 587);
+        $smtpTimeout = (int) ($emailConfig->SMTPTimeout ?? 30);
+        $smtpCrypto = strtolower(trim((string) ($emailConfig->SMTPCrypto ?? 'tls')));
+        $fromEmail = (string) ($emailConfig->fromEmail ?? $smtpUser);
+        $fromName = (string) ($emailConfig->fromName ?? 'PeopleAxis HR System');
+
+        if ($smtpHost === '' || $smtpUser === '' || $smtpPass === '') {
+            return 'SMTP configuration is incomplete (host/user/password missing).';
+        }
+
         $mail = new PHPMailer(true);
         try {
             $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com';
+            $mail->Host       = $smtpHost;
             $mail->SMTPAuth   = true;
-            $mail->Username   = 'raphjohnvisayas@gmail.com';
-            $mail->Password   = 'knmxiszpprfriqrg';
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = 587;
-            $mail->Timeout    = 30;
+            $mail->Username   = $smtpUser;
+            $mail->Password   = $smtpPass;
+            $mail->Port       = $smtpPort;
+            $mail->Timeout    = $smtpTimeout;
+
+            if ($smtpCrypto === 'ssl') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            } elseif ($smtpCrypto === 'tls') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            }
+
+            $mail->SMTPAutoTLS = true;
 
             // Fix SSL certificate verification issues common in XAMPP / local dev
             $mail->SMTPOptions = [
@@ -243,7 +268,7 @@ class Auth extends BaseController
                 ],
             ];
 
-            $mail->setFrom('raphjohnvisayas@gmail.com', 'PeopleAxis HR System');
+            $mail->setFrom($fromEmail, $fromName);
             $mail->addAddress($to);
 
             $mail->isHTML(true);
@@ -255,8 +280,37 @@ class Auth extends BaseController
             $mail->send();
             return true;
         } catch (Exception $e) {
-            log_message('error', '[sendOtpEmail] PHPMailer error to [' . $to . ']: ' . $mail->ErrorInfo);
-            return $mail->ErrorInfo;
+            $details = $mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage();
+            log_message('error', '[sendOtpEmail] PHPMailer error to [' . $to . ']: ' . $details);
+            return $details;
+        }
+    }
+
+    private function sendOtpEmailFallback(string $to, string $htmlBody)
+    {
+        try {
+            $email = service('email');
+            $emailConfig = config('Email');
+
+            $fromEmail = (string) ($emailConfig->fromEmail ?? 'no-reply@peopleaxis.local');
+            $fromName = (string) ($emailConfig->fromName ?? 'PeopleAxis HR System');
+
+            $email->setFrom($fromEmail, $fromName);
+            $email->setTo($to);
+            $email->setSubject('Your Password Reset OTP - PeopleAxis');
+            $email->setMessage($htmlBody);
+
+            if ($email->send()) {
+                return true;
+            }
+
+            $debug = trim(strip_tags((string) $email->printDebugger(['headers', 'subject'])));
+            $details = $debug !== '' ? $debug : 'Fallback mailer failed without details.';
+            log_message('error', '[sendOtpEmailFallback] Email service error to [' . $to . ']: ' . $details);
+            return $details;
+        } catch (\Throwable $e) {
+            log_message('error', '[sendOtpEmailFallback] Exception to [' . $to . ']: ' . $e->getMessage());
+            return $e->getMessage();
         }
     }
 

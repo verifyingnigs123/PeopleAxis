@@ -51,6 +51,15 @@ class Users extends BaseController
             || in_array($roleName, ['super admin', 'hr admin'], true);
     }
 
+    private function isSuperAdminUser(): bool
+    {
+        $role = strtolower((string) session()->get('role'));
+        $roleName = strtolower((string) session()->get('role_name'));
+
+        return in_array($role, ['super_admin', 'admin'], true)
+            || $roleName === 'super admin';
+    }
+
     private function resolvePositionIdByName(string $positionName): ?int
     {
         $positionName = trim($positionName);
@@ -327,7 +336,12 @@ class Users extends BaseController
             $email = $this->request->getPost('email');
             $roleId = $this->request->getPost('role_id') ?? $this->request->getPost('role');
             $isActive = $this->request->getPost('is_active');
-            $password = $this->request->getPost('password');
+            $password = trim((string) $this->request->getPost('password'));
+
+            // In Super Admin edit flow, default password is auto-set for easier user onboarding.
+            if ($password === '' && $this->isSuperAdminUser()) {
+                $password = 'password123';
+            }
 
             // Basic validation
             if (!$name || !$email || !$roleId) {
@@ -392,15 +406,15 @@ class Users extends BaseController
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
-            // Only update password if provided
-            if (!empty($password) && is_string($password) && strlen(trim($password)) >= 6) {
-                if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+            // Update password when provided (or auto-filled by Super Admin flow).
+            if ($password !== '') {
+                if (strlen($password) < 6) {
                     return $this->response->setStatusCode(422)->setJSON([
                         'success' => false,
-                        'message' => 'Password must contain at least one special character (e.g. !, @, #, $).'
+                        'message' => 'Password must be at least 6 characters.'
                     ]);
                 }
-                $updateData['password'] = trim($password);
+                $updateData['password'] = $password;
             }
 
             // Update in database

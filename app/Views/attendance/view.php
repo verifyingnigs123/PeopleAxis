@@ -278,6 +278,14 @@
         letter-spacing: 0.05em;
     }
 
+    .realtime-clock-date {
+        font-size: 0.92rem;
+        opacity: 0.95;
+        border-right: 1px solid rgba(255, 255, 255, 0.35);
+        padding-right: 10px;
+        margin-right: 2px;
+    }
+
     .elapsed-time {
         color: #f39c12;
         font-weight: 700;
@@ -328,6 +336,7 @@
         <p>Monthly attendance overview for <?= esc($monthLabel ?? date('F Y')) ?>.</p>
         <div class="realtime-clock" style="margin-top: 12px;">
             <i class="fas fa-clock"></i>
+            <span class="realtime-clock-date" id="attendanceDate"></span>
             <span class="realtime-clock-time" id="attendanceClock"></span>
         </div>
     </div>
@@ -521,11 +530,20 @@
 <?php endif; ?>
 
 <script>
-// Realtime clock and elapsed time tracking
+// Realtime date/time and elapsed time tracking
 function updateClock() {
     const clockEl = document.getElementById('attendanceClock');
+    const dateEl = document.getElementById('attendanceDate');
     if (clockEl) {
         const now = new Date();
+        if (dateEl) {
+            dateEl.textContent = now.toLocaleDateString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: '2-digit',
+                year: 'numeric'
+            });
+        }
         clockEl.textContent = now.toLocaleTimeString(undefined, {
             hour: '2-digit',
             minute: '2-digit',
