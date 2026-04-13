@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\LeaveModel;
 use App\Models\AuditModel;
 use App\Models\EmployeeModel;
+use App\Models\NotificationModel;
 use App\Controllers\Audit;
 
 class Leaves extends BaseController
@@ -62,22 +63,34 @@ class Leaves extends BaseController
                 ->paginate(20);
             $data['canApprove'] = true;
             $data['isHRAdmin'] = false;
+            $data['dashboardStats'] = $this->getLeaveDashboardStats();
         } else if (in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin'])) {
-            // HR Admin - show pending & manager approved leaves for approval
+            // HR Admin - one page with queue + responded history scopes
+            $scope = strtolower(trim((string) $this->request->getGet('scope')));
+            if (! in_array($scope, ['queue', 'responded'], true)) {
+                $scope = 'queue';
+            }
+
+            $statusSet = $scope === 'responded'
+                ? ['approved', 'rejected', 'ended']
+                : ['pending', 'manager_approved'];
+
             $leaves = $this->leaveModel
                 ->select("leave_requests.*, CONCAT(employees.first_name, ' ', employees.last_name) as name, employees.employee_id")
                 ->join('employees', 'employees.id = leave_requests.employee_id', 'left')
-                ->whereIn('leave_requests.status', ['pending', 'manager_approved'])
-                ->orderBy('leave_requests.start_date', 'DESC')
+                ->whereIn('leave_requests.status', $statusSet)
+                ->orderBy('leave_requests.updated_at', 'DESC')
                 ->paginate(20);
-            $data['canApprove'] = true;
+            $data['canApprove'] = $scope === 'queue';
             $data['isHRAdmin'] = true;
+            $data['hrViewScope'] = $scope;
+            $data['dashboardStats'] = $this->getLeaveDashboardStats();
         } else {
             // Employees and others - show own leaves
             $employee = $this->getCurrentEmployeeRecord();
 
             $statusFilter = strtolower(trim((string) $this->request->getGet('status')));
-            $allowedStatuses = ['pending', 'manager_approved', 'approved', 'rejected'];
+            $allowedStatuses = ['pending', 'manager_approved', 'approved', 'rejected', 'ended'];
 
             if (! in_array($statusFilter, $allowedStatuses, true)) {
                 $statusFilter = '';
@@ -88,6 +101,7 @@ class Leaves extends BaseController
                 'manager_approved' => 0,
                 'approved'         => 0,
                 'rejected'         => 0,
+                'ended'            => 0,
             ];
             $activeLeave = null;
             $nextLeave = null;
@@ -122,6 +136,7 @@ class Leaves extends BaseController
                 $activeLeave = $db->table('leave_requests')
                     ->where('employee_id', $employeeId)
                     ->where('status', 'approved')
+                    ->where('early_returned_at', null)
                     ->where('start_date <=', $today)
                     ->where('end_date >=', $today)
                     ->orderBy('start_date', 'ASC')
@@ -131,6 +146,7 @@ class Leaves extends BaseController
                 $nextLeave = $db->table('leave_requests')
                     ->where('employee_id', $employeeId)
                     ->where('status', 'approved')
+                    ->where('early_returned_at', null)
                     ->where('start_date >', $today)
                     ->orderBy('start_date', 'ASC')
                     ->get(1)
@@ -159,6 +175,26 @@ class Leaves extends BaseController
         return view('leaves/index', $data);
     }
 
+    public function hrSummary()
+    {
+        if (! session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
+        }
+
+        $role = session()->get('role');
+        $roleName = session()->get('role_name');
+        $isAllowed = $role === 'admin'
+            || $roleName === 'Super Admin'
+            || in_array($roleName, ['HR Admin', 'hr'], true)
+            || in_array($role, ['hr', 'hr_admin'], true);
+
+        if (! $isAllowed) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+        }
+
+        return $this->response->setJSON($this->getLeaveDashboardStats());
+    }
+
     /**
      * Display the manager leave approval dashboard for the manager's own team.
      */
@@ -173,7 +209,7 @@ class Leaves extends BaseController
         }
 
         $statusFilter = strtolower(trim((string) $this->request->getGet('status')));
-        $allowedStatuses = ['pending', 'manager_approved', 'approved', 'rejected'];
+        $allowedStatuses = ['pending', 'manager_approved', 'approved', 'rejected', 'ended'];
 
         if (! in_array($statusFilter, $allowedStatuses, true)) {
             $statusFilter = '';
@@ -189,6 +225,7 @@ class Leaves extends BaseController
                     'manager_approved' => 0,
                     'approved'         => 0,
                     'rejected'         => 0,
+                    'ended'            => 0,
                 ],
                 'teamLeaves'         => [],
                 'pager'              => null,
@@ -250,6 +287,11 @@ class Leaves extends BaseController
         ];
 
         if ($this->leaveModel->save($data)) {
+            $leaveId = (int) ($this->leaveModel->getInsertID() ?: 0);
+            $employee = $this->getCurrentEmployeeRecord();
+            if ($employee) {
+                $this->notifyManagerForLeaveRequest($employee, $leaveId);
+            }
             $this->auditModel->log($userId, 'Leave Submitted', 'Leave request submitted');
             return redirect()->back()->with('success', 'Leave submitted');
         }
@@ -309,6 +351,8 @@ class Leaves extends BaseController
         ];
 
         if ($this->leaveModel->save($data)) {
+            $leaveId = (int) ($this->leaveModel->getInsertID() ?: 0);
+            $this->notifyManagerForLeaveRequest($employee, $leaveId);
             $this->auditModel->log($userId, 'Leave Submitted', 'Leave request submitted for ' . $days . ' days');
             return redirect()->to('/leaves')->with('success', 'Leave request submitted successfully!');
         }
@@ -340,6 +384,9 @@ class Leaves extends BaseController
             'status' => 'manager_approved',
         ]);
 
+        $this->notifyEmployeeForLeaveDecision($leave, 'manager_approved');
+        $this->notifyHrForManagerApprovedLeave($leave);
+
         $this->auditModel->log($userId, 'Manager Approved Leave', 'Manager approved leave id: ' . $id);
         return redirect()->back()->with('success', 'Leave approved by manager');
     }
@@ -356,10 +403,21 @@ class Leaves extends BaseController
             return redirect()->back()->with('error', 'Access denied. HR Admin only.');
         }
 
+        $leave = $this->leaveModel->find((int) $id);
+        if (! $leave) {
+            return redirect()->back()->with('error', 'Leave request not found.');
+        }
+
+        if (strtolower((string) ($leave->status ?? '')) !== 'manager_approved') {
+            return redirect()->back()->with('error', 'Only manager-approved leave requests can be approved by HR.');
+        }
+
         $this->leaveModel->update($id, [
             'approved_by_hr' => $userId,
             'status' => 'approved',
         ]);
+
+        $this->notifyEmployeeForLeaveDecision($leave, 'approved');
 
         $this->auditModel->log($userId, 'HR Approved Leave', 'HR approved leave id: ' . $id);
         return redirect()->back()->with('success', 'Leave approved by HR');
@@ -400,9 +458,61 @@ class Leaves extends BaseController
             'status' => 'rejected',
         ]);
 
+        $this->notifyEmployeeForLeaveRejection($leave, $isManager);
+
         $auditAction = $isManager ? 'Manager Rejected Leave' : 'Leave Rejected';
         $this->auditModel->log($userId, $auditAction, 'Leave id: ' . $id . ' was rejected');
         return redirect()->back()->with('success', 'Leave rejected');
+    }
+
+    public function emergencyBack($id)
+    {
+        if (! session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = (int) session()->get('user_id');
+        $employee = $this->getCurrentEmployeeRecord();
+
+        if (! $employee) {
+            return redirect()->to('/leaves')->with('error', 'Employee profile not found.');
+        }
+
+        $leave = $this->leaveModel
+            ->where('id', (int) $id)
+            ->where('employee_id', (int) $employee->id)
+            ->first();
+
+        if (! $leave) {
+            return redirect()->to('/leaves')->with('error', 'Leave request not found.');
+        }
+
+        $today = date('Y-m-d');
+        $status = strtolower((string) ($leave->status ?? ''));
+        $alreadyReturned = ! empty($leave->early_returned_at);
+        $isActiveWindow = ! empty($leave->start_date)
+            && ! empty($leave->end_date)
+            && $leave->start_date <= $today
+            && $leave->end_date >= $today;
+
+        if ($status !== 'approved' || $alreadyReturned || ! $isActiveWindow) {
+            return redirect()->to('/leaves')->with('error', 'Emergency back is only available for your current approved leave.');
+        }
+
+        $updated = $this->leaveModel->update((int) $id, [
+            'status' => 'ended',
+            'early_returned_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        if (! $updated) {
+            return redirect()->to('/leaves')->with('error', 'Unable to process emergency back. Please try again.');
+        }
+
+        $this->notifyManagerForEmergencyBack($employee, $leave);
+
+        $this->auditModel->log($userId, 'Emergency Back from Leave', 'Employee returned early from leave id: ' . (int) $id);
+
+        return redirect()->to('/leaves')->with('success', 'Emergency back applied. You are now marked as back to work.');
     }
 
     private function getManagerScopedLeave(int $leaveId): ?object
@@ -421,5 +531,241 @@ class Leaves extends BaseController
         }
 
         return $leave;
+    }
+
+    private function getLeaveDashboardStats(): array
+    {
+        $summary = [
+            'pending'          => 0,
+            'manager_approved' => 0,
+            'approved'         => 0,
+            'rejected'         => 0,
+            'ended'            => 0,
+        ];
+
+        $rows = $this->leaveModel
+            ->select('status, COUNT(*) AS total')
+            ->groupBy('status')
+            ->findAll();
+
+        foreach ($rows as $row) {
+            $status = strtolower((string) ($row->status ?? ''));
+            if (array_key_exists($status, $summary)) {
+                $summary[$status] = (int) ($row->total ?? 0);
+            }
+        }
+
+        $awaitingReview = $summary['pending'] + $summary['manager_approved'];
+        $responded = $summary['approved'] + $summary['rejected'] + $summary['ended'];
+
+        return [
+            'total_requests'    => $awaitingReview + $responded,
+            'pending'           => $summary['pending'],
+            'manager_approved'  => $summary['manager_approved'],
+            'awaiting_review'   => $awaitingReview,
+            'approved'          => $summary['approved'],
+            'rejected'          => $summary['rejected'],
+            'ended'             => $summary['ended'],
+            'responded'         => $responded,
+            'updated_at'        => date('Y-m-d H:i:s'),
+        ];
+    }
+
+    private function notifyManagerForEmergencyBack(object $employee, object $leave): void
+    {
+        $departmentId = (int) ($employee->department_id ?? 0);
+        if ($departmentId <= 0) {
+            return;
+        }
+
+        $db = \Config\Database::connect();
+        $department = $db->table('departments')
+            ->select('manager_id')
+            ->where('id', $departmentId)
+            ->get()
+            ->getRow();
+
+        $managerUserId = (int) ($department->manager_id ?? 0);
+        if ($managerUserId <= 0) {
+            return;
+        }
+
+        $employeeName = trim((string) (($employee->first_name ?? '') . ' ' . ($employee->last_name ?? '')));
+        if ($employeeName === '') {
+            $employeeName = (string) ($employee->employee_id ?? 'An employee');
+        }
+
+        $staffCode = (string) ($employee->employee_id ?? 'N/A');
+        $leaveType = (string) ($leave->leave_type ?? 'Leave');
+        $title = 'Leave Ended Early';
+        $message = $employeeName . ' (' . $staffCode . ') ended ' . $leaveType . ' early and is now back to work.';
+        $link = base_url('leaves/team?status=ended');
+
+        (new NotificationModel())->createNotification(
+            $managerUserId,
+            $title,
+            $message,
+            'info',
+            $link,
+            'fas fa-user-check'
+        );
+    }
+
+    private function notifyManagerForLeaveRequest(object $employee, int $leaveId = 0): void
+    {
+        $departmentId = (int) ($employee->department_id ?? 0);
+        if ($departmentId <= 0) {
+            return;
+        }
+
+        $db = \Config\Database::connect();
+        $department = $db->table('departments')
+            ->select('manager_id, name')
+            ->where('id', $departmentId)
+            ->get()
+            ->getRow();
+
+        $managerUserId = (int) ($department->manager_id ?? 0);
+        if ($managerUserId <= 0) {
+            return;
+        }
+
+        $employeeName = trim((string) (($employee->first_name ?? '') . ' ' . ($employee->last_name ?? '')));
+        if ($employeeName === '') {
+            $employeeName = (string) ($employee->employee_id ?? 'An employee');
+        }
+
+        $staffCode = (string) ($employee->employee_id ?? 'N/A');
+        $title = 'New Leave Request';
+        $message = $employeeName . ' (' . $staffCode . ') submitted a leave request for your review.';
+        $link = base_url('leaves/team?status=pending');
+
+        (new NotificationModel())->createNotification(
+            $managerUserId,
+            $title,
+            $message,
+            'info',
+            $link,
+            'fas fa-calendar-check'
+        );
+    }
+
+    private function notifyEmployeeForLeaveDecision(object $leave, string $newStatus): void
+    {
+        $employeeId = (int) ($leave->employee_id ?? 0);
+        if ($employeeId <= 0) {
+            return;
+        }
+
+        $employee = $this->employeeModel->find($employeeId);
+        $employeeUserId = (int) ($employee->user_id ?? 0);
+        if ($employeeUserId <= 0) {
+            return;
+        }
+
+        $leaveType = (string) ($leave->leave_type ?? 'Leave');
+        $link = base_url('leaves?status=' . $newStatus);
+
+        if ($newStatus === 'manager_approved') {
+            $title = 'Leave Approved By Manager';
+            $message = 'Your ' . $leaveType . ' request was approved by your manager and is now awaiting HR approval.';
+            $icon = 'fas fa-user-check';
+        } else {
+            $title = 'Leave Approved By HR';
+            $message = 'Your ' . $leaveType . ' request was approved by HR.';
+            $icon = 'fas fa-check-circle';
+        }
+
+        (new NotificationModel())->createNotification(
+            $employeeUserId,
+            $title,
+            $message,
+            'info',
+            $link,
+            $icon
+        );
+    }
+
+    private function notifyEmployeeForLeaveRejection(object $leave, bool $isManagerRejection): void
+    {
+        $employeeId = (int) ($leave->employee_id ?? 0);
+        if ($employeeId <= 0) {
+            return;
+        }
+
+        $employee = $this->employeeModel->find($employeeId);
+        $employeeUserId = (int) ($employee->user_id ?? 0);
+        if ($employeeUserId <= 0) {
+            return;
+        }
+
+        $leaveType = (string) ($leave->leave_type ?? 'Leave');
+        $title = $isManagerRejection ? 'Leave Rejected By Manager' : 'Leave Rejected';
+        $message = $isManagerRejection
+            ? 'Your ' . $leaveType . ' request was rejected by your manager.'
+            : 'Your ' . $leaveType . ' request was rejected by HR.';
+
+        (new NotificationModel())->createNotification(
+            $employeeUserId,
+            $title,
+            $message,
+            'warning',
+            base_url('leaves?status=rejected'),
+            'fas fa-times-circle'
+        );
+    }
+
+    private function notifyHrForManagerApprovedLeave(object $leave): void
+    {
+        $db = \Config\Database::connect();
+
+        $hrRows = $db->table('users')
+            ->select('users.id')
+            ->join('roles', 'roles.id = users.role_id', 'left')
+            ->where('users.is_active', 1)
+            ->groupStart()
+                ->whereIn('users.role', ['hr', 'hr_admin'])
+                ->orWhere('roles.name', 'HR Admin')
+                ->orWhere('roles.name', 'hr')
+            ->groupEnd()
+            ->get()
+            ->getResultArray();
+
+        if ($hrRows === []) {
+            return;
+        }
+
+        $employeeId = (int) ($leave->employee_id ?? 0);
+        $employee = $employeeId > 0 ? $this->employeeModel->find($employeeId) : null;
+        $employeeName = trim((string) (($employee->first_name ?? '') . ' ' . ($employee->last_name ?? '')));
+        if ($employeeName === '') {
+            $employeeName = 'An employee';
+        }
+
+        $staffCode = (string) ($employee->employee_id ?? 'N/A');
+        $leaveType = (string) ($leave->leave_type ?? 'Leave');
+        $title = 'Leave Awaiting HR Approval';
+        $message = $employeeName . ' (' . $staffCode . ') has a ' . $leaveType . ' request awaiting HR approval.';
+        $link = base_url('leaves');
+
+        $notificationModel = new NotificationModel();
+        $hrUserIds = [];
+        foreach ($hrRows as $row) {
+            $hrUserId = (int) ($row['id'] ?? 0);
+            if ($hrUserId > 0) {
+                $hrUserIds[$hrUserId] = true;
+            }
+        }
+
+        foreach (array_keys($hrUserIds) as $hrUserId) {
+            $notificationModel->createNotification(
+                $hrUserId,
+                $title,
+                $message,
+                'info',
+                $link,
+                'fas fa-user-clock'
+            );
+        }
     }
 }

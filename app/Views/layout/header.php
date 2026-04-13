@@ -5,6 +5,23 @@ $isSuperAdmin = in_array($role, ['admin', 'super_admin'], true) || $roleName ===
 $isHRAdmin = in_array($role, ['hr', 'hr_admin'], true) || $roleName === 'hr admin';
 $isEmployee = in_array($role, ['user', 'employee'], true) || $roleName === 'employee';
 $canManageUsers = $isSuperAdmin || $isHRAdmin;
+$managerLeaveUnreadCount = 0;
+
+if ($role === 'manager') {
+    try {
+        $notificationModel = new \App\Models\NotificationModel();
+        $managerLeaveUnreadCount = (int) $notificationModel
+            ->where('user_id', (int) (session()->get('user_id') ?? 0))
+            ->where('is_read', false)
+            ->groupStart()
+                ->like('link', '/leaves/team')
+                ->orLike('link', '/leaves/team?')
+            ->groupEnd()
+            ->countAllResults();
+    } catch (\Exception $e) {
+        $managerLeaveUnreadCount = 0;
+    }
+}
 ?>
 
 <style>
@@ -132,6 +149,34 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
         color: #5f7b69;
     }
 
+    .sidebar-link-with-badge {
+        justify-content: space-between;
+    }
+
+    .sidebar-link-main {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .sidebar-mini-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        height: 22px;
+        border-radius: 999px;
+        padding: 0 8px;
+        background: #c62828;
+        color: #ffffff;
+        font-size: 0.74rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-left: 8px;
+        flex-shrink: 0;
+    }
+
     .sidebar-link:hover {
         background: #eef7f1;
         color: #254132;
@@ -251,7 +296,7 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
         position: absolute;
         top: -6px;
         right: -4px;
-        background: #6ea988;
+        background: #d32f2f;
         color: #ffffff;
         border-radius: 999px;
         min-width: 20px;
@@ -263,7 +308,7 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
         font-size: 0.7rem;
         font-weight: 700;
         animation: pulse 4s infinite;
-        box-shadow: 0 2px 6px rgba(110, 169, 136, 0.35);
+        box-shadow: 0 2px 6px rgba(211, 47, 47, 0.35);
         z-index: 1001;
         line-height: 1;
     }
@@ -340,7 +385,21 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
     }
 
     .notification-item.unread {
-        background: #ecf7f0;
+        background: #fff3f3;
+        border-left: 3px solid #d32f2f;
+    }
+
+    .notification-item.unread .notification-item-title {
+        color: #9a1c1c;
+        font-weight: 700;
+    }
+
+    .notification-item.unread .notification-item-message {
+        color: #a83a3a;
+    }
+
+    .notification-item.unread .notification-item-time {
+        color: #b04a4a;
     }
 
     .notification-item-content {
@@ -360,23 +419,23 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
     }
 
     .notification-item-icon.info {
-        background: #ecf7f0;
-        color: #5b9474;
+        background: #fdeaea;
+        color: #c62828;
     }
 
     .notification-item-icon.success {
-        background: #e7f2ea;
-        color: #355444;
+        background: #fdeaea;
+        color: #c62828;
     }
 
     .notification-item-icon.warning {
-        background: #e1efe6;
-        color: #5b9474;
+        background: #fdeaea;
+        color: #c62828;
     }
 
     .notification-item-icon.danger {
-        background: #c7ddd0;
-        color: #254132;
+        background: #fdeaea;
+        color: #c62828;
     }
 
     .notification-item-text {
@@ -417,13 +476,13 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
         cursor: pointer;
         border: none;
         background: none;
-        color: #5b9474;
+        color: #c62828;
         transition: color 0.2s ease;
     }
 
     .notification-item-actions a:hover,
     .notification-item-actions button:hover {
-        color: #254132;
+        color: #8e1f1f;
         text-decoration: underline;
     }
 
@@ -644,8 +703,15 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
                 <!-- Team Leave Approvals Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Leave Requests</div>
-                    <a class="sidebar-link" href="<?= base_url('leaves/team') ?>">
-                        <i class="fas fa-calendar-check"></i> Approve Team Leave Requests
+                    <a class="sidebar-link sidebar-link-with-badge" href="<?= base_url('leaves/team') ?>">
+                        <span class="sidebar-link-main">
+                            <i class="fas fa-calendar-check"></i> Approve Team Leave Requests
+                        </span>
+                        <span
+                            id="managerLeaveRequestsBadge"
+                            class="sidebar-mini-badge"
+                            style="<?= $managerLeaveUnreadCount > 0 ? '' : 'display:none;' ?>"
+                        >+<?= $managerLeaveUnreadCount ?></span>
                     </a>
                 </div>
 
@@ -685,7 +751,6 @@ $canManageUsers = $isSuperAdmin || $isHRAdmin;
                             <h5>Notifications</h5>
                             <div>
                                 <button class="btn-clear" id="markAllRead" title="Mark all as read">Mark all read</button>
-                                <button class="btn-clear" id="deleteAllNotifications" title="Delete all notifications">Delete all</button>
                             </div>
                         </div>
                         <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
@@ -880,11 +945,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const notificationList = document.getElementById('notificationList');
     const markAllReadBtn = document.getElementById('markAllRead');
     const deleteAllBtn = document.getElementById('deleteAllNotifications');
+    const managerLeaveRequestsBadge = document.getElementById('managerLeaveRequestsBadge');
+    const isManagerUser = <?= ($role === 'manager') ? 'true' : 'false' ?>;
+    const currentUserId = <?= (int) (session()->get('user_id') ?? 0) ?>;
     let notificationsPollHandle = null;
     let notificationEventSource = null;
     let streamReconnectHandle = null;
     let latestNotificationId = 0;
     let hasLoadedNotificationsOnce = false;
+    const notificationSeenStorageKey = `pa_notification_seen_${currentUserId}`;
+    let lastSeenNotificationId = parseInt(localStorage.getItem(notificationSeenStorageKey) || '0', 10) || 0;
     
     if (!notificationBell || !notificationBadge) {
         console.warn('Notification elements not found');
@@ -923,17 +993,51 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success && Array.isArray(data.notifications)) {
                 handleRealtimeNotifications(data.notifications);
                 renderNotifications(data.notifications);
+
+                if (notificationMenu.classList.contains('show')) {
+                    markNotificationsViewed(data.notifications);
+                }
+
                 updateBadge(data.unread_count ?? null, data.notifications);
+                updateManagerLeaveBadge(data.manager_leave_unread_count ?? null, data.notifications);
             } else {
                 showEmptyNotifications();
                 updateBadge(0, []);
+                updateManagerLeaveBadge(0, []);
             }
         })
         .catch(error => {
             console.error('Error fetching notifications:', error);
             notificationList.innerHTML = '<div class="notification-empty"><i class="fas fa-exclamation-circle"></i><p>Error loading notifications</p></div>';
             updateBadge(0, []);
+            updateManagerLeaveBadge(0, []);
         });
+    }
+
+    function getNotificationId(notification) {
+        return parseInt(notification && notification.id ? notification.id : 0, 10) || 0;
+    }
+
+    function getHighestNotificationId(notifications) {
+        return notifications.reduce((maxId, notification) => {
+            const id = getNotificationId(notification);
+            return id > maxId ? id : maxId;
+        }, 0);
+    }
+
+    function hideNotificationBadge() {
+        if (!notificationBadge) return;
+        notificationBadge.style.display = 'none';
+        notificationBadge.style.visibility = 'hidden';
+    }
+
+    function markNotificationsViewed(notifications) {
+        const highestId = getHighestNotificationId(notifications || []);
+        if (highestId > lastSeenNotificationId) {
+            lastSeenNotificationId = highestId;
+            localStorage.setItem(notificationSeenStorageKey, String(lastSeenNotificationId));
+        }
+        hideNotificationBadge();
     }
 
     function stopNotificationsPolling() {
@@ -1096,21 +1200,46 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateBadge(unreadCountFromApi, notifications) {
         if (!notificationBadge) return;
 
-        let unreadCount = Number.isInteger(unreadCountFromApi)
-            ? unreadCountFromApi
-            : notifications.filter(n => {
+        const unreadNotifications = notifications.filter(n => {
                 const statusVal = String(n.status || '').toLowerCase();
                 return statusVal ? statusVal === 'unread' : parseInt(n.is_read) === 0;
-            }).length;
+            });
 
-        if (unreadCount > 0) {
-            notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        const unreadCount = Number.isInteger(unreadCountFromApi)
+            ? unreadCountFromApi
+            : unreadNotifications.length;
+
+        const unseenUnreadCount = unreadNotifications.filter(n => getNotificationId(n) > lastSeenNotificationId).length;
+
+        if (unreadCount > 0 && unseenUnreadCount > 0) {
+            notificationBadge.textContent = unseenUnreadCount > 99 ? '99+' : unseenUnreadCount;
             notificationBadge.style.display    = 'flex';
             notificationBadge.style.visibility = 'visible';
             notificationBadge.style.opacity    = '1';
         } else {
-            notificationBadge.style.display    = 'none';
-            notificationBadge.style.visibility = 'hidden';
+            hideNotificationBadge();
+        }
+    }
+
+    function updateManagerLeaveBadge(managerCountFromApi, notifications) {
+        if (!isManagerUser || !managerLeaveRequestsBadge) {
+            return;
+        }
+
+        let unreadCount = Number.isInteger(managerCountFromApi)
+            ? managerCountFromApi
+            : notifications.filter(n => {
+                const statusVal = String(n.status || '').toLowerCase();
+                const isUnread = statusVal ? statusVal === 'unread' : parseInt(n.is_read) === 0;
+                const link = String(n.link || '');
+                return isUnread && link.includes('/leaves/team');
+            }).length;
+
+        if (unreadCount > 0) {
+            managerLeaveRequestsBadge.textContent = '+' + (unreadCount > 99 ? '99' : unreadCount);
+            managerLeaveRequestsBadge.style.display = 'inline-flex';
+        } else {
+            managerLeaveRequestsBadge.style.display = 'none';
         }
     }
 
@@ -1124,6 +1253,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(data => {
             refreshCsrf(data);
+
+            const row = notificationList.querySelector(`.notification-item[data-notification-id="${notifId}"]`);
+            if (row) {
+                row.classList.remove('unread');
+            }
+
             if (typeof callback === 'function') callback();
         })
         .catch(() => {
@@ -1285,6 +1420,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const isOpen = notificationMenu.classList.toggle('show');
         notificationBell.setAttribute('aria-expanded', String(isOpen));
         if (isOpen) {
+            markNotificationsViewed([]);
             fetchNotifications();
         }
     });

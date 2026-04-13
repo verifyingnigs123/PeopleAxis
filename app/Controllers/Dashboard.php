@@ -113,6 +113,7 @@ class Dashboard extends BaseController
                             ->select('COUNT(DISTINCT employee_id) AS total', false)
                             ->whereIn('employee_id', $teamContext['employeeIds'])
                             ->where('status', 'approved')
+                            ->where('early_returned_at', null)
                             ->where('start_date <=', $today)
                             ->where('end_date >=', $today)
                             ->get()

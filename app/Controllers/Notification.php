@@ -31,12 +31,28 @@ class Notification extends BaseController
         try {
             $notifications = $this->notificationModel->getUserNotifications($userId, (int)$limit);
             $unreadCount = $this->notificationModel->getUnreadCount($userId);
+            $role = strtolower((string) (session()->get('role') ?? ''));
+            $roleName = strtolower((string) (session()->get('role_name') ?? ''));
+            $isManager = $role === 'manager' || $roleName === 'manager';
+            $managerLeaveUnreadCount = 0;
+
+            if ($isManager) {
+                $managerLeaveUnreadCount = (int) $this->notificationModel
+                    ->where('user_id', $userId)
+                    ->where('is_read', false)
+                    ->groupStart()
+                        ->like('link', '/leaves/team')
+                        ->orLike('link', '/leaves/team?')
+                    ->groupEnd()
+                    ->countAllResults();
+            }
             
             return $this->response->setJSON([
                 'success' => true,
                 'notifications' => $notifications,
                 'count' => count($notifications),
                 'unread_count' => $unreadCount,
+                'manager_leave_unread_count' => $managerLeaveUnreadCount,
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to fetch notifications: ' . $e->getMessage());

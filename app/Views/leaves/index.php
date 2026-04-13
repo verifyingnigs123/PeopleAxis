@@ -79,6 +79,30 @@
         color: #ffffff;
     }
 
+        .view-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .view-tab {
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            text-decoration: none;
+            border: 1px solid #c9dcf6;
+            background: #eef3ff;
+            color: #21437c;
+        }
+
+        .view-tab.active {
+            background: #6ea988;
+            color: #ffffff;
+            border-color: #6ea988;
+        }
+
     .admin-stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -252,6 +276,12 @@
         border-color: #f4d3d3;
     }
 
+    .badge-ended {
+        background: #111827;
+        color: #ffffff;
+        border-color: #111827;
+    }
+
     .action-buttons {
         display: flex;
         gap: 6px;
@@ -342,34 +372,47 @@
 <div class="hr-shell">
 
 <?php
-    $leaveTotal = count($leaves ?? []);
-    $pendingReviewCount = 0;
-    $approvedCount = 0;
-    $rejectedCount = 0;
+    $dashboardStats = $dashboardStats ?? [
+        'total_requests'  => count($leaves ?? []),
+        'awaiting_review' => 0,
+        'approved'        => 0,
+        'rejected'        => 0,
+        'responded'       => 0,
+    ];
 
-    foreach (($leaves ?? []) as $leaveSummary) {
-        $leaveStatusSummary = strtolower((string) ($leaveSummary->status ?? 'pending'));
+    $leaveTotal = (int) ($dashboardStats['total_requests'] ?? 0);
+    $pendingReviewCount = (int) ($dashboardStats['awaiting_review'] ?? 0);
+    $approvedCount = (int) ($dashboardStats['approved'] ?? 0);
+    $rejectedCount = (int) ($dashboardStats['rejected'] ?? 0);
+    $respondedCount = (int) ($dashboardStats['responded'] ?? 0);
+    $isHrDashboard = isset($isHRAdmin) && $isHRAdmin;
+    $hrViewScope = $hrViewScope ?? 'queue';
+    $isHrRespondedView = $isHrDashboard && $hrViewScope === 'responded';
 
-        if (in_array($leaveStatusSummary, ['pending', 'manager_approved'], true)) {
-            $pendingReviewCount++;
-        } elseif ($leaveStatusSummary === 'approved') {
-            $approvedCount++;
-        } elseif ($leaveStatusSummary === 'rejected') {
-            $rejectedCount++;
-        }
-    }
-
-    $leavePageTitle = isset($isHRAdmin) && $isHRAdmin ? 'Approve Leave Requests' : 'Leave Requests';
-    $leavePageDescription = isset($isHRAdmin) && $isHRAdmin
-        ? 'Operational overview for review queues, approvals, and leave outcomes'
+    $leavePageTitle = $isHrDashboard
+        ? ($isHrRespondedView ? 'Responded Request' : 'Leave Requests Dashboard')
+        : 'Leave Requests';
+    $leavePageDescription = $isHrDashboard
+        ? ($isHrRespondedView
+            ? 'History of leave requests already responded to by HR'
+            : 'Operational overview for review queues, approvals, and leave outcomes')
         : 'Track, review, and manage employee leave requests';
+    $showActionsColumn = !($isHrDashboard && $isHrRespondedView);
 ?>
 
 <!-- Breadcrumbs -->
 <div class="breadcrumbs">
     <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
     <span>/</span>
-    <span><?= isset($isHRAdmin) && $isHRAdmin ? 'Approve Leave' : 'Leave Requests' ?></span>
+    <?php if ($isHrDashboard && $isHrRespondedView): ?>
+        <a href="<?= base_url('leaves') ?>">Leave Requests Dashboard</a>
+        <span>/</span>
+        <span>Responded Request</span>
+    <?php elseif ($isHrDashboard): ?>
+        <a href="<?= base_url('leaves?scope=responded') ?>">Responded Request</a>
+    <?php else: ?>
+        <span>Leave Requests</span>
+    <?php endif; ?>
 </div>
 
 <!-- Page Header -->
@@ -385,33 +428,44 @@
     <?php endif; ?>
 </div>
 
+<?php if ($isHrDashboard): ?>
+    <div class="view-tabs">
+        <a href="<?= base_url('leaves') ?>" class="view-tab <?= !$isHrRespondedView ? 'active' : '' ?>">
+            Leave Requests Dashboard
+        </a>
+        <a href="<?= base_url('leaves?scope=responded') ?>" class="view-tab <?= $isHrRespondedView ? 'active' : '' ?>">
+            Responded Request
+        </a>
+    </div>
+<?php endif; ?>
+
 <div class="admin-stats">
     <div class="stat-box">
         <i class="fas fa-file-alt"></i>
         <div class="stat-info">
             <h5>Total Requests</h5>
-            <h3><?= $leaveTotal ?></h3>
+            <h3 id="stat-total-requests"><?= $leaveTotal ?></h3>
         </div>
     </div>
     <div class="stat-box warning">
         <i class="fas fa-hourglass-half"></i>
         <div class="stat-info">
-            <h5><?= isset($isHRAdmin) && $isHRAdmin ? 'Awaiting Review' : 'Pending' ?></h5>
-            <h3><?= $pendingReviewCount ?></h3>
+            <h5 id="stat-secondary-label"><?= $isHrDashboard ? ($isHrRespondedView ? 'Responded' : 'Awaiting Review') : 'Pending' ?></h5>
+            <h3 id="stat-secondary"><?= $isHrRespondedView ? $respondedCount : $pendingReviewCount ?></h3>
         </div>
     </div>
     <div class="stat-box success">
         <i class="fas fa-check-circle"></i>
         <div class="stat-info">
             <h5>Approved</h5>
-            <h3><?= $approvedCount ?></h3>
+            <h3 id="stat-approved"><?= $approvedCount ?></h3>
         </div>
     </div>
     <div class="stat-box danger">
         <i class="fas fa-times-circle"></i>
         <div class="stat-info">
             <h5>Rejected</h5>
-            <h3><?= $rejectedCount ?></h3>
+            <h3 id="stat-rejected"><?= $rejectedCount ?></h3>
         </div>
     </div>
 </div>
@@ -432,7 +486,7 @@
 <!-- Leaves Table -->
 <div class="admin-panel">
     <div class="panel-header">
-        <h2><i class="fas fa-list"></i> Leave Requests (<?= $leaveTotal ?>)</h2>
+        <h2><i class="fas fa-list"></i> <?= $isHrRespondedView ? 'Responded Request History' : 'Leave Requests' ?> (<?= $leaveTotal ?>)</h2>
     </div>
 
     <div class="table-responsive">
@@ -448,7 +502,9 @@
                         <th>Days</th>
                         <th>Status</th>
                         <th>Reason</th>
-                        <th>Actions</th>
+                        <?php if ($showActionsColumn): ?>
+                            <th>Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -468,6 +524,7 @@
                                         'approved' => 'badge-approved',
                                         'manager_approved' => 'badge-manager-approved',
                                         'rejected' => 'badge-rejected',
+                                        'ended' => 'badge-ended',
                                         default => 'badge-pending'
                                     };
                                 ?>
@@ -476,33 +533,35 @@
                             <td>
                                 <small><?= esc($leave->reason ?? 'N/A') ?></small>
                             </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <?php 
-                                        $canApproveLeave = isset($canApprove) && $canApprove;
-                                        $isApprovalRequired = in_array($leave->status ?? 'pending', ['pending', 'manager_approved']);
-                                    ?>
-                                    
-                                    <?php if ($canApproveLeave && $isApprovalRequired): ?>
-                                        <form action="<?= base_url('leaves/approve-hr/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn-action btn-approve" title="Approve this leave request">
-                                                <i class="fas fa-check"></i> Approve
-                                            </button>
-                                        </form>
-                                        <form action="<?= base_url('leaves/reject/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn-action btn-reject" title="Reject this leave request">
-                                                <i class="fas fa-times"></i> Reject
-                                            </button>
-                                        </form>
-                                    <?php elseif (!$canApproveLeave && (($leave->status ?? 'pending') === 'pending')): ?>
-                                        <a href="<?= base_url('leaves/edit/' . ($leave->id ?? 0)) ?>" class="btn-action btn-edit">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
+                            <?php if ($showActionsColumn): ?>
+                                <td>
+                                    <div class="action-buttons">
+                                        <?php 
+                                            $canApproveLeave = isset($canApprove) && $canApprove;
+                                            $isApprovalRequired = in_array($leave->status ?? 'pending', ['pending', 'manager_approved']);
+                                        ?>
+                                        
+                                        <?php if ($canApproveLeave && $isApprovalRequired): ?>
+                                            <form action="<?= base_url('leaves/approve-hr/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
+                                                <?= csrf_field() ?>
+                                                <button type="submit" class="btn-action btn-approve" title="Approve this leave request">
+                                                    <i class="fas fa-check"></i> Approve
+                                                </button>
+                                            </form>
+                                            <form action="<?= base_url('leaves/reject/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
+                                                <?= csrf_field() ?>
+                                                <button type="submit" class="btn-action btn-reject" title="Reject this leave request">
+                                                    <i class="fas fa-times"></i> Reject
+                                                </button>
+                                            </form>
+                                        <?php elseif (!$canApproveLeave && (($leave->status ?? 'pending') === 'pending')): ?>
+                                            <a href="<?= base_url('leaves/edit/' . ($leave->id ?? 0)) ?>" class="btn-action btn-edit">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -517,5 +576,53 @@
 </div>
 
 </div>
+
+<?php if ($isHrDashboard): ?>
+<script>
+(() => {
+    const isRespondedView = <?= $isHrRespondedView ? 'true' : 'false' ?>;
+    const summaryUrl = <?= json_encode(base_url('leaves/hr-summary')) ?>;
+
+    const totalNode = document.getElementById('stat-total-requests');
+    const secondaryNode = document.getElementById('stat-secondary');
+    const approvedNode = document.getElementById('stat-approved');
+    const rejectedNode = document.getElementById('stat-rejected');
+
+    if (!totalNode || !secondaryNode || !approvedNode || !rejectedNode) {
+        return;
+    }
+
+    const applySummary = (summary) => {
+        totalNode.textContent = String(summary.total_requests ?? 0);
+        secondaryNode.textContent = String(isRespondedView ? (summary.responded ?? 0) : (summary.awaiting_review ?? 0));
+        approvedNode.textContent = String(summary.approved ?? 0);
+        rejectedNode.textContent = String(summary.rejected ?? 0);
+    };
+
+    const refreshSummary = async () => {
+        try {
+            const response = await fetch(summaryUrl, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            applySummary(data || {});
+        } catch (error) {
+            // Keep the current values if network polling fails.
+        }
+    };
+
+    refreshSummary();
+    setInterval(refreshSummary, 8000);
+})();
+</script>
+<?php endif; ?>
 
 <?= $this->endSection() ?>

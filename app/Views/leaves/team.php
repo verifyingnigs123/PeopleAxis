@@ -94,7 +94,47 @@
         margin-top: 10px;
         font-size: 2rem;
         font-weight: 700;
-        color: #2f5f45;
+        color: #1f2937;
+    }
+
+    .stat-pending {
+        border-left-color: #d4a017;
+    }
+
+    .stat-pending .stat-value {
+        color: #a16207;
+    }
+
+    .stat-awaiting {
+        border-left-color: #f97316;
+    }
+
+    .stat-awaiting .stat-value {
+        color: #c2410c;
+    }
+
+    .stat-approved {
+        border-left-color: #16a34a;
+    }
+
+    .stat-approved .stat-value {
+        color: #166534;
+    }
+
+    .stat-rejected {
+        border-left-color: #dc2626;
+    }
+
+    .stat-rejected .stat-value {
+        color: #b91c1c;
+    }
+
+    .stat-ended {
+        border-left-color: #111827;
+    }
+
+    .stat-ended .stat-value {
+        color: #111827;
     }
 
     .panel {
@@ -193,6 +233,11 @@
         color: #991b1b;
     }
 
+    .badge-ended {
+        background: #111827;
+        color: #ffffff;
+    }
+
     .muted {
         color: #64748b;
         font-size: 0.88rem;
@@ -258,6 +303,7 @@
                 <option value="manager_approved" <?= $statusFilter === 'manager_approved' ? 'selected' : '' ?>>Awaiting HR</option>
                 <option value="approved" <?= $statusFilter === 'approved' ? 'selected' : '' ?>>Approved</option>
                 <option value="rejected" <?= $statusFilter === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+                <option value="ended" <?= $statusFilter === 'ended' ? 'selected' : '' ?>>Ended</option>
             </select>
         </div>
         <button type="submit" class="btn-primary-soft">
@@ -286,22 +332,32 @@
         </div>
     </div>
 <?php else: ?>
+    <?php
+        $approvedCount = (int) ($leaveSummary['approved'] ?? 0);
+        $endedCount = (int) ($leaveSummary['ended'] ?? 0);
+        // Keep approved history visible even after requests move to ended.
+        $approvedRecordedCount = $approvedCount + $endedCount;
+    ?>
     <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card stat-pending">
             <div class="stat-label">Pending Review</div>
             <div class="stat-value"><?= $leaveSummary['pending'] ?? 0 ?></div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-awaiting">
             <div class="stat-label">Awaiting HR</div>
             <div class="stat-value"><?= $leaveSummary['manager_approved'] ?? 0 ?></div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-approved">
             <div class="stat-label">Approved</div>
-            <div class="stat-value"><?= $leaveSummary['approved'] ?? 0 ?></div>
+            <div class="stat-value"><?= $approvedRecordedCount ?></div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-rejected">
             <div class="stat-label">Rejected</div>
             <div class="stat-value"><?= $leaveSummary['rejected'] ?? 0 ?></div>
+        </div>
+        <div class="stat-card stat-ended">
+            <div class="stat-label">Ended</div>
+            <div class="stat-value"><?= $endedCount ?></div>
         </div>
     </div>
 
@@ -333,6 +389,7 @@
                                     'approved' => 'badge-approved',
                                     'manager_approved' => 'badge-manager-approved',
                                     'rejected' => 'badge-rejected',
+                                    'ended' => 'badge-ended',
                                     default => 'badge-pending',
                                 };
                                 $duration = $leave->number_of_days ?? null;

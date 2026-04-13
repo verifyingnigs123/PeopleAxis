@@ -97,6 +97,46 @@
         color: #2f5f45;
     }
 
+    .stat-card.stat-total {
+        border-left-color: #2563eb;
+    }
+
+    .stat-card.stat-total .stat-value {
+        color: #2563eb;
+    }
+
+    .stat-card.stat-pending {
+        border-left-color: #ea580c;
+    }
+
+    .stat-card.stat-pending .stat-value {
+        color: #ea580c;
+    }
+
+    .stat-card.stat-awaiting-hr {
+        border-left-color: #ca8a04;
+    }
+
+    .stat-card.stat-awaiting-hr .stat-value {
+        color: #ca8a04;
+    }
+
+    .stat-card.stat-rejected {
+        border-left-color: #b91c1c;
+    }
+
+    .stat-card.stat-rejected .stat-value {
+        color: #b91c1c;
+    }
+
+    .stat-card.stat-ended {
+        border-left-color: #111827;
+    }
+
+    .stat-card.stat-ended .stat-value {
+        color: #111827;
+    }
+
     .dashboard-grid {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -227,6 +267,11 @@
         color: #991b1b;
     }
 
+    .badge-ended {
+        background: #111827;
+        color: #ffffff;
+    }
+
     .muted {
         color: #64748b;
         font-size: 0.88rem;
@@ -271,6 +316,7 @@
                 <option value="manager_approved" <?= ($statusFilter ?? '') === 'manager_approved' ? 'selected' : '' ?>>Awaiting HR</option>
                 <option value="approved" <?= ($statusFilter ?? '') === 'approved' ? 'selected' : '' ?>>Approved</option>
                 <option value="rejected" <?= ($statusFilter ?? '') === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+                <option value="ended" <?= ($statusFilter ?? '') === 'ended' ? 'selected' : '' ?>>Ended</option>
             </select>
         </div>
         <button type="submit" class="btn-primary-soft">
@@ -296,63 +342,47 @@
     </div>
 <?php endif; ?>
 
+<?php
+    $approvedCount = (int) ($leaveSummary['approved'] ?? 0);
+    $endedCount = (int) ($leaveSummary['ended'] ?? 0);
+    // Keep approved history visible even after requests move to ended.
+    $approvedRecordedCount = $approvedCount + $endedCount;
+?>
+
 <div class="stats-grid">
-    <div class="stat-card">
+    <div class="stat-card stat-total">
         <div class="stat-label">Total Requests</div>
         <div class="stat-value"><?= array_sum($leaveSummary ?? []) ?></div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-pending">
         <div class="stat-label">Pending</div>
         <div class="stat-value"><?= $leaveSummary['pending'] ?? 0 ?></div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-awaiting-hr">
         <div class="stat-label">Awaiting HR</div>
         <div class="stat-value"><?= $leaveSummary['manager_approved'] ?? 0 ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Approved</div>
-        <div class="stat-value"><?= $leaveSummary['approved'] ?? 0 ?></div>
+        <div class="stat-value"><?= $approvedRecordedCount ?></div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-rejected">
         <div class="stat-label">Rejected</div>
         <div class="stat-value"><?= $leaveSummary['rejected'] ?? 0 ?></div>
+    </div>
+    <div class="stat-card stat-ended">
+        <div class="stat-label">Ended</div>
+        <div class="stat-value"><?= $endedCount ?></div>
     </div>
 </div>
 
 <?php
-    $hasEmployeeSnapshot = !empty($employee);
     $hasLeaveSchedule = !empty($activeLeave) || !empty($nextLeave);
     $hasLeaveHistory = !empty($leaves);
 ?>
 
-<?php if ($hasEmployeeSnapshot || $hasLeaveSchedule): ?>
+<?php if ($hasLeaveSchedule): ?>
 <div class="dashboard-grid">
-    <?php if ($hasEmployeeSnapshot): ?>
-        <div class="panel">
-            <div class="panel-header">
-                <i class="fas fa-user"></i> Employee Snapshot
-            </div>
-            <div class="panel-body">
-                <div class="metric-row">
-                    <div class="metric-label">Employee</div>
-                    <div class="metric-value"><?= esc(trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''))) ?></div>
-                </div>
-                <div class="metric-row">
-                    <div class="metric-label">Employee ID</div>
-                    <div class="metric-value"><?= esc($employee->employee_id ?? 'N/A') ?></div>
-                </div>
-                <div class="metric-row">
-                    <div class="metric-label">Email</div>
-                    <div class="metric-value"><?= esc($employee->email ?? 'N/A') ?></div>
-                </div>
-                <div class="metric-row">
-                    <div class="metric-label">Employment Status</div>
-                    <div class="metric-value"><?= esc(ucfirst((string) ($employee->status ?? 'active'))) ?></div>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
     <?php if ($hasLeaveSchedule): ?>
         <div class="panel">
             <div class="panel-header">
@@ -367,6 +397,14 @@
                 <div class="metric-row">
                     <div class="metric-label">Period</div>
                     <div class="metric-value"><?= date('M d, Y', strtotime($activeLeave->start_date)) ?> to <?= date('M d, Y', strtotime($activeLeave->end_date)) ?></div>
+                </div>
+                <div style="margin-top: 14px;">
+                    <form action="<?= base_url('leaves/emergency-back/' . (int) ($activeLeave->id ?? 0)) ?>" method="post" onsubmit="return confirm('Confirm emergency back? You will be marked as back to work immediately.');">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn-primary-soft" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                            <i class="fas fa-undo-alt"></i> Emergency Back
+                        </button>
+                    </form>
                 </div>
             <?php elseif (!empty($nextLeave)): ?>
                 <div class="metric-row">
@@ -414,6 +452,7 @@
                                 'approved' => 'badge-approved',
                                 'manager_approved' => 'badge-manager-approved',
                                 'rejected' => 'badge-rejected',
+                                'ended' => 'badge-ended',
                                 default => 'badge-pending',
                             };
                             $days = $leave->number_of_days ?? null;
