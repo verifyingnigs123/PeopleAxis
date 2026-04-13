@@ -121,7 +121,7 @@ class Leaves extends BaseController
 
                 $activeLeave = $db->table('leave_requests')
                     ->where('employee_id', $employeeId)
-                    ->whereIn('status', ['approved', 'manager_approved'])
+                    ->where('status', 'approved')
                     ->where('start_date <=', $today)
                     ->where('end_date >=', $today)
                     ->orderBy('start_date', 'ASC')
@@ -130,7 +130,7 @@ class Leaves extends BaseController
 
                 $nextLeave = $db->table('leave_requests')
                     ->where('employee_id', $employeeId)
-                    ->whereIn('status', ['approved', 'manager_approved'])
+                    ->where('status', 'approved')
                     ->where('start_date >', $today)
                     ->orderBy('start_date', 'ASC')
                     ->get(1)

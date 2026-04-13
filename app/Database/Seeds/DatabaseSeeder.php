@@ -13,5 +13,6 @@ class DatabaseSeeder extends Seeder
         $this->call('PositionSeeder');
         $this->call('EmployeeSeeder');
         $this->call('LinkUsersToEmployees');
+        $this->call('AssignManagerEmployeeToITSeeder');
     }
 }

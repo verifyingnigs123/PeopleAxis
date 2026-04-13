@@ -353,7 +353,7 @@ class Attendance extends BaseController
                 ->select('employee_id')
                 ->distinct()
                 ->whereIn('employee_id', $teamContext['employeeIds'])
-                ->whereIn('status', ['approved', 'manager_approved'])
+                ->where('status', 'approved')
                 ->where('start_date <=', $selectedDate)
                 ->where('end_date >=', $selectedDate)
                 ->get()

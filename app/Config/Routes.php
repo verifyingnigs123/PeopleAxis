@@ -24,6 +24,7 @@ $routes->post('/leaves/store', 'Leaves::store');
 $routes->post('/leaves/submit', 'Leaves::submit');
 $routes->post('/leaves/approve-manager/(:num)', 'Leaves::approveByManager/$1');
 $routes->post('/leaves/approve-hr/(:num)', 'Leaves::approveByHR/$1');
+$routes->post('/leaves/approveByHR/(:num)', 'Leaves::approveByHR/$1');
 $routes->post('/leaves/reject/(:num)', 'Leaves::reject/$1');
 
 // Users routes - CRUD Operations

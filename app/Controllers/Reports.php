@@ -129,7 +129,7 @@ class Reports extends BaseController
                 ->getResultArray();
 
             $leaveRows = $db->table('leave_requests')
-                ->select('employee_id, COUNT(*) AS leave_requests, SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) AS pending_leave_requests, SUM(CASE WHEN status IN ("approved", "manager_approved") THEN 1 ELSE 0 END) AS approved_leave_requests', false)
+                ->select('employee_id, COUNT(*) AS leave_requests, SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) AS pending_leave_requests, SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) AS approved_leave_requests', false)
                 ->whereIn('employee_id', $teamContext['employeeIds'])
                 ->groupStart()
                     ->where('start_date <=', $periodEnd)

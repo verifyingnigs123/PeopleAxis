@@ -95,19 +95,24 @@ abstract class BaseController extends Controller
 
         $departmentIds = array_map('intval', array_column($departments, 'id'));
         // Team members = all Super Admin approved employees (active or blank status for legacy rows).
-        $teamMembers = $db->table('employees')
-            ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
-            ->join('departments', 'departments.id = employees.department_id', 'left')
-            ->where('employees.account_status', 'approved')
-            ->groupStart()
-                ->where('employees.status', 'active')
-                ->orWhere('employees.status IS NULL', null, false)
-                ->orWhere('employees.status', '')
-            ->groupEnd()
-            ->orderBy('employees.first_name', 'ASC')
-            ->orderBy('employees.last_name', 'ASC')
-            ->get()
-            ->getResultArray();
+        $teamMembers = [];
+
+        if ($departmentIds !== []) {
+            $teamMembers = $db->table('employees')
+                ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
+                ->join('departments', 'departments.id = employees.department_id', 'left')
+                ->where('employees.account_status', 'approved')
+                ->groupStart()
+                    ->where('employees.status', 'active')
+                    ->orWhere('employees.status IS NULL', null, false)
+                    ->orWhere('employees.status', '')
+                ->groupEnd()
+                ->whereIn('employees.department_id', $departmentIds)
+                ->orderBy('employees.first_name', 'ASC')
+                ->orderBy('employees.last_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
 
         $employeeIds = array_map('intval', array_column($teamMembers, 'id'));
 

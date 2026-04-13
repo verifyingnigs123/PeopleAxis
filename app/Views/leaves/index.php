@@ -240,6 +240,12 @@
         border-color: #cfead8;
     }
 
+    .badge-manager-approved {
+        background: #e8f1fb;
+        color: #1f5ea8;
+        border-color: #c9dcf6;
+    }
+
     .badge-rejected {
         background: #fdecec;
         color: #b43a3a;
@@ -460,11 +466,12 @@
                                 <?php 
                                     $statusBadge = match(strtolower($leave->status ?? 'pending')) {
                                         'approved' => 'badge-approved',
+                                        'manager_approved' => 'badge-manager-approved',
                                         'rejected' => 'badge-rejected',
                                         default => 'badge-pending'
                                     };
                                 ?>
-                                <span class="badge <?= $statusBadge ?>"><?= esc(ucfirst($leave->status ?? 'Pending')) ?></span>
+                                <span class="badge <?= $statusBadge ?>"><?= esc(ucwords(str_replace('_', ' ', $leave->status ?? 'Pending'))) ?></span>
                             </td>
                             <td>
                                 <small><?= esc($leave->reason ?? 'N/A') ?></small>
@@ -477,7 +484,7 @@
                                     ?>
                                     
                                     <?php if ($canApproveLeave && $isApprovalRequired): ?>
-                                        <form action="<?= base_url('leaves/approveByHR/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
+                                        <form action="<?= base_url('leaves/approve-hr/' . ($leave->id ?? 0)) ?>" method="POST" style="display:inline;">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn-action btn-approve" title="Approve this leave request">
                                                 <i class="fas fa-check"></i> Approve

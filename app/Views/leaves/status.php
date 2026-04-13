@@ -208,13 +208,13 @@
     }
 
     .badge-pending {
-        background: #fef3c7;
-        color: #92400e;
+        background: #fff4e4;
+        color: #9f6310;
     }
 
     .badge-manager-approved {
-        background: #e1efe6;
-        color: #4d7f63;
+        background: #e8f1fb;
+        color: #1f5ea8;
     }
 
     .badge-approved {

@@ -112,7 +112,7 @@ class Dashboard extends BaseController
                         $leaveCount = (int) ($db->table('leave_requests')
                             ->select('COUNT(DISTINCT employee_id) AS total', false)
                             ->whereIn('employee_id', $teamContext['employeeIds'])
-                            ->whereIn('status', ['manager_approved', 'approved'])
+                            ->where('status', 'approved')
                             ->where('start_date <=', $today)
                             ->where('end_date >=', $today)
                             ->get()
