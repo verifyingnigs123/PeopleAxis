@@ -338,11 +338,6 @@ class Users extends BaseController
             $isActive = $this->request->getPost('is_active');
             $password = trim((string) $this->request->getPost('password'));
 
-            // In Super Admin edit flow, default password is auto-set for easier user onboarding.
-            if ($password === '' && $this->isSuperAdminUser()) {
-                $password = 'password123';
-            }
-
             // Basic validation
             if (!$name || !$email || !$roleId) {
                 return $this->response->setStatusCode(422)->setJSON([
@@ -383,24 +378,41 @@ class Users extends BaseController
             // Check if email already exists for another user
             $db = \Config\Database::connect();
             $existingEmail = $db->table('users')
+                ->select('id')
                 ->where('email', $email)
                 ->where('id !=', $id)
+                ->limit(1)
                 ->get()
-                ->getResultArray();
+                ->getRow();
 
-            if (!empty($existingEmail)) {
+            if ($existingEmail) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
                     'message' => 'Email already in use'
                 ]);
             }
 
-            // Prepare update data
             $normalizedRoleId = (int) $roleId;
+            $roleRecord = $db->table('roles')
+                ->select('id, name')
+                ->where('id', $normalizedRoleId)
+                ->get()
+                ->getRow();
+
+            if (! $roleRecord) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid role selection'
+                ]);
+            }
+
+            $roleName = strtolower(trim((string) $roleRecord->name));
+
+            // Prepare update data
             $updateData = [
                 'name' => $name,
                 'email' => $email,
-                'role' => $this->getRoleSlugByRoleId($normalizedRoleId),
+                'role' => self::ROLE_NAME_TO_SLUG[$roleName] ?? 'employee',
                 'role_id' => $normalizedRoleId,
                 'is_active' => (int)$isActive,
                 'updated_at' => date('Y-m-d H:i:s')
@@ -424,9 +436,8 @@ class Users extends BaseController
             $result = $this->userModel->skipValidation(true)->update($id, $updateData);
 
             if ($result) {
-                // Fetch updated role name for DOM update
-                $roleRecord = $db->table('roles')->where('id', (int)$roleId)->get()->getRow();
-                $updatedRoleName = $roleRecord ? $roleRecord->name : 'User';
+                // Reuse role already fetched above for DOM update
+                $updatedRoleName = (string) $roleRecord->name;
 
                 // Log audit
                 $userId = session()->get('user_id');

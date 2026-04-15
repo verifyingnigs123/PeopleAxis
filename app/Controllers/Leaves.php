@@ -418,6 +418,7 @@ class Leaves extends BaseController
         ]);
 
         $this->notifyEmployeeForLeaveDecision($leave, 'approved');
+        $this->notifyManagerForHrApprovedLeave($leave);
 
         $this->auditModel->log($userId, 'HR Approved Leave', 'HR approved leave id: ' . $id);
         return redirect()->back()->with('success', 'Leave approved by HR');
@@ -578,15 +579,8 @@ class Leaves extends BaseController
             return;
         }
 
-        $db = \Config\Database::connect();
-        $department = $db->table('departments')
-            ->select('manager_id')
-            ->where('id', $departmentId)
-            ->get()
-            ->getRow();
-
-        $managerUserId = (int) ($department->manager_id ?? 0);
-        if ($managerUserId <= 0) {
+        $managerUserIds = $this->getDepartmentManagerUserIds($departmentId);
+        if ($managerUserIds === []) {
             return;
         }
 
@@ -601,14 +595,18 @@ class Leaves extends BaseController
         $message = $employeeName . ' (' . $staffCode . ') ended ' . $leaveType . ' early and is now back to work.';
         $link = base_url('leaves/team?status=ended');
 
-        (new NotificationModel())->createNotification(
-            $managerUserId,
-            $title,
-            $message,
-            'info',
-            $link,
-            'fas fa-user-check'
-        );
+        $notificationModel = new NotificationModel();
+
+        foreach ($managerUserIds as $managerUserId) {
+            $notificationModel->createNotification(
+                $managerUserId,
+                $title,
+                $message,
+                'info',
+                $link,
+                'fas fa-user-check'
+            );
+        }
     }
 
     private function notifyManagerForLeaveRequest(object $employee, int $leaveId = 0): void
@@ -618,15 +616,8 @@ class Leaves extends BaseController
             return;
         }
 
-        $db = \Config\Database::connect();
-        $department = $db->table('departments')
-            ->select('manager_id, name')
-            ->where('id', $departmentId)
-            ->get()
-            ->getRow();
-
-        $managerUserId = (int) ($department->manager_id ?? 0);
-        if ($managerUserId <= 0) {
+        $managerUserIds = $this->getDepartmentManagerUserIds($departmentId);
+        if ($managerUserIds === []) {
             return;
         }
 
@@ -640,14 +631,82 @@ class Leaves extends BaseController
         $message = $employeeName . ' (' . $staffCode . ') submitted a leave request for your review.';
         $link = base_url('leaves/team?status=pending');
 
-        (new NotificationModel())->createNotification(
-            $managerUserId,
-            $title,
-            $message,
-            'info',
-            $link,
-            'fas fa-calendar-check'
-        );
+        $notificationModel = new NotificationModel();
+
+        foreach ($managerUserIds as $managerUserId) {
+            $notificationModel->createNotification(
+                $managerUserId,
+                $title,
+                $message,
+                'info',
+                $link,
+                'fas fa-calendar-check'
+            );
+        }
+    }
+
+    /**
+     * Resolve active manager user IDs for a department.
+     * Uses the department manager_id first, then falls back to active manager-role users
+     * linked to employees in the same department.
+     */
+    private function getDepartmentManagerUserIds(int $departmentId): array
+    {
+        if ($departmentId <= 0) {
+            return [];
+        }
+
+        $db = \Config\Database::connect();
+        $userIds = [];
+
+        $department = $db->table('departments')
+            ->select('manager_id')
+            ->where('id', $departmentId)
+            ->get()
+            ->getRow();
+
+        $directManagerUserId = (int) ($department->manager_id ?? 0);
+        if ($directManagerUserId > 0) {
+            $directManager = $db->table('users')
+                ->select('id')
+                ->where('id', $directManagerUserId)
+                ->where('is_active', 1)
+                ->get()
+                ->getRow();
+
+            if ($directManager) {
+                $userIds[$directManagerUserId] = true;
+            }
+        }
+
+        $usersHasRoleColumn = $db->fieldExists('role', 'users');
+
+        $managerQuery = $db->table('employees')
+            ->select('users.id as user_id')
+            ->join('users', 'users.id = employees.user_id', 'inner')
+            ->join('roles', 'roles.id = users.role_id', 'left')
+            ->where('employees.department_id', $departmentId)
+            ->where('users.is_active', 1)
+            ->groupStart()
+                ->where('LOWER(roles.name)', 'manager');
+
+        if ($usersHasRoleColumn) {
+            $managerQuery->orWhereIn('users.role', ['manager']);
+        }
+
+        $managerRows = $managerQuery
+            ->groupEnd()
+            ->get()
+            ->getResultArray();
+
+        foreach ($managerRows as $row) {
+            $managerUserId = (int) ($row['user_id'] ?? 0);
+            if ($managerUserId > 0) {
+                $userIds[$managerUserId] = true;
+            }
+        }
+
+        return array_map('intval', array_keys($userIds));
     }
 
     private function notifyEmployeeForLeaveDecision(object $leave, string $newStatus): void
@@ -684,6 +743,52 @@ class Leaves extends BaseController
             $link,
             $icon
         );
+    }
+
+    private function notifyManagerForHrApprovedLeave(object $leave): void
+    {
+        $employeeId = (int) ($leave->employee_id ?? 0);
+        if ($employeeId <= 0) {
+            return;
+        }
+
+        $employee = $this->employeeModel->find($employeeId);
+        if (! $employee) {
+            return;
+        }
+
+        $departmentId = (int) ($employee->department_id ?? 0);
+        if ($departmentId <= 0) {
+            return;
+        }
+
+        $managerUserIds = $this->getDepartmentManagerUserIds($departmentId);
+        if ($managerUserIds === []) {
+            return;
+        }
+
+        $employeeName = trim((string) (($employee->first_name ?? '') . ' ' . ($employee->last_name ?? '')));
+        if ($employeeName === '') {
+            $employeeName = (string) ($employee->employee_id ?? 'An employee');
+        }
+
+        $staffCode = (string) ($employee->employee_id ?? 'N/A');
+        $leaveType = (string) ($leave->leave_type ?? 'Leave');
+        $title = 'Leave Approved By HR';
+        $message = $employeeName . ' (' . $staffCode . ') has a ' . $leaveType . ' request approved by HR.';
+        $link = base_url('leaves/team?status=approved');
+
+        $notificationModel = new NotificationModel();
+        foreach ($managerUserIds as $managerUserId) {
+            $notificationModel->createNotification(
+                $managerUserId,
+                $title,
+                $message,
+                'success',
+                $link,
+                'fas fa-check-circle'
+            );
+        }
     }
 
     private function notifyEmployeeForLeaveRejection(object $leave, bool $isManagerRejection): void

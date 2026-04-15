@@ -9,6 +9,7 @@ class AssignManagerEmployeeToITSeeder extends Seeder
     public function run()
     {
         $db = \Config\Database::connect();
+        $usersHasRoleColumn = $db->fieldExists('role', 'users');
 
         $itDepartment = $db->table('departments')
             ->where('name', 'Information Technology')
@@ -45,11 +46,13 @@ class AssignManagerEmployeeToITSeeder extends Seeder
             ->getRow();
 
         if (! $managerUser) {
-            $managerUser = $db->table('users')
-                ->where('role', 'manager')
-                ->orderBy('id', 'ASC')
-                ->get()
-                ->getRow();
+            if ($usersHasRoleColumn) {
+                $managerUser = $db->table('users')
+                    ->where('role', 'manager')
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getRow();
+            }
         }
 
         $employeeUser = $db->table('users')
@@ -62,11 +65,13 @@ class AssignManagerEmployeeToITSeeder extends Seeder
             ->getRow();
 
         if (! $employeeUser) {
-            $employeeUser = $db->table('users')
-                ->where('role', 'employee')
-                ->orderBy('id', 'ASC')
-                ->get()
-                ->getRow();
+            if ($usersHasRoleColumn) {
+                $employeeUser = $db->table('users')
+                    ->where('role', 'employee')
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getRow();
+            }
         }
 
         if (! $managerUser || ! $employeeUser) {

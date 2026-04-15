@@ -94,6 +94,21 @@ class Reports extends BaseController
             $selectedMonth = date('Y-m');
         }
 
+        $selectedDate = (string) $this->request->getGet('date');
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+            $selectedDate = date('Y-m-d');
+        }
+
+        $dailySortBy = strtolower((string) $this->request->getGet('daily_sort_by'));
+        if (! in_array($dailySortBy, ['employee_name', 'date'], true)) {
+            $dailySortBy = 'date';
+        }
+
+        $dailySortDir = strtolower((string) $this->request->getGet('daily_sort_dir'));
+        if (! in_array($dailySortDir, ['asc', 'desc'], true)) {
+            $dailySortDir = 'desc';
+        }
+
         $periodStart = $selectedMonth . '-01';
         $periodEnd = date('Y-m-t', strtotime($periodStart));
 
@@ -101,6 +116,9 @@ class Reports extends BaseController
             $teamContext = $this->getManagedTeamContext();
             $data = [
                 'selectedMonth'      => $selectedMonth,
+                'selectedDate'       => $selectedDate,
+                'dailySortBy'        => $dailySortBy,
+                'dailySortDir'       => $dailySortDir,
                 'periodLabel'        => date('F Y', strtotime($periodStart)),
                 'managedDepartments' => $teamContext['departments'],
                 'summary'            => [
@@ -111,6 +129,8 @@ class Reports extends BaseController
                 ],
                 'departmentBreakdown' => [],
                 'performanceRows'   => [],
+                'dailyAttendanceRows' => [],
+                'monthlyAttendanceRows' => [],
             ];
 
             if ($teamContext['employeeIds'] === []) {
@@ -242,6 +262,143 @@ class Reports extends BaseController
             usort($data['performanceRows'], static function (array $left, array $right): int {
                 return $right['score'] <=> $left['score'];
             });
+
+            if ($teamContext['employeeIds'] !== []) {
+                $dailyRows = $db->table('employees')
+                    ->select("employees.id AS employee_pk_id, employees.employee_id AS employee_code, employees.first_name, employees.last_name, departments.name AS department_name, MIN(attendance_logs.time_in) AS time_in, MAX(attendance_logs.time_out) AS time_out, GROUP_CONCAT(DISTINCT LOWER(attendance_logs.status)) AS statuses", false)
+                    ->join('departments', 'departments.id = employees.department_id', 'left')
+                    ->join('attendance_logs', "attendance_logs.employee_id = employees.id AND attendance_logs.date = " . $db->escape($selectedDate), 'left')
+                    ->whereIn('employees.id', $teamContext['employeeIds'])
+                    ->where('employees.account_status', 'approved')
+                    ->groupStart()
+                        ->where('employees.status', 'active')
+                        ->orWhere('employees.status IS NULL', null, false)
+                        ->orWhere('employees.status', '')
+                    ->groupEnd()
+                    ->groupBy('employees.id')
+                    ->groupBy('employees.employee_id')
+                    ->groupBy('employees.first_name')
+                    ->groupBy('employees.last_name')
+                    ->groupBy('departments.name')
+                    ->get()
+                    ->getResultArray();
+
+                $employeeIds = array_map('intval', array_column($dailyRows, 'employee_pk_id'));
+                $onLeaveRows = [];
+                if ($employeeIds !== []) {
+                    $onLeaveRows = $db->table('leave_requests')
+                        ->select('employee_id')
+                        ->distinct()
+                        ->whereIn('employee_id', $employeeIds)
+                        ->where('status', 'approved')
+                        ->where('early_returned_at', null)
+                        ->where('start_date <=', $selectedDate)
+                        ->where('end_date >=', $selectedDate)
+                        ->get()
+                        ->getResultArray();
+                }
+
+                $onLeaveLookup = [];
+                foreach ($onLeaveRows as $row) {
+                    $employeeId = (int) ($row['employee_id'] ?? 0);
+                    if ($employeeId > 0) {
+                        $onLeaveLookup[$employeeId] = true;
+                    }
+                }
+
+                $normalizedDailyRows = [];
+                foreach ($dailyRows as $row) {
+                    $employeePkId = (int) ($row['employee_pk_id'] ?? 0);
+                    $statuses = array_filter(array_map('trim', explode(',', (string) ($row['statuses'] ?? ''))));
+                    $statusLookup = array_fill_keys($statuses, true);
+                    $isOnLeave = isset($onLeaveLookup[$employeePkId]);
+
+                    if ($isOnLeave) {
+                        $normalizedStatus = 'Leave';
+                    } elseif (isset($statusLookup['absent']) || $statuses === []) {
+                        $normalizedStatus = 'Absent';
+                    } elseif (isset($statusLookup['late']) || isset($statusLookup['half-day']) || isset($statusLookup['half day'])) {
+                        $normalizedStatus = 'Late';
+                    } else {
+                        $normalizedStatus = 'Present';
+                    }
+
+                    $normalizedDailyRows[] = [
+                        'employee_name' => trim(((string) ($row['first_name'] ?? '')) . ' ' . ((string) ($row['last_name'] ?? ''))),
+                        'department_name' => (string) ($row['department_name'] ?? 'Unassigned'),
+                        'date' => $selectedDate,
+                        'time_in' => (string) ($row['time_in'] ?? ''),
+                        'time_out' => (string) ($row['time_out'] ?? ''),
+                        'status' => $normalizedStatus,
+                    ];
+                }
+
+                usort($normalizedDailyRows, static function (array $a, array $b) use ($dailySortBy, $dailySortDir): int {
+                    if ($dailySortBy === 'employee_name') {
+                        $compare = strcmp(strtolower((string) $a['employee_name']), strtolower((string) $b['employee_name']));
+                        if ($compare === 0) {
+                            $compare = strcmp(strtolower((string) $a['department_name']), strtolower((string) $b['department_name']));
+                        }
+                    } else {
+                        $compare = strcmp((string) $a['date'], (string) $b['date']);
+                        if ($compare === 0) {
+                            $compare = strcmp(strtolower((string) $a['employee_name']), strtolower((string) $b['employee_name']));
+                        }
+                    }
+
+                    return $dailySortDir === 'asc' ? $compare : -$compare;
+                });
+
+                $data['dailyAttendanceRows'] = $normalizedDailyRows;
+            }
+
+            $monthlyRows = $db->table('attendance_logs')
+                ->select("attendance_logs.date, attendance_logs.time_in, attendance_logs.time_out, employees.employee_id AS employee_code, CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name", false)
+                ->join('employees', 'employees.id = attendance_logs.employee_id', 'inner')
+                ->whereIn('attendance_logs.employee_id', $teamContext['employeeIds'])
+                ->where('attendance_logs.date >=', $periodStart)
+                ->where('attendance_logs.date <=', $periodEnd)
+                ->orderBy('attendance_logs.date', 'DESC')
+                ->orderBy('employees.first_name', 'ASC')
+                ->orderBy('employees.last_name', 'ASC')
+                ->orderBy('attendance_logs.time_in', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            $normalizedMonthlyRows = [];
+            foreach ($monthlyRows as $row) {
+                $attendanceDate = (string) ($row['date'] ?? '');
+                $timeIn = (string) ($row['time_in'] ?? '');
+                $timeOut = (string) ($row['time_out'] ?? '');
+
+                $inDate = $timeIn !== '' ? $attendanceDate : '';
+                $outDate = '';
+
+                if ($timeOut !== '') {
+                    $outDate = $attendanceDate;
+
+                    if ($timeIn !== '') {
+                        $inTs = strtotime($attendanceDate . ' ' . $timeIn);
+                        $outTs = strtotime($attendanceDate . ' ' . $timeOut);
+
+                        if ($inTs !== false && $outTs !== false && $outTs < $inTs) {
+                            $outDate = date('Y-m-d', strtotime($attendanceDate . ' +1 day'));
+                        }
+                    }
+                }
+
+                $normalizedMonthlyRows[] = [
+                    'employee_id' => (string) ($row['employee_code'] ?? 'N/A'),
+                    'employee_name' => trim((string) ($row['employee_name'] ?? '')),
+                    'date' => $attendanceDate,
+                    'in_date' => $inDate,
+                    'in_time' => $timeIn,
+                    'out_date' => $outDate,
+                    'out_time' => $timeOut,
+                ];
+            }
+
+            $data['monthlyAttendanceRows'] = $normalizedMonthlyRows;
 
             return view('reports/team', $data);
         } catch (\Exception $e) {

@@ -1535,8 +1535,17 @@ class Employees extends BaseController
                 ]);
             }
 
-            // Idempotent approve: if already approved, return success.
+            // Idempotent approve: if already approved with linked account, make sure
+            // employment/user status is still active so manager views include the employee.
             if (($employee->account_status ?? '') === 'approved' && !empty($employee->user_id)) {
+                $this->employeeModel->update($employeeId, [
+                    'status' => 'active',
+                ]);
+
+                $this->userModel->skipValidation(true)->update((int) $employee->user_id, [
+                    'is_active' => 1,
+                ]);
+
                 return $this->response->setJSON([
                     'success'   => true,
                     'message'   => 'Employee is already approved.',
@@ -1612,6 +1621,36 @@ class Employees extends BaseController
                 'account_status' => 'approved',
                 'status'         => 'active',
             ]);
+
+            // Notify department manager so the newly-approved employee is visible in their team workflows.
+            $department = null;
+            $managerUserId = 0;
+            if (!empty($employee->department_id)) {
+                $department = $db->table('departments')
+                    ->select('id, name, manager_id')
+                    ->where('id', (int) $employee->department_id)
+                    ->get()
+                    ->getRow();
+                $managerUserId = (int) ($department->manager_id ?? 0);
+            }
+
+            if ($managerUserId > 0) {
+                $managerUser = $this->userModel->find($managerUserId);
+                if ($managerUser && (int) ($managerUser->is_active ?? 0) === 1) {
+                    $deptName = $department->name ?? 'your department';
+                    $this->notificationModel->insert([
+                        'user_id' => $managerUserId,
+                        'role'    => 'Manager',
+                        'title'   => 'New Team Member Approved',
+                        'message' => "{$employee->first_name} {$employee->last_name} was approved by Super Admin and is now active under {$deptName}.",
+                        'status'  => 'unread',
+                        'type'    => 'success',
+                        'icon'    => 'fas fa-user-check',
+                        'link'    => site_url('attendance/team'),
+                        'is_read' => false,
+                    ]);
+                }
+            }
 
             // Send email with credentials
             $this->sendCredentialsEmail($employee->email, $username, $password, $employee->first_name);

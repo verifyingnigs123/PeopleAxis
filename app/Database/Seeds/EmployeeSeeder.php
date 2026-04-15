@@ -15,12 +15,20 @@ class EmployeeSeeder extends Seeder
         $departmentModel = new DepartmentModel();
         $positionModel = new PositionModel();
         $db = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+        $employeesHasAccountStatus = $db->fieldExists('account_status', 'employees');
 
         // Get default department
         $department = $departmentModel->first();
         if (!$department) {
             // Create default department if not exists
-            $departmentId = $db->table('departments')->insert(['name' => 'General', 'description' => 'General Department']);
+            $db->table('departments')->insert([
+                'name' => 'General',
+                'description' => 'General Department',
+                'is_active' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
             $department = $departmentModel->first();
         }
         
@@ -30,7 +38,13 @@ class EmployeeSeeder extends Seeder
         $position = $positionModel->first();
         if (!$position) {
             // Create default position if not exists
-            $db->table('positions')->insert(['name' => 'Employee', 'description' => 'Regular Employee']);
+            $db->table('positions')->insert([
+                'name' => 'Employee',
+                'description' => 'Regular Employee',
+                'is_active' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
             $position = $positionModel->first();
         }
         
@@ -66,6 +80,10 @@ class EmployeeSeeder extends Seeder
                     'date_of_joining' => date('Y-m-d'),
                     'status' => 'active',
                 ];
+
+                if ($employeesHasAccountStatus) {
+                    $employeeData['account_status'] = 'approved';
+                }
 
                 $employeeModel->insert($employeeData);
                 $inserted++;

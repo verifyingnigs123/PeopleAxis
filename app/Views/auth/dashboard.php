@@ -200,6 +200,81 @@
         margin-bottom: 8px;
     }
 
+    .team-daily-attendance {
+        margin-top: 14px;
+    }
+
+    .team-daily-attendance .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .team-daily-attendance .card-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: #355444;
+        font-weight: 700;
+    }
+
+    .team-attendance-filter {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+
+    .team-attendance-filter .form-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 170px;
+    }
+
+    .team-attendance-filter label {
+        margin-bottom: 4px;
+        font-size: 0.8rem;
+        color: var(--dash-muted);
+        font-weight: 600;
+    }
+
+    .team-attendance-filter .form-control,
+    .team-attendance-filter .form-select {
+        border-color: var(--dash-border);
+    }
+
+    .team-attendance-filter .btn {
+        margin: 0;
+    }
+
+    .attendance-status-badge {
+        font-weight: 600;
+        padding: 0.35rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+    }
+
+    .attendance-status-present {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .attendance-status-late {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .attendance-status-absent {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .attendance-status-leave {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
     .btn-outline-primary {
         border-color: #b8d8c6;
         color: #4d7f63;
@@ -438,6 +513,12 @@
 
 <!-- Manager Dashboard -->
 <?php elseif ($roleName === 'Manager'): ?>
+    <?php
+        $teamDailyAttendanceDate = $teamDailyAttendanceDate ?? date('Y-m-d');
+        $teamDailyAttendanceSortBy = $teamDailyAttendanceSortBy ?? 'date';
+        $teamDailyAttendanceSortDir = $teamDailyAttendanceSortDir ?? 'desc';
+        $teamDailyAttendanceRecords = $teamDailyAttendanceRecords ?? [];
+    ?>
     <div class="admin-header">
         <div>
             <h1><i class="fas fa-users-cog"></i> Manager Dashboard</h1>
@@ -494,6 +575,96 @@
             <h3>Team Performance</h3>
             <p>Review monthly attendance trends and identify at-risk team members.</p>
             <a href="<?= base_url('reports/team') ?>" class="btn btn-outline-primary">View Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card team-daily-attendance">
+        <div class="card-header">
+            <h3><i class="fas fa-table"></i> Team Daily Attendance</h3>
+            <form action="<?= base_url('dashboard') ?>" method="get" class="team-attendance-filter">
+                <div class="form-group">
+                    <label for="team-attendance-date">Attendance Date</label>
+                    <input
+                        id="team-attendance-date"
+                        type="date"
+                        class="form-control form-control-sm"
+                        name="team_attendance_date"
+                        value="<?= esc($teamDailyAttendanceDate) ?>"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="team-attendance-sort-by">Sort By</label>
+                    <select id="team-attendance-sort-by" name="team_attendance_sort_by" class="form-select form-select-sm">
+                        <option value="date" <?= $teamDailyAttendanceSortBy === 'date' ? 'selected' : '' ?>>Date</option>
+                        <option value="employee_name" <?= $teamDailyAttendanceSortBy === 'employee_name' ? 'selected' : '' ?>>Employee Name</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="team-attendance-sort-dir">Order</label>
+                    <select id="team-attendance-sort-dir" name="team_attendance_sort_dir" class="form-select form-select-sm">
+                        <option value="desc" <?= $teamDailyAttendanceSortDir === 'desc' ? 'selected' : '' ?>>Descending</option>
+                        <option value="asc" <?= $teamDailyAttendanceSortDir === 'asc' ? 'selected' : '' ?>>Ascending</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-filter"></i> Apply
+                </button>
+            </form>
+        </div>
+        <div class="card-body">
+            <?php if (!empty($teamDailyAttendanceRecords)): ?>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>In Time</th>
+                                <th>Out Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($teamDailyAttendanceRecords as $record): ?>
+                                <?php
+                                    $status = (string) ($record['status'] ?? 'Absent');
+                                    $statusClass = 'attendance-status-absent';
+                                    if ($status === 'Present') {
+                                        $statusClass = 'attendance-status-present';
+                                    } elseif ($status === 'Late') {
+                                        $statusClass = 'attendance-status-late';
+                                    } elseif ($status === 'Leave') {
+                                        $statusClass = 'attendance-status-leave';
+                                    }
+                                    $timeIn = (string) ($record['time_in'] ?? '');
+                                    $timeOut = (string) ($record['time_out'] ?? '');
+                                ?>
+                                <tr>
+                                    <td><?= esc((string) ($record['employee_name'] ?? '-')) ?></td>
+                                    <td><?= esc((string) ($record['department_name'] ?? 'Unassigned')) ?></td>
+                                    <td><?= esc((string) ($record['date'] ?? $teamDailyAttendanceDate)) ?></td>
+                                    <td>
+                                        <?= $timeIn !== '' ? esc(date('h:i A', strtotime($timeIn))) : 'No Log' ?>
+                                    </td>
+                                    <td>
+                                        <?= $timeOut !== '' ? esc(date('h:i A', strtotime($timeOut))) : 'No Log' ?>
+                                    </td>
+                                    <td>
+                                        <span class="attendance-status-badge <?= $statusClass ?>">
+                                            <?= esc($status) ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-info mb-0">
+                    No team attendance records available for the selected date.
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 

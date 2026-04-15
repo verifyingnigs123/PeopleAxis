@@ -473,10 +473,17 @@
 
 <script>
 // Realtime clock and elapsed time tracking for team attendance
+const teamServerNow = new Date(<?= json_encode((new DateTimeImmutable('now', new DateTimeZone(app_timezone())))->format(DateTimeInterface::ATOM)) ?>);
+const teamClockBase = Date.now();
+
+function getTeamNow() {
+    return new Date(teamServerNow.getTime() + (Date.now() - teamClockBase));
+}
+
 function updateTeamClock() {
     const clockEl = document.getElementById('teamAttendanceClock');
     if (clockEl) {
-        const now = new Date();
+        const now = getTeamNow();
         clockEl.textContent = now.toLocaleTimeString(undefined, {
             hour: '2-digit',
             minute: '2-digit',
@@ -495,7 +502,7 @@ function updateTeamElapsedTimes() {
         const [hours, minutes, seconds] = checkInTime.split(':').map(Number);
         checkInDate.setHours(hours, minutes, seconds, 0);
 
-        const now = new Date();
+        const now = getTeamNow();
         const diffMs = now - checkInDate;
         const diffSeconds = Math.floor(diffMs / 1000);
         const hrs = Math.floor(diffSeconds / 3600);

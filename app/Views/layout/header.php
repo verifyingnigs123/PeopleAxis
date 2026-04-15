@@ -1,13 +1,14 @@
 <?php
-$role = strtolower((string) (session()->get('role') ?? ''));
-$roleName = strtolower((string) (session()->get('role_name') ?? ''));
+$role = strtolower(trim((string) (session()->get('role') ?? '')));
+$roleName = strtolower(trim((string) (session()->get('role_name') ?? '')));
+$isManager = $role === 'manager' || $roleName === 'manager';
 $isSuperAdmin = in_array($role, ['admin', 'super_admin'], true) || $roleName === 'super admin';
 $isHRAdmin = in_array($role, ['hr', 'hr_admin'], true) || $roleName === 'hr admin';
 $isEmployee = in_array($role, ['user', 'employee'], true) || $roleName === 'employee';
 $canManageUsers = $isSuperAdmin || $isHRAdmin;
 $managerLeaveUnreadCount = 0;
 
-if ($role === 'manager') {
+if ($isManager) {
     try {
         $notificationModel = new \App\Models\NotificationModel();
         $managerLeaveUnreadCount = (int) $notificationModel
@@ -681,7 +682,7 @@ if ($role === 'manager') {
             </nav>
         </aside>
 
-    <?php elseif ($role === 'manager'): ?>
+    <?php elseif ($isManager): ?>
         <!-- ===== MANAGER SIDEBAR ===== -->
         <aside class="sidebar">
             <nav>
@@ -946,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const markAllReadBtn = document.getElementById('markAllRead');
     const deleteAllBtn = document.getElementById('deleteAllNotifications');
     const managerLeaveRequestsBadge = document.getElementById('managerLeaveRequestsBadge');
-    const isManagerUser = <?= ($role === 'manager') ? 'true' : 'false' ?>;
+    const isManagerUser = <?= $isManager ? 'true' : 'false' ?>;
     const currentUserId = <?= (int) (session()->get('user_id') ?? 0) ?>;
     let notificationsPollHandle = null;
     let notificationEventSource = null;

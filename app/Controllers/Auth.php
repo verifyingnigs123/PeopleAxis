@@ -22,19 +22,24 @@ class Auth extends BaseController
 
     public function loginProcess()
     {
-        $email = $this->request->getPost('email');
+        $login = trim((string) $this->request->getPost('email'));
         $password = $this->request->getPost('password');
 
         // Validate input
-        if (empty($email) || empty($password)) {
-            return redirect()->to('/login')->with('error', 'Email and password are required');
+        if ($login === '' || empty($password)) {
+            return redirect()->to('/login')->with('error', 'Email/Username and password are required');
         }
 
         // First check if user exists at all (including inactive)
-        $anyUser = $this->userModel->where('email', $email)->first();
+        $anyUser = $this->userModel
+            ->groupStart()
+                ->where('email', $login)
+                ->orWhere('username', $login)
+            ->groupEnd()
+            ->first();
         
         if (!$anyUser) {
-            return redirect()->to('/login')->with('error', 'Email not found. Please register first.');
+            return redirect()->to('/login')->with('error', 'Account not found. Please check your email/username.');
         }
 
         // Check if user is inactive
@@ -43,7 +48,7 @@ class Auth extends BaseController
         }
 
         // Get active user
-        $user = $this->userModel->getUserByEmail($email);
+        $user = $this->userModel->getUserByEmail($login);
 
         if (!$user) {
             return redirect()->to('/login')->with('error', 'User account is not active.');

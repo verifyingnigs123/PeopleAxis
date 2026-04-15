@@ -59,8 +59,8 @@ abstract class BaseController extends Controller
 
     protected function isManagerUser(): bool
     {
-        $role     = strtolower((string) session()->get('role'));
-        $roleName = strtolower((string) session()->get('role_name'));
+        $role     = strtolower(trim((string) session()->get('role')));
+        $roleName = strtolower(trim((string) session()->get('role_name')));
 
         return $role === 'manager' || $roleName === 'manager';
     }
@@ -85,6 +85,7 @@ abstract class BaseController extends Controller
         }
 
         $db = \Config\Database::connect();
+        $adminRoleNames = ['super admin', 'hr admin'];
 
         $departments = $db->table('departments')
             ->select('id, name')
@@ -94,13 +95,16 @@ abstract class BaseController extends Controller
             ->getResultArray();
 
         $departmentIds = array_map('intval', array_column($departments, 'id'));
-        // Team members = all Super Admin approved employees (active or blank status for legacy rows).
-        $teamMembers = [];
+        // Team members include approved active employees, even when a department
+        // manager mapping is missing, so newly approved staff are visible right away.
+        $teamMembersById = [];
 
         if ($departmentIds !== []) {
-            $teamMembers = $db->table('employees')
+            $managedEmployees = $db->table('employees')
                 ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
                 ->join('departments', 'departments.id = employees.department_id', 'left')
+                ->join('users', 'users.email = employees.email', 'left')
+                ->join('roles', 'roles.id = users.role_id', 'left')
                 ->where('employees.account_status', 'approved')
                 ->groupStart()
                     ->where('employees.status', 'active')
@@ -108,12 +112,45 @@ abstract class BaseController extends Controller
                     ->orWhere('employees.status', '')
                 ->groupEnd()
                 ->whereIn('employees.department_id', $departmentIds)
+                ->groupStart()
+                    ->whereNotIn('LOWER(roles.name)', $adminRoleNames)
+                    ->orWhere('roles.name IS NULL', null, false)
+                ->groupEnd()
                 ->orderBy('employees.first_name', 'ASC')
                 ->orderBy('employees.last_name', 'ASC')
                 ->get()
                 ->getResultArray();
+
+            foreach ($managedEmployees as $employee) {
+                $teamMembersById[(int) $employee['id']] = $employee;
+            }
         }
 
+        $approvedEmployees = $db->table('employees')
+            ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
+            ->join('departments', 'departments.id = employees.department_id', 'left')
+            ->join('users', 'users.email = employees.email', 'left')
+            ->join('roles', 'roles.id = users.role_id', 'left')
+            ->where('employees.account_status', 'approved')
+            ->groupStart()
+                ->where('employees.status', 'active')
+                ->orWhere('employees.status IS NULL', null, false)
+                ->orWhere('employees.status', '')
+            ->groupEnd()
+            ->groupStart()
+                ->whereNotIn('LOWER(roles.name)', $adminRoleNames)
+                ->orWhere('roles.name IS NULL', null, false)
+            ->groupEnd()
+            ->orderBy('employees.first_name', 'ASC')
+            ->orderBy('employees.last_name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        foreach ($approvedEmployees as $employee) {
+            $teamMembersById[(int) $employee['id']] = $employee;
+        }
+
+        $teamMembers = array_values($teamMembersById);
         $employeeIds = array_map('intval', array_column($teamMembers, 'id'));
 
         return [

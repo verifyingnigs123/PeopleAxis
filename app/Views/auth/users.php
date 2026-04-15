@@ -925,10 +925,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="editPassword" class="form-label fw-600">Password <span style="color:#999;font-size:0.85rem;"><?= $isSuperAdminUserManagement ? '(Auto-set to password123)' : '(Leave blank to keep current)' ?></span></label>
+                        <label for="editPassword" class="form-label fw-600">Password <span style="color:#999;font-size:0.85rem;">(Leave blank to keep current)</span></label>
                         <div class="password-wrapper">
                             <input type="password" class="form-control" id="editPassword" name="password"
-                                   placeholder="<?= $isSuperAdminUserManagement ? 'Default password: password123' : 'Leave blank to keep current password' ?>" minlength="6" style="padding-right:2.8rem;">
+                                placeholder="Leave blank to keep current password" minlength="6" style="padding-right:2.8rem;">
                             <button type="button" id="toggleEditPassword" class="password-toggle" aria-pressed="false" aria-label="Show password" onclick="toggleEditPasswordVisibility(event)">
                                 <i class="fas fa-eye-slash" aria-hidden="true"></i>
                             </button>
@@ -1431,8 +1431,6 @@ function showEditModalAlert(message, type) {
     alertBox.style.display = 'block';
 }
 
-const isSuperAdminUserManagement = <?= $isSuperAdminUserManagement ? 'true' : 'false' ?>;
-
 function editUser(userId, name, email, roleId, isActive) {
     // Clear previous alerts
     const alertBox = document.getElementById('editUserAlert');
@@ -1445,8 +1443,8 @@ function editUser(userId, name, email, roleId, isActive) {
     document.getElementById('editRole').value = roleId;
     document.getElementById('editIsActive').value = isActive;
     
-    // Super Admin edit defaults password for easier account handoff.
-    document.getElementById('editPassword').value = isSuperAdminUserManagement ? 'password123' : '';
+    // Keep password empty by default so updates don't force a password reset.
+    document.getElementById('editPassword').value = '';
     
     // Show the modal
     const editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal'));

@@ -226,6 +226,97 @@
         color: #94a3b8;
     }
 
+    .daily-panel {
+        margin-top: 6px;
+    }
+
+    .monthly-panel {
+        margin-top: 20px;
+    }
+
+    .daily-toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .daily-toolbar label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #6c757d;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .daily-toolbar input,
+    .daily-toolbar select {
+        min-width: 160px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #d9e2ec;
+        background: #fff;
+    }
+
+    .daily-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .daily-table thead th {
+        background: #f8fafc;
+        color: #2f5f45;
+        padding: 12px 14px;
+        text-align: left;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .daily-table tbody td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #eef2f7;
+        color: #334155;
+        vertical-align: top;
+    }
+
+    .daily-table tbody tr:hover {
+        background: #eef7f1;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-present {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-late {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-absent {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-leave {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
     @media (max-width: 992px) {
         .dashboard-grid {
             grid-template-columns: 1fr;
@@ -356,6 +447,127 @@
                     <div class="empty-state">
                         <i class="fas fa-inbox" style="font-size: 2.6rem;"></i>
                         <p>No team attendance or leave data is available for this month.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel daily-panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-table"></i> Team Daily Attendance</h2>
+        </div>
+        <div class="panel-body">
+            <form action="<?= base_url('reports/team') ?>" method="get" class="daily-toolbar">
+                <input type="hidden" name="month" value="<?= esc($selectedMonth) ?>">
+                <div>
+                    <label for="daily-date">Date</label>
+                    <input id="daily-date" type="date" name="date" value="<?= esc($selectedDate ?? date('Y-m-d')) ?>">
+                </div>
+                <div>
+                    <label for="daily-sort-by">Sort By</label>
+                    <select id="daily-sort-by" name="daily_sort_by">
+                        <option value="date" <?= ($dailySortBy ?? 'date') === 'date' ? 'selected' : '' ?>>Date</option>
+                        <option value="employee_name" <?= ($dailySortBy ?? 'date') === 'employee_name' ? 'selected' : '' ?>>Employee Name</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="daily-sort-dir">Order</label>
+                    <select id="daily-sort-dir" name="daily_sort_dir">
+                        <option value="desc" <?= ($dailySortDir ?? 'desc') === 'desc' ? 'selected' : '' ?>>Descending</option>
+                        <option value="asc" <?= ($dailySortDir ?? 'desc') === 'asc' ? 'selected' : '' ?>>Ascending</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary-soft">
+                    <i class="fas fa-filter"></i> Apply
+                </button>
+            </form>
+
+            <div class="table-responsive">
+                <?php if (!empty($dailyAttendanceRows)): ?>
+                    <table class="daily-table">
+                        <thead>
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>In Time</th>
+                                <th>Out Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($dailyAttendanceRows as $row): ?>
+                                <?php
+                                    $status = (string) ($row['status'] ?? 'Absent');
+                                    $statusClass = 'status-absent';
+                                    if ($status === 'Present') {
+                                        $statusClass = 'status-present';
+                                    } elseif ($status === 'Late') {
+                                        $statusClass = 'status-late';
+                                    } elseif ($status === 'Leave') {
+                                        $statusClass = 'status-leave';
+                                    }
+                                ?>
+                                <tr>
+                                    <td><?= esc((string) ($row['employee_name'] ?? '-')) ?></td>
+                                    <td><?= esc((string) ($row['department_name'] ?? 'Unassigned')) ?></td>
+                                    <td><?= esc((string) ($row['date'] ?? ($selectedDate ?? date('Y-m-d')))) ?></td>
+                                    <td><?= !empty($row['time_in']) ? esc(date('h:i A', strtotime((string) $row['time_in']))) : 'No Log' ?></td>
+                                    <td><?= !empty($row['time_out']) ? esc(date('h:i A', strtotime((string) $row['time_out']))) : 'No Log' ?></td>
+                                    <td><span class="status-chip <?= $statusClass ?>"><?= esc($status) ?></span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-inbox" style="font-size: 2.4rem;"></i>
+                        <p>No attendance records available for the selected date.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel monthly-panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-calendar-alt"></i> Monthly Attendance Records</h2>
+        </div>
+        <div class="panel-body">
+            <p class="muted" style="margin-top:0; margin-bottom: 12px;">Showing attendance logs for <?= esc($periodLabel) ?>.</p>
+            <div class="table-responsive">
+                <?php if (!empty($monthlyAttendanceRows)): ?>
+                    <table class="daily-table">
+                        <thead>
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Employee Name</th>
+                                <th>Date</th>
+                                <th>In Date</th>
+                                <th>In Time</th>
+                                <th>Out Date</th>
+                                <th>Out Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($monthlyAttendanceRows as $row): ?>
+                                <tr>
+                                    <td><?= esc((string) ($row['employee_id'] ?? 'N/A')) ?></td>
+                                    <td><?= esc((string) ($row['employee_name'] ?? '-')) ?></td>
+                                    <td><?= !empty($row['date']) ? esc(date('Y-m-d', strtotime((string) $row['date']))) : 'No Log' ?></td>
+                                    <td><?= !empty($row['in_date']) ? esc(date('Y-m-d', strtotime((string) $row['in_date']))) : 'No Log' ?></td>
+                                    <td><?= !empty($row['in_time']) ? esc(date('h:i A', strtotime((string) $row['in_time']))) : 'No Log' ?></td>
+                                    <td><?= !empty($row['out_date']) ? esc(date('Y-m-d', strtotime((string) $row['out_date']))) : 'No Log' ?></td>
+                                    <td><?= !empty($row['out_time']) ? esc(date('h:i A', strtotime((string) $row['out_time']))) : 'No Log' ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times" style="font-size: 2.4rem;"></i>
+                        <p>No monthly attendance logs found for <?= esc($periodLabel) ?>.</p>
                     </div>
                 <?php endif; ?>
             </div>

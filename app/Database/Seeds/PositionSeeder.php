@@ -13,42 +13,59 @@ class PositionSeeder extends Seeder
                 'name'        => 'Manager',
                 'description' => 'Department Manager',
                 'is_active'   => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
             ],
             [
                 'name'        => 'Senior Developer',
                 'description' => 'Senior Software Developer',
                 'is_active'   => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
             ],
             [
                 'name'        => 'Junior Developer',
                 'description' => 'Junior Software Developer',
                 'is_active'   => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
             ],
             [
                 'name'        => 'HR Executive',
                 'description' => 'Human Resources Executive',
                 'is_active'   => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
             ],
             [
                 'name'        => 'Accountant',
                 'description' => 'Finance Accountant',
                 'is_active'   => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
             ],
             [
                 'name'        => 'Sales Executive',
                 'description' => 'Sales Executive',
                 'is_active'   => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
             ],
         ];
 
-        $this->db->table('positions')->insertBatch($data);
+        $table = $this->db->table('positions');
+        $now = date('Y-m-d H:i:s');
+        $inserted = 0;
+        $updated = 0;
 
-        echo "Positions seeded successfully!\n";
+        foreach ($data as $position) {
+            $existing = $table->where('name', $position['name'])->get()->getRow();
+
+            if (! $existing) {
+                $payload = $position;
+                $payload['created_at'] = $now;
+                $payload['updated_at'] = $now;
+                $table->insert($payload);
+                $inserted++;
+                continue;
+            }
+
+            $table->where('id', (int) $existing->id)->update([
+                'description' => $position['description'],
+                'is_active'   => 1,
+                'updated_at'  => $now,
+            ]);
+            $updated++;
+        }
+
+        echo "Inserted {$inserted} positions. Updated {$updated} positions.\n";
     }
 }

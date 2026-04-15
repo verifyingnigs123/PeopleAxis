@@ -364,13 +364,13 @@
                 <?= csrf_field() ?>
 
                 <div class="auth-form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email">Email or Username</label>
                     <input
-                        type="email"
+                        type="text"
                         id="email"
                         name="email"
                         class="auth-input"
-                        placeholder="name@company.com"
+                        placeholder="name@company.com or username"
                         value="<?= old('email') ?>"
                         autocomplete="username"
                         required

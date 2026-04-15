@@ -10,6 +10,7 @@ class UserSeeder extends Seeder
     {
         $model = model('UserModel');
         $db = \Config\Database::connect();
+        $usersHasRoleColumn = $db->fieldExists('role', 'users');
 
         // Lookup role ids
         $roles = $db->table('roles')->get()->getResult();
@@ -61,6 +62,11 @@ class UserSeeder extends Seeder
                 $u['is_active'] = 1;
                 $u['created_at'] = date('Y-m-d H:i:s');
                 $u['updated_at'] = date('Y-m-d H:i:s');
+
+                if (! $usersHasRoleColumn) {
+                    unset($u['role']);
+                }
+
                 $model->insert($u);
                 $inserted++;
             } else {
@@ -80,7 +86,7 @@ class UserSeeder extends Seeder
                     $needsUpdate = true;
                 }
 
-                if (($exists->role ?? '') !== ($u['role'] ?? '')) {
+                if ($usersHasRoleColumn && ($exists->role ?? '') !== ($u['role'] ?? '')) {
                     $patch['role'] = $u['role'];
                     $needsUpdate = true;
                 }

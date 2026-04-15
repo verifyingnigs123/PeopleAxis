@@ -236,6 +236,8 @@
 <script>
     const scannerInput = document.getElementById('rfid_number');
     const scannerForm = document.getElementById('rfidScanForm');
+    const scannerServerNow = new Date(<?= json_encode((new DateTimeImmutable('now', new DateTimeZone(app_timezone())))->format(DateTimeInterface::ATOM)) ?>);
+    const scannerClockBase = Date.now();
 
     if (scannerInput) {
         scannerInput.focus();
@@ -252,8 +254,12 @@
     const dateTarget = document.getElementById('scannerDate');
     const timeTarget = document.getElementById('scannerTime');
 
+    function getScannerNow() {
+        return new Date(scannerServerNow.getTime() + (Date.now() - scannerClockBase));
+    }
+
     function renderClock() {
-        const now = new Date();
+        const now = getScannerNow();
         if (dateTarget) {
             dateTarget.textContent = now.toLocaleDateString(undefined, {
                 weekday: 'long',
