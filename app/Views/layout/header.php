@@ -679,6 +679,7 @@ if ($isManager) {
                         <i class="fas fa-user"></i> Profile
                     </a>
                 </div>
+
             </nav>
         </aside>
 
@@ -771,9 +772,7 @@ if ($isManager) {
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="fas fa-user"></i> My Profile</a></li>
-                        <?php if ($roleName === 'Super Admin'): ?>
-                            <li><a class="dropdown-item" href="<?= base_url('settings') ?>"><i class="fas fa-cog"></i> Settings</a></li>
-                        <?php endif; ?>
+                        <li><a class="dropdown-item" href="<?= base_url('settings') ?>"><i class="fas fa-cog"></i> Settings & Privacy</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?= base_url('logout') ?>"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     </ul>

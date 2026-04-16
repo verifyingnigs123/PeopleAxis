@@ -124,6 +124,17 @@
         gap: 12px;
     }
 
+    .password-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .password-strength {
+        color: #7f90a0;
+        font-size: 0.82rem;
+    }
+
     .switch-item {
         border: 1px solid #e2e8f0;
         border-radius: 8px;
@@ -248,6 +259,7 @@
     @media (max-width: 992px) {
         .settings-grid,
         .switch-grid,
+        .password-grid,
         .info-grid {
             grid-template-columns: 1fr 1fr;
         }
@@ -256,6 +268,7 @@
     @media (max-width: 640px) {
         .settings-grid,
         .switch-grid,
+        .password-grid,
         .info-grid {
             grid-template-columns: 1fr;
         }
@@ -286,13 +299,13 @@
     <div class="breadcrumbs">
         <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
         <span>/</span>
-        <span>Settings</span>
+        <span>Settings &amp; Privacy</span>
     </div>
 
     <!-- Settings Header -->
     <div class="settings-header">
-        <h1><i class="fas fa-cog"></i> Settings</h1>
-        <p>Configure application behavior, defaults, and notification preferences</p>
+        <h1><i class="fas fa-cog"></i> Settings &amp; Privacy</h1>
+        <p>Configure application behavior, defaults, notifications, and account security</p>
     </div>
 
     <!-- Display Flash Messages -->
@@ -415,6 +428,34 @@
                 </div>
             </div>
         </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="fas fa-user-shield"></i>
+                    <h2>Privacy & Password</h2>
+                </div>
+                <div class="settings-card-body">
+                    <div class="password-grid">
+                        <div class="field">
+                            <label for="current_password">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password" autocomplete="current-password">
+                            <small>Enter your current password to authorize a password change.</small>
+                        </div>
+
+                        <div class="field">
+                            <label for="new_password">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" autocomplete="new-password">
+                            <small class="password-strength">Use at least 6 characters.</small>
+                        </div>
+
+                        <div class="field">
+                            <label for="confirm_password">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" autocomplete="new-password">
+                            <small>Re-enter the new password to confirm it.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         <?php if ($isAdminScope): ?>
             <div class="settings-card">
