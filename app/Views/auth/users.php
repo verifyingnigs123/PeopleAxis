@@ -542,7 +542,7 @@
         <p>Manage all registered users in the system</p>
     </div>
     <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">
-        <i class="fas fa-user-plus"></i> Add Employee
+        <i class="fas fa-user-plus"></i> <?= strtolower((string) session()->get('role_name')) === 'hr admin' ? 'Add Employee' : 'Add User' ?>
     </button>
 </div>
 
@@ -751,7 +751,7 @@
         <div class="modal-content add-user-modal-content">
             <div class="modal-header add-user-modal-header">
                 <h5 class="modal-title" id="addUserModalLabel">
-                    <i class="fas fa-user-plus me-2"></i> Add New User
+                    <i class="fas fa-user-plus me-2"></i> <?= strtolower((string) session()->get('role_name')) === 'hr admin' ? 'Add New Employee' : 'Add New User' ?>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -769,10 +769,18 @@
                     <?php
                         $addUserPositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
                         $addUserTypeOptions = [];
+                        $isHrAdminForm = strtolower((string) session()->get('role_name')) === 'hr admin';
                         foreach ($rolesList as $roleOption) {
                             $roleName = strtolower((string) ($roleOption->name ?? ''));
-                            if (in_array($roleName, ['manager', 'employee'], true)) {
-                                $addUserTypeOptions[] = $roleOption;
+                            // Only SuperAdmin can create HR Admin and SuperAdmin users
+                            if ($isHrAdminForm) {
+                                if (in_array($roleName, ['manager', 'employee'], true)) {
+                                    $addUserTypeOptions[] = $roleOption;
+                                }
+                            } else {
+                                if (in_array($roleName, ['manager', 'employee', 'hr admin', 'super admin'], true)) {
+                                    $addUserTypeOptions[] = $roleOption;
+                                }
                             }
                         }
                     ?>
@@ -817,7 +825,7 @@
                             <div class="mb-3">
                                 <label for="addUserPhone" class="form-label">Phone Number</label>
                                 <input type="tel" class="form-control" id="addUserPhone" name="phone"
-                                       placeholder="Enter phone number">
+                                       placeholder="Enter Philippine phone number (09xxxxxxxxx or +639xxxxxxxxx)">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -866,8 +874,8 @@
                             <input type="date" class="form-control" id="addUserDateOfBirth" name="date_of_birth" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="addUserDateHired" class="form-label">Date of Hired <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining" required>
+                            <label for="addUserDateHired" class="form-label">Date of Hired</label>
+                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining">
                         </div>
                     </div>
 
@@ -1605,6 +1613,8 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
     }
     const name = nameInput ? nameInput.value.trim() : '';
     const email = emailInput ? emailInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const dob = dobInput ? dobInput.value.trim() : '';
     const errorsBox = document.getElementById('addUserErrors');
     const errorsList = document.getElementById('addUserErrorsList');
 
@@ -1613,7 +1623,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
 
     const errors = [];
 
-    if (!firstName || !lastName || !rfidInput?.value.trim() || !positionInput?.value.trim() || !typeInput?.value.trim() || !dobInput?.value.trim() || !hiredInput?.value.trim() || !statusInput?.value.trim() || !email) {
+    if (!firstName || !lastName || !rfidInput?.value.trim() || !positionInput?.value.trim() || !typeInput?.value.trim() || !dobInput?.value.trim() || !statusInput?.value.trim() || !email) {
         errors.push('Please fill in all required fields.');
     }
     
@@ -1621,6 +1631,36 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
     const nameError = validateNameField(name);
     if (nameError) {
         errors.push(nameError);
+    }
+
+    // Validate phone format (Philippine mobile: 09xxxxxxxxx or +639xxxxxxxxx)
+    if (phone) {
+        const phoneRegex = /^(\+639|09)\d{9}$/;
+        if (!phoneRegex.test(phone)) {
+            errors.push('Phone number must be in Philippine format (09xxxxxxxxx or +639xxxxxxxxx).');
+        }
+    }
+
+    // Validate age (at least 17 years old)
+    if (dob) {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        if (age < 17) {
+            errors.push('Employee must be at least 17 years old.');
+        }
+    }
+
+    // Set default hire date to today if not provided
+    if (hiredInput && !hiredInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        hiredInput.value = today;
     }
 
     if (errors.length > 0) {
