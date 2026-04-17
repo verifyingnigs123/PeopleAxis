@@ -190,7 +190,14 @@ class FileHandler extends BaseHandler
         }
 
         if ($this->fingerprint === md5($data)) {
-            return ($this->fileNew) ? true : touch($this->filePath . $id);
+            if (! $this->fileNew) {
+                // Ensure directory exists before touching the file
+                if (! is_dir($this->savePath)) {
+                    mkdir($this->savePath, 0700, true);
+                }
+                touch($this->filePath . $id);
+            }
+            return true;
         }
 
         if (! $this->fileNew) {
