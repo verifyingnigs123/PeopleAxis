@@ -304,7 +304,7 @@
                     <th>Name</th>
                     <th>Department</th>
                     <th>Email</th>
-                    <th>Salary</th>
+                    <th>Rate</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -319,7 +319,7 @@
                         <td><?= htmlspecialchars($record['user_email'] ?? $record['email'] ?? 'N/A') ?></td>
                         <td>
                             <span class="salary-amount">
-                                $<?= number_format($record['salary'] ?? 0, 2) ?>
+                                $<?= number_format($record['rate'] ?? 0, 2) ?>/<?= htmlspecialchars($record['rate_type'] ?? 'hour') ?>
                             </span>
                         </td>
                         <td>

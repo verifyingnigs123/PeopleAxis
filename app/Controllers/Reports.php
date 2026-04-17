@@ -779,8 +779,9 @@ class Reports extends BaseController
                         ->join('departments', 'departments.id = employees.department_id', 'left')
                         ->join('users', 'users.id = employees.user_id', 'left')
                         ->where('employees.account_status', 'approved')
-                        ->where('employees.salary IS NOT NULL')
-                        ->orderBy('employees.salary', 'DESC')
+                        ->where('employees.rate IS NOT NULL')
+                        ->where('employees.rate >', 0)
+                        ->orderBy('employees.rate', 'DESC')
                         ->get()
                         ->getResultArray();
                     
