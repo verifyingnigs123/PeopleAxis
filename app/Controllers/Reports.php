@@ -9,15 +9,152 @@ class Reports extends BaseController
      */
     public function attendance()
     {
-        // Check if user is HR Admin or Super Admin
-        $roleName = session()->get('role_name');
-        $role = session()->get('role');
-        
-        if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
-        }
+        try {
+            // Enable error reporting in development
+            if (ENVIRONMENT === 'development') {
+                ini_set('display_errors', 1);
+                error_reporting(E_ALL);
+            }
+            
+            // Check if user is HR Admin or Super Admin
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+            
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
 
-        return view('reports/attendance');
+            return view('reports/attendance');
+        } catch (\Throwable $e) {
+            log_message('error', 'Attendance method error: ' . $e->getMessage());
+            return redirect()->to('/dashboard')->with('error', 'Unable to load attendance report.');
+        }
+    }
+
+    /**
+     * Generate attendance report (for direct URL access)
+     * This method handles the route: /reports/generate/attendance
+     */
+    public function generateAttendance()
+    {
+        try {
+            // Enable error reporting in development
+            if (ENVIRONMENT === 'development') {
+                ini_set('display_errors', 1);
+                error_reporting(E_ALL);
+            }
+            
+            // Check if user is HR Admin or Super Admin
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+            
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            // Generate attendance report data
+            $reportData = $this->generateReportData('attendance');
+
+            if (!$reportData) {
+                log_message('error', 'Failed to generate attendance report data');
+                return redirect()->to('/reports')->with('error', 'Unable to generate attendance report.');
+            }
+
+            // Prepare data for view
+            $data = [
+                'reportData' => $reportData
+            ];
+
+            return view('reports/attendance_display', $data);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'GenerateAttendance method error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate attendance report.');
+        }
+    }
+
+    /**
+     * Generate leave report (for direct URL access)
+     * This method handles the route: /reports/generate/leave
+     */
+    public function generateLeave()
+    {
+        try {
+            // Enable error reporting in development
+            if (ENVIRONMENT === 'development') {
+                ini_set('display_errors', 1);
+                error_reporting(E_ALL);
+            }
+            
+            // Check if user is HR Admin or Super Admin
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+            
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            // Generate leave report data
+            $reportData = $this->generateReportData('leave');
+
+            if (!$reportData) {
+                log_message('error', 'Failed to generate leave report data');
+                return redirect()->to('/reports')->with('error', 'Unable to generate leave report.');
+            }
+
+            // Prepare data for view
+            $data = [
+                'reportData' => $reportData
+            ];
+
+            return view('reports/leave_display', $data);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'GenerateLeave method error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate leave report.');
+        }
+    }
+
+    /**
+     * Generate salary report (for direct URL access)
+     * This method handles the route: /reports/generate/salary
+     */
+    public function generateSalary()
+    {
+        try {
+            // Enable error reporting in development
+            if (ENVIRONMENT === 'development') {
+                ini_set('display_errors', 1);
+                error_reporting(E_ALL);
+            }
+            
+            // Check if user is HR Admin or Super Admin
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+            
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            // Generate salary report data
+            $reportData = $this->generateReportData('salary');
+
+            if (!$reportData) {
+                log_message('error', 'Failed to generate salary report data');
+                return redirect()->to('/reports')->with('error', 'Unable to generate salary report.');
+            }
+
+            // Prepare data for view
+            $data = [
+                'reportData' => $reportData
+            ];
+
+            return view('reports/salary_display', $data);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'GenerateSalary method error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate salary report.');
+        }
     }
 
     /**
@@ -460,6 +597,11 @@ class Reports extends BaseController
                 ]);
             }
 
+            // Ensure data is not null
+            if (empty($reportData)) {
+                $reportData = ['data' => []];
+            }
+
             // Check if this is an AJAX request or direct URL access
             $isAjax = $this->request->isAJAX() || $this->request->getPost('format') !== null;
             
@@ -481,7 +623,7 @@ class Reports extends BaseController
                 }
             }
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Log the error
             log_message('error', 'Exception in generate method: ' . $e->getMessage());
             
@@ -554,41 +696,48 @@ class Reports extends BaseController
         try {
             $db = \Config\Database::connect();
             
+            // Check database connection
+            if (!$db) {
+                log_message('error', 'Database connection failed');
+                return null;
+            }
+            
             switch ($reportType) {
                 case 'employee':
                 case 'employee-summary':
-                // Get actual employee data
-                $employees = $db->table('employees')
-                    ->select('employees.*, departments.name as department_name, users.email as user_email')
-                    ->join('departments', 'departments.id = employees.department_id', 'left')
-                    ->join('users', 'users.id = employees.user_id', 'left')
-                    ->where('employees.account_status', 'approved')
-                    ->orderBy('employees.first_name', 'ASC')
-                    ->get()
-                    ->getResultArray();
-                
-                // Get department statistics
-                $departmentStats = $db->table('employees')
-                    ->select('departments.name, COUNT(*) as count')
-                    ->join('departments', 'departments.id = employees.department_id', 'left')
-                    ->where('employees.account_status', 'approved')
-                    ->groupBy('departments.id', 'departments.name')
-                    ->orderBy('count', 'DESC')
-                    ->get()
-                    ->getResultArray();
-                
-                return [
-                    'title' => 'Employee Summary Report',
-                    'generated_at' => date('Y-m-d H:i:s'),
-                    'total_employees' => count($employees),
-                    'by_department' => $departmentStats,
-                    'employees' => $employees
-                ];
-                
-            case 'attendance':
+                    // Get actual employee data
+                    $employees = $db->table('employees')
+                        ->select('employees.*, departments.name as department_name, users.email as user_email')
+                        ->join('departments', 'departments.id = employees.department_id', 'left')
+                        ->join('users', 'users.id = employees.user_id', 'left')
+                        ->where('employees.account_status', 'approved')
+                        ->orderBy('employees.first_name', 'ASC')
+                        ->get()
+                        ->getResultArray();
+                    
+                    // Get department statistics
+                    $departmentStats = $db->table('employees')
+                        ->select('departments.name, COUNT(*) as count')
+                        ->join('departments', 'departments.id = employees.department_id', 'left')
+                        ->where('employees.account_status', 'approved')
+                        ->groupBy('departments.id', 'departments.name')
+                        ->orderBy('count', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    
+                    return [
+                        'title' => 'Employee Summary Report',
+                        'generated_at' => date('Y-m-d H:i:s'),
+                        'total_employees' => count($employees),
+                        'by_department' => $departmentStats,
+                        'employees' => $employees ?? []
+                    ];
+                    
+                case 'attendance':
                 case 'attendance-report':
                     $currentMonth = date('Y-m');
                     
+                    // Enhanced query with better error handling
                     $attendanceData = $db->table('attendance_logs')
                         ->select('attendance_logs.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
                         ->join('employees', 'employees.id = attendance_logs.employee_id', 'inner')
@@ -606,7 +755,7 @@ class Reports extends BaseController
                         'data' => $attendanceData ?? []
                     ];
                 
-            case 'leave':
+                case 'leave':
                 case 'leave-report':
                     $leaveData = $db->table('leave_requests')
                         ->select('leave_requests.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
@@ -661,11 +810,12 @@ class Reports extends BaseController
                     ];
                     
                 default:
+                    log_message('error', 'Unknown report type: ' . $reportType);
                     return null;
                     
             }
             
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             log_message('error', 'Exception in generateReportData: ' . $e->getMessage());
             return null;
         }
