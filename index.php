@@ -1,5 +1,12 @@
 <?php
 
+// Force development environment
+define('CI_ENVIRONMENT', 'development');
+
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 use CodeIgniter\Boot;
 use Config\Paths;
 

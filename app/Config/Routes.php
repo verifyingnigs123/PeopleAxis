@@ -97,9 +97,13 @@ $routes->get('/audit', 'Audit::index');
 $routes->get('/reports', 'Reports::index');
 $routes->get('/reports/attendance', 'Reports::attendance');
 $routes->get('/reports/team', 'Reports::team');
+$routes->get('/reports/generate/employee', 'Reports::generateEmployee');
+$routes->get('/reports/generate', 'Reports::generate');
+$routes->get('/reports/generate/(:any)', 'Reports::generate/$1');
 $routes->get('/reports/(:any)', 'Reports::view/$1');
 $routes->post('/reports/generate', 'Reports::generate');
 $routes->post('/reports/generate/attendance', 'Reports::attendance');
+$routes->post('/reports/generate/(:any)', 'Reports::generate/$1');
 
 // Notification routes (API)
 $routes->get('/api/notifications', 'Notification::getNotifications');
