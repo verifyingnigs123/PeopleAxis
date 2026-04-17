@@ -412,44 +412,87 @@ class Reports extends BaseController
      */
     public function generate($reportType = null)
     {
-        // Check if user is Super Admin
-        if (session()->get('role') !== 'admin') {
-            return $this->response->setStatusCode(403)->setJSON([
+        try {
+            // Enable error reporting in development
+            if (ENVIRONMENT === 'development') {
+                ini_set('display_errors', 1);
+                error_reporting(E_ALL);
+            }
+            
+            // Get report type from URL parameter first, then from POST data
+            if (!$reportType) {
+                $reportType = $this->request->getPost('report_type');
+            }
+            
+            $format = $this->request->getPost('format') ?? 'json'; // json, pdf, csv, excel
+
+            if (!$reportType) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Report type is required'
+                ]);
+            }
+
+            // Check if user is authenticated (allow both admin and hr_admin for attendance reports)
+            $userRole = session()->get('role');
+            $roleName = session()->get('role_name');
+            
+            // For attendance reports, allow HR Admin access as well
+            $isAuthorized = ($userRole === 'admin' || 
+                           $roleName === 'Super Admin' || 
+                           in_array($roleName, ['HR Admin', 'hr']) || 
+                           in_array($userRole, ['hr', 'hr_admin']));
+            
+            if (!$isAuthorized) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Access denied. Admin or HR Admin access required.'
+                ]);
+            }
+
+            // Generate report based on type
+            $reportData = $this->generateReportData($reportType);
+
+            if (!$reportData) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Report type not found'
+                ]);
+            }
+
+            // Check if this is an AJAX request or direct URL access
+            $isAjax = $this->request->isAJAX() || $this->request->getPost('format') !== null;
+            
+            if ($isAjax) {
+                // Return JSON for AJAX calls
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Report generated successfully',
+                    'data' => $reportData ?? []
+                ]);
+            } else {
+                // Return view for direct URL access
+                if ($reportType === 'attendance' || $reportType === 'attendance-report') {
+                    $data['reportData'] = $reportData;
+                    return view('reports/attendance_display', $data);
+                } else {
+                    // For other report types, return a generic view or redirect
+                    return redirect()->to('/reports')->with('error', 'Report type not supported for direct viewing');
+                }
+            }
+            
+        } catch (\Exception $e) {
+            // Log the error
+            log_message('error', 'Exception in generate method: ' . $e->getMessage());
+            
+            // Return standardized error response
+            return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin only.'
+                'message' => 'Internal server error occurred',
+                'data' => [],
+                'error' => ENVIRONMENT === 'development' ? $e->getMessage() : null
             ]);
         }
-
-        // Get report type from URL parameter first, then from POST data
-        if (!$reportType) {
-            $reportType = $this->request->getPost('report_type');
-        }
-        
-        $format = $this->request->getPost('format') ?? 'pdf'; // pdf, csv, excel
-
-        if (!$reportType) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Report type is required'
-            ]);
-        }
-
-        // Generate report based on type
-        $reportData = $this->generateReportData($reportType);
-
-        if (!$reportData) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'success' => false,
-                'message' => 'Report type not found'
-            ]);
-        }
-
-        // For AJAX/API calls, return JSON
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Report generated successfully',
-            'data' => $reportData
-        ]);
     }
 
     /**
@@ -508,11 +551,12 @@ class Reports extends BaseController
      */
     private function generateReportData($reportType)
     {
-        $db = \Config\Database::connect();
-        
-        switch ($reportType) {
-            case 'employee':
-            case 'employee-summary':
+        try {
+            $db = \Config\Database::connect();
+            
+            switch ($reportType) {
+                case 'employee':
+                case 'employee-summary':
                 // Get actual employee data
                 $employees = $db->table('employees')
                     ->select('employees.*, departments.name as department_name, users.email as user_email')
@@ -542,81 +586,88 @@ class Reports extends BaseController
                 ];
                 
             case 'attendance':
-            case 'attendance-report':
-                $currentMonth = date('Y-m');
-                $attendanceData = $db->table('attendance_logs')
-                    ->select('attendance_logs.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
-                    ->join('employees', 'employees.id = attendance_logs.employee_id', 'inner')
-                    ->join('departments', 'departments.id = employees.department_id', 'left')
-                    ->where('attendance_logs.date >=', $currentMonth . '-01')
-                    ->where('attendance_logs.date <=', $currentMonth . '-31')
-                    ->orderBy('attendance_logs.date', 'DESC')
-                    ->get()
-                    ->getResultArray();
-                
-                return [
-                    'title' => 'Attendance Report',
-                    'generated_at' => date('Y-m-d H:i:s'),
-                    'period' => $currentMonth,
-                    'data' => $attendanceData
-                ];
+                case 'attendance-report':
+                    $currentMonth = date('Y-m');
+                    
+                    $attendanceData = $db->table('attendance_logs')
+                        ->select('attendance_logs.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
+                        ->join('employees', 'employees.id = attendance_logs.employee_id', 'inner')
+                        ->join('departments', 'departments.id = employees.department_id', 'left')
+                        ->where('attendance_logs.date >=', $currentMonth . '-01')
+                        ->where('attendance_logs.date <=', $currentMonth . '-31')
+                        ->orderBy('attendance_logs.date', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    
+                    return [
+                        'title' => 'Attendance Report',
+                        'generated_at' => date('Y-m-d H:i:s'),
+                        'period' => $currentMonth,
+                        'data' => $attendanceData ?? []
+                    ];
                 
             case 'leave':
-            case 'leave-report':
-                $leaveData = $db->table('leave_requests')
-                    ->select('leave_requests.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
-                    ->join('employees', 'employees.id = leave_requests.employee_id', 'inner')
-                    ->join('departments', 'departments.id = employees.department_id', 'left')
-                    ->orderBy('leave_requests.created_at', 'DESC')
-                    ->get()
-                    ->getResultArray();
-                
-                return [
-                    'title' => 'Leave Report',
-                    'generated_at' => date('Y-m-d H:i:s'),
-                    'period' => date('Y'),
-                    'data' => $leaveData
-                ];
-                
-            case 'salary':
-            case 'salary-report':
-                $salaryData = $db->table('employees')
-                    ->select('employees.*, departments.name as department_name, users.email as user_email')
-                    ->join('departments', 'departments.id = employees.department_id', 'left')
-                    ->join('users', 'users.id = employees.user_id', 'left')
-                    ->where('employees.account_status', 'approved')
-                    ->where('employees.salary IS NOT NULL')
-                    ->orderBy('employees.salary', 'DESC')
-                    ->get()
-                    ->getResultArray();
-                
-                return [
-                    'title' => 'Salary Report',
-                    'generated_at' => date('Y-m-d H:i:s'),
-                    'period' => date('Y-m'),
-                    'data' => $salaryData
-                ];
-                
-            case 'department':
-            case 'department-report':
-                $departmentData = $db->table('departments')
-                    ->select('departments.*, COUNT(employees.id) as employee_count')
-                    ->join('employees', 'employees.department_id = departments.id', 'left')
-                    ->where('employees.account_status', 'approved')
-                    ->orWhere('employees.id IS NULL')
-                    ->groupBy('departments.id')
-                    ->orderBy('employee_count', 'DESC')
-                    ->get()
-                    ->getResultArray();
-                
-                return [
-                    'title' => 'Department Report',
-                    'generated_at' => date('Y-m-d H:i:s'),
-                    'data' => $departmentData
-                ];
-                
-            default:
-                return null;
+                case 'leave-report':
+                    $leaveData = $db->table('leave_requests')
+                        ->select('leave_requests.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
+                        ->join('employees', 'employees.id = leave_requests.employee_id', 'inner')
+                        ->join('departments', 'departments.id = employees.department_id', 'left')
+                        ->orderBy('leave_requests.created_at', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    
+                    return [
+                        'title' => 'Leave Report',
+                        'generated_at' => date('Y-m-d H:i:s'),
+                        'period' => date('Y'),
+                        'data' => $leaveData ?? []
+                    ];
+                    
+                case 'salary':
+                case 'salary-report':
+                    $salaryData = $db->table('employees')
+                        ->select('employees.*, departments.name as department_name, users.email as user_email')
+                        ->join('departments', 'departments.id = employees.department_id', 'left')
+                        ->join('users', 'users.id = employees.user_id', 'left')
+                        ->where('employees.account_status', 'approved')
+                        ->where('employees.salary IS NOT NULL')
+                        ->orderBy('employees.salary', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    
+                    return [
+                        'title' => 'Salary Report',
+                        'generated_at' => date('Y-m-d H:i:s'),
+                        'period' => date('Y-m'),
+                        'data' => $salaryData ?? []
+                    ];
+                    
+                case 'department':
+                case 'department-report':
+                    $departmentData = $db->table('departments')
+                        ->select('departments.*, COUNT(employees.id) as employee_count')
+                        ->join('employees', 'employees.department_id = departments.id', 'left')
+                        ->where('employees.account_status', 'approved')
+                        ->orWhere('employees.id IS NULL')
+                        ->groupBy('departments.id')
+                        ->orderBy('employee_count', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    
+                    return [
+                        'title' => 'Department Report',
+                        'generated_at' => date('Y-m-d H:i:s'),
+                        'data' => $departmentData ?? []
+                    ];
+                    
+                default:
+                    return null;
+                    
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Exception in generateReportData: ' . $e->getMessage());
+            return null;
         }
     }
 }
