@@ -158,6 +158,48 @@ class Reports extends BaseController
     }
 
     /**
+     * Generate department report (for direct URL access)
+     * This method handles the route: /reports/generate/department
+     */
+    public function generateDepartment()
+    {
+        try {
+            // Enable error reporting in development
+            if (ENVIRONMENT === 'development') {
+                ini_set('display_errors', 1);
+                error_reporting(E_ALL);
+            }
+            
+            // Check if user is HR Admin or Super Admin
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+            
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            // Generate department report data
+            $reportData = $this->generateReportData('department');
+
+            if (!$reportData) {
+                log_message('error', 'Failed to generate department report data');
+                return redirect()->to('/reports')->with('error', 'Unable to generate department report.');
+            }
+
+            // Prepare data for view
+            $data = [
+                'reportData' => $reportData
+            ];
+
+            return view('reports/department_display', $data);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'GenerateDepartment method error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate department report.');
+        }
+    }
+
+    /**
      * Display available reports
      */
     public function index()
@@ -795,11 +837,9 @@ class Reports extends BaseController
                 case 'department':
                 case 'department-report':
                     $departmentData = $db->table('departments')
-                        ->select('departments.*, COUNT(employees.id) as employee_count')
+                        ->select('MIN(departments.id) as id, departments.name, departments.description, departments.is_active, COUNT(CASE WHEN employees.account_status = "approved" THEN employees.id END) as employee_count')
                         ->join('employees', 'employees.department_id = departments.id', 'left')
-                        ->where('employees.account_status', 'approved')
-                        ->orWhere('employees.id IS NULL')
-                        ->groupBy('departments.id')
+                        ->groupBy(['departments.name', 'departments.description', 'departments.is_active'])
                         ->orderBy('employee_count', 'DESC')
                         ->get()
                         ->getResultArray();

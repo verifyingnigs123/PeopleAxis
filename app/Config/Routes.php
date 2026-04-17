@@ -102,6 +102,7 @@ $routes->get('/reports/generate', 'Reports::generate');
 $routes->get('/reports/generate/attendance', 'Reports::generateAttendance');
 $routes->get('/reports/generate/leave', 'Reports::generateLeave');
 $routes->get('/reports/generate/salary', 'Reports::generateSalary');
+$routes->get('/reports/generate/department', 'Reports::generateDepartment');
 $routes->get('/reports/generate/(:any)', 'Reports::generate/$1');
 $routes->get('/reports/(:any)', 'Reports::view/$1');
 $routes->post('/reports/generate', 'Reports::generate');
