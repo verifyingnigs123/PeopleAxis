@@ -437,57 +437,94 @@
         display: inline-block;
     }
 
+    #addUserModal .modal-dialog {
+        max-width: 900px;
+    }
+
     .add-user-modal-content {
-        border-radius: 8px;
+        border-radius: 14px;
         overflow: hidden;
         border: none;
+        box-shadow: 0 16px 38px rgba(22, 37, 31, 0.17);
     }
 
     .add-user-modal-header {
         background: linear-gradient(135deg, #3e7c5f 0%, #5e9e7f 100%);
         color: #ffffff;
         border: none;
-        padding: 20px 24px;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .add-user-modal-header .modal-title {
-        font-size: 2rem;
+        font-size: 1.2rem;
         font-weight: 700;
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 7px;
     }
 
     .add-user-modal-body {
-        background: #f4f5f7;
-        padding: 24px 28px 20px;
+        background: linear-gradient(180deg, #f8fbf9 0%, #f2f6f4 100%);
+        padding: 16px 18px 10px;
+    }
+
+    .add-user-form {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        margin-top: 8px;
+    }
+
+    .add-user-form .row {
+        margin: 0;
+        background: #ffffff;
+        border: 1px solid #e0e7ec;
+        border-radius: 10px;
+        padding: 10px 6px 4px;
+        box-shadow: 0 4px 12px rgba(30, 52, 43, 0.05);
+    }
+
+    .add-user-form .row > [class*="col-"] {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .add-user-modal-body #addUserErrors {
+        border-left: 4px solid #c0392b;
     }
 
     .add-user-modal-body .form-label {
-        margin-bottom: 10px;
+        margin-bottom: 6px;
         color: #21374b;
-        font-size: 1rem;
+        font-size: 0.78rem;
         font-weight: 700;
+        letter-spacing: 0.38px;
+        text-transform: uppercase;
     }
 
     .add-user-modal-body .form-control,
     .add-user-modal-body .form-select {
-        height: 50px;
-        border: 1px solid #ced7df;
+        height: 42px;
+        border: 1px solid #cfd8e1;
         border-radius: 8px;
-        font-size: 1.02rem;
-        padding: 0 14px;
+        font-size: 0.91rem;
+        padding: 0 12px;
         background: #ffffff;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .add-user-modal-body .row {
-        margin-bottom: 2px;
+    .add-user-modal-body .form-control:focus,
+    .add-user-modal-body .form-select:focus {
+        border-color: #5e9e7f;
+        box-shadow: 0 0 0 3px rgba(94, 158, 127, 0.18);
     }
 
     .add-user-modal-footer {
         border: none;
-        padding: 15px 28px 24px;
-        background: #f4f5f7;
+        padding: 12px 18px 14px;
+        background: #f2f6f4;
+        border-top: 1px solid #dce6e1;
     }
 
     @media (max-width: 992px) {
@@ -522,6 +559,23 @@
         .btn-add-user {
             width: 100%;
             justify-content: center;
+        }
+
+        .add-user-modal-body {
+            padding: 12px;
+        }
+
+        .add-user-form .row {
+            border-radius: 10px;
+            padding: 10px 6px 4px;
+        }
+
+        .add-user-modal-footer {
+            padding: 10px 12px 12px;
+        }
+
+        .add-user-modal-header .modal-title {
+            font-size: 1.1rem;
         }
     }
 </style>
@@ -767,7 +821,6 @@
                     <input type="hidden" id="addUserName" name="name">
 
                     <?php
-                        $addUserPositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
                         $addUserTypeOptions = [];
                         $isHrAdminForm = strtolower((string) session()->get('role_name')) === 'hr admin';
                         foreach ($rolesList as $roleOption) {
@@ -784,6 +837,8 @@
                             }
                         }
                     ?>
+
+                    <div class="add-user-form">
 
                     <div class="row">
                         <div class="col-md-6">
@@ -826,7 +881,7 @@
                                 <label for="addUserPhone" class="form-label">Phone Number</label>
                                 <input type="tel" class="form-control" id="addUserPhone" name="phone"
                                        placeholder="+639xxxxxxxxx" value="<?= esc(old('phone') ?: '+63') ?>" maxlength="13" autocomplete="off">
-                                <small id="addUserPhoneError" class="text-danger" style="display:none;">Letters are not allowed. Use numbers and the + sign only.</small>
+                                <small id="addUserPhoneError" class="text-danger" style="display:none;">Letters &amp; other Special Characters are not allowed</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -845,18 +900,19 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="addUserPosition" class="form-label">Position <span class="text-danger">*</span></label>
-                                <select class="form-select" id="addUserPosition" name="position" required>
-                                    <option value="" disabled selected>Select position</option>
-                                    <?php foreach ($addUserPositionOptions as $positionOption): ?>
-                                        <option value="<?= esc($positionOption) ?>"><?= esc($positionOption) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="addUserDateOfBirth" class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="addUserDateOfBirth" name="date_of_birth" required>
+                            <small id="addUserDobError" class="text-danger" style="display:none;">User should be 18 and above (please be guided).</small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 mb-3">
+                            <label for="addUserDateHired" class="form-label">Date of Hired</label>
+                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
                             <div class="mb-3">
                                 <label for="addUserType" class="form-label">Type <span class="text-danger">*</span></label>
                                 <select class="form-select" id="addUserType" name="role_id" required>
@@ -870,17 +926,6 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="addUserDateOfBirth" class="form-label">Date of Birth <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="addUserDateOfBirth" name="date_of_birth" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="addUserDateHired" class="form-label">Date of Hired</label>
-                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining">
-                        </div>
-                    </div>
-
-                    <div class="row">
                         <div class="col-12 mb-3">
                             <label for="addUserStatus" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="addUserStatus" name="is_active" required>
@@ -888,6 +933,8 @@
                                 <option value="0">Inactive</option>
                             </select>
                         </div>
+                    </div>
+
                     </div>
 
                 </div>
@@ -1596,6 +1643,8 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
 // Handle add user form submission
 const addUserPhoneInput = document.getElementById('addUserPhone');
 const addUserPhoneError = document.getElementById('addUserPhoneError');
+const addUserDobInput = document.getElementById('addUserDateOfBirth');
+const addUserDobError = document.getElementById('addUserDobError');
 const addUserModal = document.getElementById('addUserModal');
 const PH_PHONE_PREFIX = '+63';
 const PH_PHONE_PREFIX_LENGTH = PH_PHONE_PREFIX.length;
@@ -1629,7 +1678,7 @@ function validateAddUserPhoneInput() {
     }
 
     const hasInvalidCharacters = /[^0-9+]/.test(rawValue);
-    showAddUserPhoneError(hasInvalidCharacters ? 'Letters are not allowed. Use numbers and the + sign only.' : '');
+    showAddUserPhoneError(hasInvalidCharacters ? 'Letters & other Special Characters are not allowed' : '');
 }
 
 function placeCaretAfterPrefix() {
@@ -1639,6 +1688,50 @@ function placeCaretAfterPrefix() {
 
     const position = Math.max(addUserPhoneInput.value.length, PH_PHONE_PREFIX_LENGTH);
     addUserPhoneInput.setSelectionRange(position, position);
+}
+
+function showAddUserDobError(message) {
+    if (!addUserDobError) {
+        return;
+    }
+
+    if (message) {
+        addUserDobError.textContent = message;
+        addUserDobError.style.display = 'block';
+        return;
+    }
+
+    addUserDobError.style.display = 'none';
+}
+
+function isAtLeast18YearsOld(dobValue) {
+    if (!dobValue) {
+        return true;
+    }
+
+    const birthDate = new Date(dobValue);
+    if (Number.isNaN(birthDate.getTime())) {
+        return false;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+
+    return age >= 18;
+}
+
+function validateAddUserDobInput() {
+    if (!addUserDobInput) {
+        return;
+    }
+
+    const dobValue = addUserDobInput.value;
+    showAddUserDobError(isAtLeast18YearsOld(dobValue) ? '' : 'User should be 18 and above (please be guided).');
 }
 
 if (addUserPhoneInput) {
@@ -1694,13 +1787,18 @@ if (addUserModal && addUserPhoneInput) {
     });
 }
 
+if (addUserDobInput) {
+    addUserDobInput.addEventListener('input', validateAddUserDobInput);
+    addUserDobInput.addEventListener('change', validateAddUserDobInput);
+    validateAddUserDobInput();
+}
+
 document.getElementById('addUserForm').addEventListener('submit', function(e) {
     const firstNameInput = document.getElementById('addUserFirstName');
     const lastNameInput = document.getElementById('addUserLastName');
     const nameInput = document.getElementById('addUserName');
     const emailInput = document.getElementById('addUserEmail');
     const rfidInput = document.getElementById('addUserRfidNumber');
-    const positionInput = document.getElementById('addUserPosition');
     const typeInput = document.getElementById('addUserType');
     const phoneInput = document.getElementById('addUserPhone');
     const dobInput = document.getElementById('addUserDateOfBirth');
@@ -1724,7 +1822,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
 
     const errors = [];
 
-    if (!firstName || !lastName || !rfidInput?.value.trim() || !positionInput?.value.trim() || !typeInput?.value.trim() || !dobInput?.value.trim() || !statusInput?.value.trim() || !email) {
+    if (!firstName || !lastName || !rfidInput?.value.trim() || !typeInput?.value.trim() || !dobInput?.value.trim() || !statusInput?.value.trim() || !email) {
         errors.push('Please fill in all required fields.');
     }
     
@@ -1742,7 +1840,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
     // Validate phone format (Philippine mobile: +639xxxxxxxxx)
     if (phone) {
         if (/[^0-9+]/.test(phone)) {
-            showAddUserPhoneError('Letters are not allowed. Use numbers and the + sign only.');
+            showAddUserPhoneError('Letters & other Special Characters are not allowed');
             errors.push('Phone number can contain only numbers and a leading + sign.');
         }
 
@@ -1752,19 +1850,11 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
         }
     }
 
-    // Validate age (at least 17 years old)
+    // Validate age (at least 18 years old)
     if (dob) {
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        
-        if (age < 17) {
-            errors.push('Employee must be at least 17 years old.');
+        if (!isAtLeast18YearsOld(dob)) {
+            showAddUserDobError('User should be 18 and above (please be guided).');
+            errors.push('User should be 18 and above (please be guided).');
         }
     }
 

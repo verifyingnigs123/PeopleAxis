@@ -5,7 +5,6 @@ namespace App\Controllers;
 use App\Models\EmployeeModel;
 use App\Models\DepartmentModel;
 use App\Models\NotificationModel;
-use App\Models\PositionModel;
 use App\Models\UserModel;
 use App\Controllers\Audit;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -17,7 +16,6 @@ class Users extends BaseController
     protected $employeeModel;
     protected $departmentModel;
     protected $notificationModel;
-    protected $positionModel;
 
     private const ROLE_NAME_TO_SLUG = [
         'super admin' => 'super_admin',
@@ -32,13 +30,12 @@ class Users extends BaseController
         $this->employeeModel = new EmployeeModel();
         $this->departmentModel = new DepartmentModel();
         $this->notificationModel = new NotificationModel();
-        $this->positionModel = new PositionModel();
     }
 
     /**
-     * Custom validation rule to check if person is at least 17 years old
+     * Custom validation rule to check if person is at least 18 years old
      */
-    public function valid_date_before_age_17(string $value = null, string $field = null): bool
+    public function valid_date_before_age_18(string $value = null, string $field = null): bool
     {
         if (empty($value)) {
             return true;
@@ -53,7 +50,7 @@ class Users extends BaseController
             $today = new \DateTime();
             $age = $today->diff($dateOfBirth)->y;
 
-            return $age >= 17;
+            return $age >= 18;
         } catch (\Exception $e) {
             return false;
         }
@@ -91,27 +88,6 @@ class Users extends BaseController
 
         return in_array($role, ['super_admin', 'admin'], true)
             || $roleName === 'super admin';
-    }
-
-    private function resolvePositionIdByName(string $positionName): ?int
-    {
-        $positionName = trim($positionName);
-        if ($positionName === '') {
-            return null;
-        }
-
-        $position = $this->positionModel->where('name', $positionName)->first();
-        if ($position) {
-            return (int) $position->id;
-        }
-
-        $insertId = $this->positionModel->skipValidation(true)->insert([
-            'name'        => $positionName,
-            'description' => $positionName,
-            'is_active'   => 1,
-        ]);
-
-        return $insertId ? (int) $insertId : null;
     }
 
     private function generateEmployeeId(): string
@@ -376,13 +352,11 @@ class Users extends BaseController
         // Add employee-specific validation only for non-admin roles
         if (!$isAdminRole) {
             $rules['rfid_number'] = 'required|max_length[100]|is_unique[employees.rfid_number]';
-            $rules['position'] = 'required|in_list[Front Counter,Kitchen/Prep,Drive-Thru,Dining Room]';
             $rules['department_id'] = 'permit_empty|numeric';
-            $rules['date_of_birth'] = 'required|valid_date|valid_date_before_age_17';
+            $rules['date_of_birth'] = 'required|valid_date|valid_date_before_age_18';
             $rules['date_of_joining'] = 'permit_empty|valid_date';
         } else {
             $rules['rfid_number'] = 'permit_empty|max_length[100]';
-            $rules['position'] = 'permit_empty';
             $rules['department_id'] = 'permit_empty|numeric';
             $rules['date_of_birth'] = 'permit_empty';
             $rules['date_of_joining'] = 'permit_empty';
@@ -399,7 +373,7 @@ class Users extends BaseController
                 if (strpos($validationErrors['date_of_birth'], 'The') === 0 && strpos($validationErrors['date_of_birth'], 'field is required') !== false) {
                     $validationErrors['date_of_birth'] = 'Date of birth is required';
                 } else {
-                    $validationErrors['date_of_birth'] = 'Employee must be at least 17 years old';
+                    $validationErrors['date_of_birth'] = 'User should be 18 and above (please be guided).';
                 }
             }
             
@@ -417,8 +391,6 @@ class Users extends BaseController
         $lastName = trim((string) $this->request->getPost('last_name'));
         $phone = trim((string) $this->request->getPost('phone'));
         $rfidNumber = trim((string) $this->request->getPost('rfid_number'));
-        $positionName = trim((string) $this->request->getPost('position'));
-        $positionId = $this->resolvePositionIdByName($positionName);
         $departmentId = (int) ($this->request->getPost('department_id') ?? 0);
         $dateOfBirth = trim((string) $this->request->getPost('date_of_birth'));
         $dateOfJoiningInput = trim((string) $this->request->getPost('date_of_joining'));
@@ -459,7 +431,7 @@ class Users extends BaseController
                 'phone'           => $phone,
                 'rfid_number'     => $rfidNumber,
                 'department_id'   => $departmentId > 0 ? $departmentId : null,
-                'position_id'     => $positionId,
+                'position_id'     => null,
                 'role_id'         => $roleId,
                 'date_of_birth'   => $dateOfBirth,
                 'date_of_joining' => $dateOfJoining,

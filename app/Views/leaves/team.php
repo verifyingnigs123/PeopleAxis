@@ -297,7 +297,7 @@
     <form action="<?= base_url('leaves/team') ?>" method="get" class="toolbar">
         <div>
             <label for="leave-status">Status</label>
-            <select id="leave-status" name="status">
+            <select id="leave-status" name="status" onchange="this.form.submit()">
                 <option value="" <?= $statusFilter === '' ? 'selected' : '' ?>>All Statuses</option>
                 <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending</option>
                 <option value="manager_approved" <?= $statusFilter === 'manager_approved' ? 'selected' : '' ?>>Awaiting HR</option>

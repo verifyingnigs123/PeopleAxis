@@ -14,11 +14,27 @@ class Leaves extends BaseController
     protected $auditModel;
     protected $employeeModel;
 
+    private const LEAVE_STATUS_FILTERS = [
+        ''                => '',
+        'pending'         => 'pending',
+        'manager_approved'=> 'manager_approved',
+        'approved'        => 'approved',
+        'rejected'        => 'rejected',
+        'ended'           => 'ended',
+    ];
+
     public function __construct()
     {
         $this->leaveModel = new LeaveModel();
         $this->auditModel = new AuditModel();
         $this->employeeModel = new EmployeeModel();
+    }
+
+    private function normalizeLeaveStatusFilter(?string $status): string
+    {
+        $status = strtolower(trim((string) $status));
+
+        return self::LEAVE_STATUS_FILTERS[$status] ?? '';
     }
 
     /**
@@ -89,12 +105,7 @@ class Leaves extends BaseController
             // Employees and others - show own leaves
             $employee = $this->getCurrentEmployeeRecord();
 
-            $statusFilter = strtolower(trim((string) $this->request->getGet('status')));
-            $allowedStatuses = ['pending', 'manager_approved', 'approved', 'rejected', 'ended'];
-
-            if (! in_array($statusFilter, $allowedStatuses, true)) {
-                $statusFilter = '';
-            }
+            $statusFilter = $this->normalizeLeaveStatusFilter($this->request->getGet('status'));
             $today = date('Y-m-d');
             $summary = [
                 'pending'          => 0,
@@ -111,9 +122,9 @@ class Leaves extends BaseController
                 $db = \Config\Database::connect();
 
                 $summaryRows = $db->table('leave_requests')
-                    ->select('status, COUNT(*) AS total')
+                    ->select('LOWER(TRIM(status)) AS status, COUNT(*) AS total', false)
                     ->where('employee_id', $employeeId)
-                    ->groupBy('status')
+                    ->groupBy('LOWER(TRIM(status))', false)
                     ->get()
                     ->getResultArray();
 
@@ -124,13 +135,20 @@ class Leaves extends BaseController
                     }
                 }
 
+                $displaySummary = $summary;
+                if ($statusFilter !== '') {
+                    $displaySummary = array_fill_keys(array_keys($summary), 0);
+                    $displaySummary[$statusFilter] = $summary[$statusFilter] ?? 0;
+                }
+
                 $leaveQuery = $this->leaveModel
+                    ->select("leave_requests.*, LOWER(TRIM(leave_requests.status)) as normalized_status", false)
                     ->where('employee_id', $employeeId)
                     ->orderBy('start_date', 'DESC')
                     ->orderBy('created_at', 'DESC');
 
                 if ($statusFilter !== '') {
-                    $leaveQuery->where('status', $statusFilter);
+                    $leaveQuery->where("LOWER(TRIM(leave_requests.status)) = " . $db->escape($statusFilter), null, false);
                 }
 
                 $activeLeave = $db->table('leave_requests')
@@ -152,6 +170,11 @@ class Leaves extends BaseController
                     ->get(1)
                     ->getRow();
 
+                if ($statusFilter !== '' && $statusFilter !== 'approved') {
+                    $activeLeave = null;
+                    $nextLeave = null;
+                }
+
                 $data['leaves'] = $leaveQuery->paginate(12);
                 $data['pager'] = $this->leaveModel->pager;
             } else {
@@ -162,7 +185,7 @@ class Leaves extends BaseController
 
             $data['employee'] = $employee;
             $data['statusFilter'] = $statusFilter;
-            $data['leaveSummary'] = $summary;
+            $data['leaveSummary'] = $displaySummary ?? $summary;
             $data['activeLeave'] = $activeLeave;
             $data['nextLeave'] = $nextLeave;
 
@@ -208,12 +231,7 @@ class Leaves extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Access denied. Manager only.');
         }
 
-        $statusFilter = strtolower(trim((string) $this->request->getGet('status')));
-        $allowedStatuses = ['pending', 'manager_approved', 'approved', 'rejected', 'ended'];
-
-        if (! in_array($statusFilter, $allowedStatuses, true)) {
-            $statusFilter = '';
-        }
+        $statusFilter = $this->normalizeLeaveStatusFilter($this->request->getGet('status'));
 
         try {
             $teamContext = $this->getManagedTeamContext();
@@ -237,9 +255,9 @@ class Leaves extends BaseController
 
             $db = \Config\Database::connect();
             $summaryRows = $db->table('leave_requests')
-                ->select('status, COUNT(*) AS total')
+                ->select('LOWER(TRIM(status)) AS status, COUNT(*) AS total', false)
                 ->whereIn('employee_id', $teamContext['employeeIds'])
-                ->groupBy('status')
+                ->groupBy('LOWER(TRIM(status))', false)
                 ->get()
                 ->getResultArray();
 
@@ -250,15 +268,21 @@ class Leaves extends BaseController
                 }
             }
 
+            if ($statusFilter !== '') {
+                $filteredSummary = array_fill_keys(array_keys($data['leaveSummary']), 0);
+                $filteredSummary[$statusFilter] = $data['leaveSummary'][$statusFilter] ?? 0;
+                $data['leaveSummary'] = $filteredSummary;
+            }
+
             $leaveQuery = $this->leaveModel
-                ->select("leave_requests.*, CONCAT(employees.first_name, ' ', employees.last_name) as employee_name, employees.employee_id as staff_code, departments.name as department_name")
+                ->select("leave_requests.*, CONCAT(employees.first_name, ' ', employees.last_name) as employee_name, employees.employee_id as staff_code, departments.name as department_name, LOWER(TRIM(leave_requests.status)) as normalized_status", false)
                 ->join('employees', 'employees.id = leave_requests.employee_id', 'left')
                 ->join('departments', 'departments.id = employees.department_id', 'left')
                 ->whereIn('leave_requests.employee_id', $teamContext['employeeIds'])
                 ->orderBy('leave_requests.created_at', 'DESC');
 
             if ($statusFilter !== '') {
-                $leaveQuery->where('leave_requests.status', $statusFilter);
+                $leaveQuery->where("LOWER(TRIM(leave_requests.status)) = " . $db->escape($statusFilter), null, false);
             }
 
             $data['teamLeaves'] = $leaveQuery->paginate(20);
