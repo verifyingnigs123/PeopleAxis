@@ -825,7 +825,8 @@
                             <div class="mb-3">
                                 <label for="addUserPhone" class="form-label">Phone Number</label>
                                 <input type="tel" class="form-control" id="addUserPhone" name="phone"
-                                       placeholder="Enter Philippine phone number (09xxxxxxxxx or +639xxxxxxxxx)">
+                                       placeholder="+639xxxxxxxxx" value="<?= esc(old('phone') ?: '+63') ?>" maxlength="13" autocomplete="off">
+                                <small id="addUserPhoneError" class="text-danger" style="display:none;">Letters are not allowed. Use numbers and the + sign only.</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -1593,6 +1594,106 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
 });
 
 // Handle add user form submission
+const addUserPhoneInput = document.getElementById('addUserPhone');
+const addUserPhoneError = document.getElementById('addUserPhoneError');
+const addUserModal = document.getElementById('addUserModal');
+const PH_PHONE_PREFIX = '+63';
+const PH_PHONE_PREFIX_LENGTH = PH_PHONE_PREFIX.length;
+
+function showAddUserPhoneError(message) {
+    if (!addUserPhoneError) {
+        return;
+    }
+
+    if (message) {
+        addUserPhoneError.textContent = message;
+        addUserPhoneError.style.display = 'block';
+        return;
+    }
+
+    addUserPhoneError.style.display = 'none';
+}
+
+function validateAddUserPhoneInput() {
+    if (!addUserPhoneInput) {
+        return;
+    }
+
+    const rawValue = addUserPhoneInput.value || '';
+    const normalizedValue = rawValue.startsWith(PH_PHONE_PREFIX)
+        ? rawValue
+        : PH_PHONE_PREFIX + rawValue.replace(/^\+?63/, '').replace(/^\+/, '');
+
+    if (normalizedValue !== rawValue) {
+        addUserPhoneInput.value = normalizedValue;
+    }
+
+    const hasInvalidCharacters = /[^0-9+]/.test(rawValue);
+    showAddUserPhoneError(hasInvalidCharacters ? 'Letters are not allowed. Use numbers and the + sign only.' : '');
+}
+
+function placeCaretAfterPrefix() {
+    if (!addUserPhoneInput) {
+        return;
+    }
+
+    const position = Math.max(addUserPhoneInput.value.length, PH_PHONE_PREFIX_LENGTH);
+    addUserPhoneInput.setSelectionRange(position, position);
+}
+
+if (addUserPhoneInput) {
+    if (!addUserPhoneInput.value || addUserPhoneInput.value.trim() === '') {
+        addUserPhoneInput.value = PH_PHONE_PREFIX;
+    }
+
+    validateAddUserPhoneInput();
+    addUserPhoneInput.addEventListener('input', validateAddUserPhoneInput);
+    addUserPhoneInput.addEventListener('focus', placeCaretAfterPrefix);
+    addUserPhoneInput.addEventListener('click', function () {
+        const cursorPosition = addUserPhoneInput.selectionStart ?? 0;
+        if (cursorPosition < PH_PHONE_PREFIX_LENGTH) {
+            placeCaretAfterPrefix();
+        }
+    });
+    addUserPhoneInput.addEventListener('keydown', function (event) {
+        const selectionStart = addUserPhoneInput.selectionStart ?? 0;
+        const selectionEnd = addUserPhoneInput.selectionEnd ?? 0;
+        const isSelectionRange = selectionEnd > selectionStart;
+
+        if (
+            event.key === 'Backspace'
+            && !isSelectionRange
+            && selectionStart <= PH_PHONE_PREFIX_LENGTH
+        ) {
+            event.preventDefault();
+            placeCaretAfterPrefix();
+            return;
+        }
+
+        if (
+            event.key === 'Delete'
+            && !isSelectionRange
+            && selectionStart < PH_PHONE_PREFIX_LENGTH
+        ) {
+            event.preventDefault();
+            placeCaretAfterPrefix();
+            return;
+        }
+
+        if (selectionStart < PH_PHONE_PREFIX_LENGTH || selectionEnd < PH_PHONE_PREFIX_LENGTH) {
+            addUserPhoneInput.setSelectionRange(PH_PHONE_PREFIX_LENGTH, Math.max(selectionEnd, PH_PHONE_PREFIX_LENGTH));
+        }
+    });
+}
+
+if (addUserModal && addUserPhoneInput) {
+    addUserModal.addEventListener('shown.bs.modal', function () {
+        validateAddUserPhoneInput();
+        addUserPhoneInput.focus();
+        placeCaretAfterPrefix();
+    });
+}
+
 document.getElementById('addUserForm').addEventListener('submit', function(e) {
     const firstNameInput = document.getElementById('addUserFirstName');
     const lastNameInput = document.getElementById('addUserLastName');
@@ -1613,7 +1714,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
     }
     const name = nameInput ? nameInput.value.trim() : '';
     const email = emailInput ? emailInput.value.trim() : '';
-    const phone = phoneInput ? phoneInput.value.trim() : '';
+    let phone = phoneInput ? phoneInput.value.trim() : '';
     const dob = dobInput ? dobInput.value.trim() : '';
     const errorsBox = document.getElementById('addUserErrors');
     const errorsList = document.getElementById('addUserErrorsList');
@@ -1633,11 +1734,21 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
         errors.push(nameError);
     }
 
-    // Validate phone format (Philippine mobile: 09xxxxxxxxx or +639xxxxxxxxx)
+    if (phoneInput && phone === PH_PHONE_PREFIX) {
+        phone = '';
+        phoneInput.value = '';
+    }
+
+    // Validate phone format (Philippine mobile: +639xxxxxxxxx)
     if (phone) {
-        const phoneRegex = /^(\+639|09)\d{9}$/;
+        if (/[^0-9+]/.test(phone)) {
+            showAddUserPhoneError('Letters are not allowed. Use numbers and the + sign only.');
+            errors.push('Phone number can contain only numbers and a leading + sign.');
+        }
+
+        const phoneRegex = /^\+639\d{9}$/;
         if (!phoneRegex.test(phone)) {
-            errors.push('Phone number must be in Philippine format (09xxxxxxxxx or +639xxxxxxxxx).');
+            errors.push('Phone number must be in Philippine format (+639xxxxxxxxx).');
         }
     }
 

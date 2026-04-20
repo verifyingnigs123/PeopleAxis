@@ -368,7 +368,7 @@ class Users extends BaseController
         $rules = [
             'name'           => 'required|min_length[3]|max_length[100]',
             'email'          => 'required|valid_email|is_unique[users.email]',
-            'phone'          => 'permit_empty|regex_match[/^(\+63|0)9\d{9}$/]',
+            'phone'          => 'permit_empty|regex_match[/^\+639\d{9}$/]',
             'role_id'        => 'required|numeric',
             'is_active'      => 'required|in_list[0,1]'
         ];
@@ -393,7 +393,7 @@ class Users extends BaseController
             
             // Custom error messages
             if (isset($validationErrors['phone'])) {
-                $validationErrors['phone'] = 'Phone number must be in Philippine format (09xxxxxxxxx or +639xxxxxxxxx)';
+                $validationErrors['phone'] = 'Phone number must be in Philippine format (+639xxxxxxxxx).';
             }
             if (isset($validationErrors['date_of_birth'])) {
                 if (strpos($validationErrors['date_of_birth'], 'The') === 0 && strpos($validationErrors['date_of_birth'], 'field is required') !== false) {
