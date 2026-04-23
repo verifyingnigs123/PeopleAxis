@@ -595,9 +595,16 @@
         <h1><i class="fas fa-users"></i> Users</h1>
         <p>Manage all registered users in the system</p>
     </div>
+    <?php
+        $sessionRole = strtolower((string) session()->get('role'));
+        $sessionRoleName = strtolower((string) session()->get('role_name'));
+        $isSuperAdmin = in_array($sessionRole, ['super_admin', 'admin'], true) || $sessionRoleName === 'super admin';
+    ?>
+    <?php if ($isSuperAdmin): ?>
     <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">
-        <i class="fas fa-user-plus"></i> <?= strtolower((string) session()->get('role_name')) === 'hr admin' ? 'Add Employee' : 'Add User' ?>
+        <i class="fas fa-user-plus"></i> Add User
     </button>
+    <?php endif; ?>
 </div>
 
 <!-- Flash Messages -->
@@ -637,10 +644,6 @@
         // Load roles for select boxes (only active/non-deleted roles)
         $db = \Config\Database::connect();
         $rolesList = $db->table('roles')->select('id, name')->where('deleted_at', null)->orderBy('name','ASC')->get()->getResult();
-        $isHrAdminUserManagement = strtolower((string) session()->get('role_name')) === 'hr admin';
-        $sessionRole = strtolower((string) session()->get('role'));
-        $sessionRoleName = strtolower((string) session()->get('role_name'));
-        $isSuperAdminUserManagement = in_array($sessionRole, ['super_admin', 'admin'], true) || $sessionRoleName === 'super admin';
     ?>
     <div class="table-responsive">
         <?php if (!empty($users)): ?>
@@ -651,13 +654,9 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <?php if (!$isHrAdminUserManagement): ?>
-                            <th>Status</th>
-                        <?php endif; ?>
+                        <th>Status</th>
                         <th>Joined</th>
-                        <?php if (!$isHrAdminUserManagement): ?>
-                            <th>Actions</th>
-                        <?php endif; ?>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -698,17 +697,14 @@
                                     <?= esc($roleName) ?>
                                 </span>
                             </td>
-                            <?php if (!$isHrAdminUserManagement): ?>
-                                <td>
-                                    <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
-                                        <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
-                                    </span>
-                                </td>
-                            <?php endif; ?>
+                            <td>
+                                <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
+                                    <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
+                                </span>
+                            </td>
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
-                            <?php if (!$isHrAdminUserManagement): ?>
-                                <td>
-                                    <div class="action-buttons">
+                            <td>
+                                <div class="action-buttons">
                                         <button type="button" class="btn btn-sm btn-edit" style="<?= !$u->is_active ? 'display: none;' : '' ?>" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
                                             <i class="fas fa-edit"></i> Edit
                                         </button>
@@ -729,7 +725,6 @@
                                         <?php endif; ?>
                                     </div>
                                 </td>
-                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

@@ -5,7 +5,7 @@ $isManager = $role === 'manager' || $roleName === 'manager';
 $isSuperAdmin = in_array($role, ['admin', 'super_admin'], true) || $roleName === 'super admin';
 $isHRAdmin = in_array($role, ['hr', 'hr_admin'], true) || $roleName === 'hr admin';
 $isEmployee = in_array($role, ['user', 'employee'], true) || $roleName === 'employee';
-$canManageUsers = $isSuperAdmin || $isHRAdmin;
+$canManageUsers = $isSuperAdmin;
 $managerLeaveUnreadCount = 0;
 
 if ($isManager) {
@@ -627,19 +627,9 @@ if ($isManager) {
                     </a>
                 </div>
 
-                <!-- User Management Section -->
+                <!-- Employee Management Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">User Management</div>
-                    <?php if ($canManageUsers): ?>
-                    <a href="<?= base_url('users') ?>" class="sidebar-link">
-                        <i class="fas fa-users-cog"></i> Manage Users
-                    </a>
-                    <?php endif; ?>
-                </div>
-
-                <!-- Employees Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Employees</div>
+                    <div class="sidebar-section-title">Employee Management</div>
                     <a href="<?= base_url('employees') ?>" class="sidebar-link">
                         <i class="fas fa-id-badge"></i> Employees
                     </a>

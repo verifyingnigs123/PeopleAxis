@@ -77,8 +77,8 @@ class Users extends BaseController
         $role = strtolower((string) session()->get('role'));
         $roleName = strtolower((string) session()->get('role_name'));
 
-        return in_array($role, ['admin', 'super_admin', 'hr', 'hr_admin'], true)
-            || in_array($roleName, ['super admin', 'hr admin'], true);
+        return in_array($role, ['admin', 'super_admin'], true)
+            || $roleName === 'super admin';
     }
 
     private function isSuperAdminUser(): bool
@@ -256,7 +256,7 @@ class Users extends BaseController
     public function create()
     {
         if (! $this->canManageUsers()) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         // Redirect to users page - the add user modal is now on the main page
@@ -269,7 +269,7 @@ class Users extends BaseController
     public function index()
     {
         if (! $this->canManageUsers()) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         // Load users with role information to avoid N+1 queries in the view
@@ -332,7 +332,7 @@ class Users extends BaseController
     public function store()
     {
         if (! $this->canManageUsers()) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         // Get role_id early to determine if this is an admin role
@@ -501,7 +501,7 @@ class Users extends BaseController
     public function edit($id)
     {
         if (! $this->canManageUsers()) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         $user = $this->userModel->find($id);
@@ -515,7 +515,7 @@ class Users extends BaseController
     public function update($id)
     {
         if (! $this->canManageUsers()) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin or HR Admin only.');
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
         }
         
         try {
@@ -779,7 +779,7 @@ class Users extends BaseController
         if (! $this->canManageUsers()) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin or HR Admin only.'
+                'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
@@ -842,7 +842,7 @@ class Users extends BaseController
         if (! $this->canManageUsers()) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Access denied. Super Admin or HR Admin only.'
+                'message' => 'Access denied. Super Admin only.'
             ]);
         }
 
