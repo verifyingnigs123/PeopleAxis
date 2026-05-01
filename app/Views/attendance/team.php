@@ -289,9 +289,107 @@
         margin-left: 4px;
     }
 
+    .filter-section {
+        background: white;
+        padding: 15px 18px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e0e0e0;
+    }
+
+    .filter-controls {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        padding: 10px 12px;
+        border: 1px solid #d9e2ec;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        min-width: 200px;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+        outline: none;
+        border-color: #6ea988;
+        box-shadow: 0 0 0 3px rgba(110, 169, 136, 0.1);
+    }
+
+    .btn-filter {
+        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: transform 0.2s;
+    }
+
+    .btn-filter:hover {
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .btn-reset {
+        background: #e9ecef;
+        color: #6c757d;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s;
+    }
+
+    .btn-reset:hover {
+        background: #dee2e6;
+        color: #6c757d;
+    }
+
     @media (max-width: 992px) {
         .dashboard-grid {
             grid-template-columns: 1fr;
+        }
+
+        .filter-controls {
+            flex-direction: column;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            min-width: 100%;
+        }
+
+        .btn-filter,
+        .btn-reset {
+            width: 100%;
+            justify-content: center;
         }
     }
 </style>
@@ -301,23 +399,37 @@
     <span>Team Attendance</span>
 </div>
 
-<div class="page-header">
-    <div>
-        <h1><i class="fas fa-users-clock"></i> Team Attendance Dashboard</h1>
-        <p>Daily attendance visibility for your managed departments on <?= date('M d, Y', strtotime($selectedDate)) ?>.</p>
-        <div class="realtime-clock" style="margin-top: 12px;">
-            <i class="fas fa-clock"></i>
-            <span class="realtime-clock-time" id="teamAttendanceClock"></span>
-        </div>
-    </div>
+<h1 style="color: #2f5f45; font-weight: 700; margin-bottom: 20px;"><i class="fas fa-users-clock"></i> Team Attendance</h1>
 
-    <form action="<?= base_url('attendance/team') ?>" method="get" class="filter-form">
+<!-- Filter Section -->
+<div class="filter-section">
+    <form action="<?= base_url('attendance/team') ?>" method="get" id="filterForm" class="filter-controls">
         <div class="filter-group">
-            <label for="attendance-date">Attendance Date</label>
-            <input id="attendance-date" type="date" name="date" value="<?= esc($selectedDate) ?>">
+            <label for="search-name">Search Employee</label>
+            <input type="text" id="search-name" name="search" placeholder="Employee name..." value="<?= esc($searchQuery ?? '') ?>">
         </div>
-        <button type="submit" class="btn-primary-soft">
-            <i class="fas fa-filter"></i> Apply
+
+        <div class="filter-group">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" name="status">
+                <option value="">All Status</option>
+                <option value="present" <?= ($statusFilter ?? '') === 'present' ? 'selected' : '' ?>>Present</option>
+                <option value="late" <?= ($statusFilter ?? '') === 'late' ? 'selected' : '' ?>>Late</option>
+                <option value="absent" <?= ($statusFilter ?? '') === 'absent' ? 'selected' : '' ?>>Absent</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="attendance-date">Date</label>
+            <input id="attendance-date" type="date" name="date" value="<?= esc($selectedDate ?? date('Y-m-d')) ?>">
+        </div>
+
+        <button type="submit" class="btn-filter">
+            <i class="fas fa-search"></i> Filter
+        </button>
+
+        <button type="button" class="btn-reset" onclick="document.location='<?= base_url('attendance/team') ?>'">
+            <i class="fas fa-redo"></i> Reset
         </button>
     </form>
 </div>
@@ -336,71 +448,6 @@
         </div>
     </div>
 <?php else: ?>
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Team Members</div>
-            <div class="stat-value"><?= $teamCount ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Present</div>
-            <div class="stat-value"><?= $attendanceSummary['present'] ?? 0 ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Late or Partial</div>
-            <div class="stat-value"><?= $attendanceSummary['late'] ?? 0 ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Absent or Missing Logs</div>
-            <div class="stat-value"><?= $attendanceSummary['absent'] ?? 0 ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">On Leave</div>
-            <div class="stat-value"><?= $attendanceSummary['on_leave'] ?? 0 ?></div>
-        </div>
-    </div>
-
-    <div class="dashboard-grid">
-        <div class="panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-layer-group"></i> Department Coverage</h2>
-            </div>
-            <div class="panel-body">
-                <?php foreach ($departmentSummary as $department): ?>
-                    <div class="metric-row">
-                        <div>
-                            <div class="metric-title"><?= esc($department['name']) ?></div>
-                            <div class="metric-meta"><?= $department['recorded'] ?> recorded, <?= $department['missing'] ?> missing, <?= $department['on_leave'] ?> on leave</div>
-                        </div>
-                        <div class="metric-value"><?= $department['members'] ?> members</div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <div class="panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-user-clock"></i> Missing Attendance</h2>
-            </div>
-            <div class="panel-body">
-                <?php if (!empty($missingMembers)): ?>
-                    <?php foreach ($missingMembers as $member): ?>
-                        <div class="metric-row">
-                            <div>
-                                <div class="metric-title"><?= esc($member['name']) ?></div>
-                                <div class="metric-meta"><?= esc($member['department']) ?></div>
-                            </div>
-                            <span class="badge badge-absent">No Log</span>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="empty-state" style="padding: 20px 10px;">
-                        <i class="fas fa-check-circle" style="font-size: 2rem;"></i>
-                        <p>Everyone has a log or approved leave for this date.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
 
     <div class="panel">
         <div class="panel-header">
@@ -415,6 +462,8 @@
                             <th>Employee</th>
                             <th>Department</th>
                             <th>Check In</th>
+                            <th>Break Out</th>
+                            <th>Break In</th>
                             <th>Check Out</th>
                             <th>Status</th>
                         </tr>
@@ -440,6 +489,8 @@
                                 </td>
                                 <td><?= esc($record->department_name ?? 'Unassigned') ?></td>
                                 <td><?= $record->time_in ? date('H:i', strtotime($record->time_in)) : '-' ?></td>
+                                <td><?= $record->break_out ? date('H:i', strtotime($record->break_out)) : '-' ?></td>
+                                <td><?= $record->break_in ? date('H:i', strtotime($record->break_in)) : '-' ?></td>
                                 <td>
                                     <?php if ($record->time_out): ?>
                                         <?= date('H:i', strtotime($record->time_out)) ?>

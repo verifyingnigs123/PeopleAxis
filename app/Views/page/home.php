@@ -303,6 +303,12 @@
                             Log In to Dashboard
                         </a>
                     </div>
+                    <div class="minimal-primary-action">
+                        <a href="<?= base_url('attendance/now') ?>" class="minimal-btn" style="background: #f59e0b; border-color: #f59e0b;">
+                            <i class="fas fa-clock"></i>
+                            Attendance Now
+                        </a>
+                    </div>
                     <div class="minimal-secondary-action">
                         <a href="#minimal-features" class="minimal-link">
                             <i class="fas fa-list"></i>

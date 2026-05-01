@@ -323,6 +323,45 @@
             </div>
         </div>
 
+        <!-- Employment and Salary Row -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="employment_type" class="form-label">Employment Type</label>
+                <select class="form-control" id="employment_type" name="employment_type">
+                    <option value="" <?= old('employment_type') ? '' : 'selected' ?>>Select employment type</option>
+                    <option value="full_time" <?= old('employment_type') === 'full_time' ? 'selected' : '' ?>>Full-Time</option>
+                    <option value="part_time" <?= old('employment_type') === 'part_time' ? 'selected' : '' ?>>Part-Time</option>
+                    <option value="contractual" <?= old('employment_type') === 'contractual' ? 'selected' : '' ?>>Contractual</option>
+                    <option value="probationary" <?= old('employment_type') === 'probationary' ? 'selected' : '' ?>>Probationary</option>
+                </select>
+                <?php if (service('validation')->hasError('employment_type')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('employment_type')) ?></div>
+                <?php endif; ?>
+            </div>
+            <div class="form-group">
+                <label for="rate" class="form-label">Rate</label>
+                <input type="number" class="form-control" id="rate" name="rate" min="0" step="0.01" value="<?= old('rate') ?>" placeholder="0.00">
+                <?php if (service('validation')->hasError('rate')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('rate')) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="form-row full">
+            <div class="form-group">
+                <label for="rate_type" class="form-label">Rate Type</label>
+                <select class="form-control" id="rate_type" name="rate_type">
+                    <option value="" <?= old('rate_type') ? '' : 'selected' ?>>Select rate type</option>
+                    <option value="hourly" <?= old('rate_type') === 'hourly' ? 'selected' : '' ?>>Hourly</option>
+                    <option value="daily" <?= old('rate_type') === 'daily' ? 'selected' : '' ?>>Daily</option>
+                    <option value="monthly" <?= old('rate_type') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
+                </select>
+                <?php if (service('validation')->hasError('rate_type')): ?>
+                    <div class="error-text"><?= esc(service('validation')->getError('rate_type')) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Status -->
         <div class="form-row full">
             <div class="form-group">

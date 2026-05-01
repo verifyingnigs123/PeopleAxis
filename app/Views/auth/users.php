@@ -856,9 +856,10 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="addUserRfidNumber" class="form-label">RFID Number <span class="text-danger">*</span></label>
+                                <label for="addUserRfidNumber" class="form-label">RFID Number / Employee ID <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="addUserRfidNumber" name="rfid_number"
-                                       placeholder="Enter RFID number" required>
+                                       placeholder="Enter RFID number (will be used as Employee ID)" required>
+                                <small class="text-muted">This RFID number will be used as the Employee ID</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -915,6 +916,38 @@
                                     <?php foreach ($addUserTypeOptions as $typeOption): ?>
                                         <option value="<?= $typeOption->id ?>"><?= esc($typeOption->name) ?></option>
                                     <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="addUserEmploymentType" class="form-label">Employment Type</label>
+                                <select class="form-select" id="addUserEmploymentType" name="employment_type">
+                                    <option value="" selected>Select employment type</option>
+                                    <option value="full_time">Full-Time</option>
+                                    <option value="part_time">Part-Time</option>
+                                    <option value="contractual">Contractual</option>
+                                    <option value="probationary">Probationary</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="addUserRate" class="form-label">Rate</label>
+                                <input type="number" class="form-control" id="addUserRate" name="rate" min="0" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="addUserRateType" class="form-label">Rate Type</label>
+                                <select class="form-select" id="addUserRateType" name="rate_type">
+                                    <option value="" selected>Select rate type</option>
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="monthly">Monthly</option>
                                 </select>
                             </div>
                         </div>

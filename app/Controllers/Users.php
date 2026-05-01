@@ -33,9 +33,9 @@ class Users extends BaseController
     }
 
     /**
-     * Custom validation rule to check if person is at least 18 years old
+     * Custom validation helper to check if person is at least 18 years old
      */
-    public function valid_date_before_age_18(string $value = null, string $field = null): bool
+    private function validateDateBeforeAge18(string $value = null): bool
     {
         if (empty($value)) {
             return true;
@@ -92,14 +92,34 @@ class Users extends BaseController
 
     private function generateEmployeeId(): string
     {
-        $lastEmployee = $this->employeeModel->orderBy('id', 'DESC')->first();
-        $nextNumber = 1;
+        $db = \Config\Database::connect();
+        $maxResult = $db->table('employees')
+            ->select('MAX(CAST(SUBSTRING(employee_id, 5) AS UNSIGNED)) as max_num')
+            ->where('employee_id LIKE', 'PPA-%')
+            ->get()
+            ->getRow();
 
-        if ($lastEmployee && preg_match('/PPA-(\d+)/', (string) $lastEmployee->employee_id, $matches)) {
-            $nextNumber = ((int) $matches[1]) + 1;
+        $nextNumber = 1;
+        if ($maxResult && $maxResult->max_num) {
+            $nextNumber = ((int) $maxResult->max_num) + 1;
         }
 
-        return 'PPA-' . str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
+        // Keep generating IDs until we find one that doesn't exist
+        $attemptCount = 0;
+        while ($attemptCount < 1000) {
+            $newId = 'PPA-' . str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
+            $exists = $db->table('employees')->where('employee_id', $newId)->countAllResults() > 0;
+            
+            if (!$exists) {
+                return $newId;
+            }
+            
+            $nextNumber++;
+            $attemptCount++;
+        }
+
+        // Fallback: return a unique ID with timestamp if all else fails
+        return 'PPA-' . str_pad((string) (time() % 100000), 5, '0', STR_PAD_LEFT);
     }
 
     private function getSmtpConfig()
@@ -351,15 +371,21 @@ class Users extends BaseController
         
         // Add employee-specific validation only for non-admin roles
         if (!$isAdminRole) {
-            $rules['rfid_number'] = 'required|max_length[100]|is_unique[employees.rfid_number]';
+            $rules['rfid_number'] = 'required|max_length[100]';
             $rules['department_id'] = 'permit_empty|numeric';
-            $rules['date_of_birth'] = 'required|valid_date|valid_date_before_age_18';
+            $rules['date_of_birth'] = 'required|valid_date';
             $rules['date_of_joining'] = 'permit_empty|valid_date';
+            $rules['employment_type'] = 'permit_empty|in_list[full_time,part_time,contractual,probationary]';
+            $rules['rate'] = 'permit_empty|decimal';
+            $rules['rate_type'] = 'permit_empty|in_list[hourly,daily,monthly]';
         } else {
             $rules['rfid_number'] = 'permit_empty|max_length[100]';
             $rules['department_id'] = 'permit_empty|numeric';
             $rules['date_of_birth'] = 'permit_empty';
             $rules['date_of_joining'] = 'permit_empty';
+            $rules['employment_type'] = 'permit_empty|in_list[full_time,part_time,contractual,probationary]';
+            $rules['rate'] = 'permit_empty|decimal';
+            $rules['rate_type'] = 'permit_empty|in_list[hourly,daily,monthly]';
         }
 
         if (!$this->validate($rules)) {
@@ -380,6 +406,16 @@ class Users extends BaseController
             return redirect()->back()->withInput()->with('errors', $validationErrors);
         }
 
+        // Additional validation: Check age for non-admin roles
+        if (!$isAdminRole) {
+            $dateOfBirth = trim((string) $this->request->getPost('date_of_birth'));
+            if ($dateOfBirth && !$this->validateDateBeforeAge18($dateOfBirth)) {
+                return redirect()->back()->withInput()->with('errors', [
+                    'date_of_birth' => 'User should be 18 and above (please be guided).'
+                ]);
+            }
+        }
+
         $name = trim((string) $this->request->getPost('name'));
         if (!preg_match('/^[A-Za-z0-9\s]+$/', $name)) {
             return redirect()->back()->withInput()->with('errors', [
@@ -394,6 +430,9 @@ class Users extends BaseController
         $departmentId = (int) ($this->request->getPost('department_id') ?? 0);
         $dateOfBirth = trim((string) $this->request->getPost('date_of_birth'));
         $dateOfJoiningInput = trim((string) $this->request->getPost('date_of_joining'));
+        $employmentType = trim((string) $this->request->getPost('employment_type'));
+        $rateInput = trim((string) $this->request->getPost('rate'));
+        $rateType = trim((string) $this->request->getPost('rate_type'));
         // Use current date if date_of_joining is not provided
         $dateOfJoining = !empty($dateOfJoiningInput) ? $dateOfJoiningInput : date('Y-m-d');
         $isActive = (int) $this->request->getPost('is_active');
@@ -420,69 +459,147 @@ class Users extends BaseController
             );
         }
 
-        // Only create employee record for non-admin roles
+        // Only create employee record for non-admin roles (Employees and Managers get employee records)
         $newEmployeeId = 0;
         if (!$isAdminRole) {
-            $employeeInsertResult = $this->employeeModel->skipValidation(true)->insert([
-                'employee_id'     => $this->generateEmployeeId(),
-                'first_name'      => $firstName !== '' ? $firstName : $name,
-                'last_name'       => $lastName,
-                'email'           => $this->request->getPost('email'),
-                'phone'           => $phone,
-                'rfid_number'     => $rfidNumber,
-                'department_id'   => $departmentId > 0 ? $departmentId : null,
-                'position_id'     => null,
-                'role_id'         => $roleId,
-                'date_of_birth'   => $dateOfBirth,
-                'date_of_joining' => $dateOfJoining,
-                'date_hired'      => $dateOfJoining,
-                'status'          => $isActive === 1 ? 'active' : 'inactive',
-                'account_status'  => 'pending',
-                'user_id'         => $userId,
-                'created_at'      => date('Y-m-d H:i:s'),
-                'updated_at'      => date('Y-m-d H:i:s'),
-            ]);
-
-            if (!$employeeInsertResult) {
-                $db->transRollback();
-                return redirect()->back()->withInput()->with('errors',
-                    $this->employeeModel->errors() ?: ['store' => 'Unable to create employee record.']
-                );
+            $userEmail = $this->request->getPost('email');
+            
+            // Get current user's role to determine approval requirement
+            $currentUserRole = strtolower((string) session()->get('role_name'));
+            
+            // Approval logic:
+            // - Super Admin creates Manager/Employee → Auto-approved (no approval needed)
+            // - HR Admin creates Manager/Employee → Pending (requires Super Admin approval)
+            $accountStatus = ($currentUserRole === 'super admin') ? 'approved' : 'pending';
+            
+            // Check if an employee with this email or RFID already exists
+            $existingEmployee = $this->employeeModel->where('email', $userEmail)->first();
+            
+            // If not found by email and RFID is provided, check by RFID
+            if (!$existingEmployee && $rfidNumber) {
+                $existingEmployee = $this->employeeModel->where('rfid_number', $rfidNumber)->first();
             }
-            $newEmployeeId = (int) $this->employeeModel->getInsertID();
+            
+            if ($existingEmployee) {
+                // Employee record exists - update it with the user_id if not already linked
+                if (!$existingEmployee->user_id) {
+                    $updateData = [
+                        'user_id'         => $userId,
+                        'first_name'      => $firstName !== '' ? $firstName : $name,
+                        'last_name'       => $lastName,
+                        'email'           => $userEmail,
+                        'phone'           => $phone ?: $existingEmployee->phone,
+                        'rfid_number'     => $rfidNumber ?: $existingEmployee->rfid_number,
+                        'date_of_birth'   => $dateOfBirth ?: $existingEmployee->date_of_birth,
+                        'date_of_joining' => $dateOfJoining,
+                        'date_hired'      => $dateOfJoining ?: null,
+                        'status'          => $isActive === 1 ? 'active' : 'inactive',
+                        'account_status'  => $accountStatus,
+                        'employment_type' => $employmentType !== '' ? $employmentType : ($existingEmployee->employment_type ?? null),
+                        'rate'            => $rateInput !== '' ? (float) $rateInput : ($existingEmployee->rate ?? null),
+                        'rate_type'       => $rateType !== '' ? $rateType : ($existingEmployee->rate_type ?? null),
+                    ];
+                    
+                    if ($departmentId > 0) {
+                        $updateData['department_id'] = $departmentId;
+                    }
+                    if ($roleId > 0) {
+                        $updateData['role_id'] = $roleId;
+                    }
+                    
+                    log_message('debug', 'Updating existing employee with data: ' . json_encode($updateData));
+                    
+                    $updateResult = $this->employeeModel->update($existingEmployee->id, $updateData);
+                    if (!$updateResult) {
+                        $db->transRollback();
+                        $errors = $this->employeeModel->errors() ?: ['store' => 'Unable to update employee record.'];
+                        log_message('error', 'Employee update failed. Model errors: ' . json_encode($errors));
+                        return redirect()->back()->withInput()->with('errors', $errors);
+                    }
+                    $newEmployeeId = (int) $existingEmployee->id;
+                } else {
+                    // Employee already has a user_id, skip employee creation
+                    $newEmployeeId = (int) $existingEmployee->id;
+                }
+            } else {
+                // No existing employee, create a new one
+                $employeeData = [
+                    'employee_id'     => $rfidNumber ?: $this->generateEmployeeId(),
+                    'first_name'      => $firstName !== '' ? $firstName : $name,
+                    'last_name'       => $lastName,
+                    'email'           => $userEmail,
+                    'phone'           => $phone ?: '',
+                    'rfid_number'     => $rfidNumber ?: '',
+                    'date_of_birth'   => $dateOfBirth ?: null,
+                    'date_of_joining' => $dateOfJoining,
+                    'date_hired'      => $dateOfJoining ?: null,
+                    'status'          => $isActive === 1 ? 'active' : 'inactive',
+                    'account_status'  => $accountStatus,
+                    'user_id'         => $userId,
+                    'employment_type' => $employmentType !== '' ? $employmentType : null,
+                    'rate'            => $rateInput !== '' ? (float) $rateInput : null,
+                    'rate_type'       => $rateType !== '' ? $rateType : null,
+                ];
+                
+                // Only add optional fields if they have values
+                if ($departmentId > 0) {
+                    $employeeData['department_id'] = $departmentId;
+                }
+                if ($roleId > 0) {
+                    $employeeData['role_id'] = $roleId;
+                }
+
+                log_message('debug', 'Attempting employee insert with data: ' . json_encode($employeeData));
+                
+                $employeeInsertResult = $this->employeeModel->insert($employeeData);
+
+                if (!$employeeInsertResult) {
+                    $db->transRollback();
+                    $errors = $this->employeeModel->errors() ?: ['store' => 'Unable to create employee record.'];
+                    $dbError = $db->error();
+                    log_message('error', 'Employee insert failed. Model errors: ' . json_encode($errors) . ' | DB error: ' . json_encode($dbError));
+                    return redirect()->back()->withInput()->with('errors', $errors);
+                }
+                $newEmployeeId = (int) $this->employeeModel->getInsertID();
+            }
         }
 
         $db->transComplete();
 
         if (! $db->transStatus()) {
+            log_message('error', 'Database transaction failed for user creation');
             return redirect()->back()->withInput()->with('errors', [
-                'store' => 'Unable to create the new user at this time.'
+                'store' => 'Unable to create the new user at this time. Please try again.'
             ]);
         }
 
-        // Notify all active Super Admins that a new employee account is waiting for approval (only for non-admin roles).
+        // Notify all active Super Admins that a new employee account is waiting for approval (only for non-admin roles with pending status).
         if ($newEmployeeId > 0) {
-            $actorName = session()->get('name') ?? session()->get('username') ?? 'HR Admin';
-            $dbNotif = \Config\Database::connect();
-            $superAdminRole = $dbNotif->table('roles')->where('name', 'Super Admin')->get()->getRow();
-            if ($superAdminRole) {
-                $superAdmins = $this->userModel
-                    ->where('role_id', $superAdminRole->id)
-                    ->where('is_active', 1)
-                    ->findAll();
+            // Check if employee account is pending approval
+            $employee = $this->employeeModel->find($newEmployeeId);
+            if ($employee && $employee->account_status === 'pending') {
+                $actorName = session()->get('name') ?? session()->get('username') ?? 'HR Admin';
+                $dbNotif = \Config\Database::connect();
+                $superAdminRole = $dbNotif->table('roles')->where('name', 'Super Admin')->get()->getRow();
+                if ($superAdminRole) {
+                    $superAdmins = $this->userModel
+                        ->where('role_id', $superAdminRole->id)
+                        ->where('is_active', 1)
+                        ->findAll();
 
-                foreach ($superAdmins as $superAdmin) {
-                    $this->notificationModel->insert([
-                        'user_id' => $superAdmin->id,
-                        'role'    => 'Super Admin',
-                        'title'   => 'New Employee Awaiting Approval',
-                        'message' => "HR Admin {$actorName} added '{$firstName} {$lastName}' and submitted the account for your approval.",
-                        'status'  => 'unread',
-                        'type'    => 'warning',
-                        'icon'    => 'fas fa-user-check',
-                        'link'    => site_url('employee/review/' . $newEmployeeId),
-                        'is_read' => false,
-                    ]);
+                    foreach ($superAdmins as $superAdmin) {
+                        $this->notificationModel->insert([
+                            'user_id' => $superAdmin->id,
+                            'role'    => 'Super Admin',
+                            'title'   => 'New Employee Awaiting Approval',
+                            'message' => "HR Admin {$actorName} added '{$firstName} {$lastName}' and submitted the account for your approval.",
+                            'status'  => 'unread',
+                            'type'    => 'warning',
+                            'icon'    => 'fas fa-user-check',
+                            'link'    => site_url('employee/review/' . $newEmployeeId),
+                            'is_read' => false,
+                        ]);
+                    }
                 }
             }
         }

@@ -626,23 +626,41 @@ if ($isManager) {
                         <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                 </div>
+                                <?php if ($isSuperAdmin): ?>
+                <!-- System Administration Section (Super Admin Only) -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">System Administration</div>
+                    <a href="<?= base_url('users') ?>" class="sidebar-link">
+                        <i class="fas fa-users"></i> Manage Users
+                    </a>
+                </div>
+                <?php endif; ?>
 
                 <!-- Employee Management Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Employee Management</div>
+                    <?php if ($isSuperAdmin): ?>
+                    <a href="<?= base_url('employees') ?>" class="sidebar-link">
+                        <i class="fas fa-id-badge"></i> Employees Approval
+                    </a>
+                    <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
+                        <i class="fas fa-money-bill-wave"></i> Salary Rate
+                    </a>
+                    <?php else: ?>
                     <a href="<?= base_url('employees') ?>" class="sidebar-link">
                         <i class="fas fa-id-badge"></i> Employees
                     </a>
+                    <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
+                        <i class="fas fa-money-bill-wave"></i> Salary Rate
+                    </a>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Attendance Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Attendance</div>
-                    <a href="<?= base_url('attendance') ?>" class="sidebar-link">
+                    <a href="<?= base_url('attendance/logs') ?>" class="sidebar-link">
                         <i class="fas fa-calendar-check"></i> Attendance
-                    </a>
-                    <a href="<?= base_url('attendance/scanner') ?>" class="sidebar-link">
-                        <i class="fas fa-id-card"></i> RFID Scanner
                     </a>
                 </div>
 

@@ -268,6 +268,8 @@
                         <th>RFID Number</th>
                         <th>Date</th>
                         <th>Time In</th>
+                        <th>Break Out</th>
+                        <th>Break In</th>
                         <th>Time Out</th>
                         <th>Status</th>
                     </tr>
@@ -290,6 +292,20 @@
                             <td>
                                 <?php if (!empty($record->time_in)): ?>
                                     <span class="time-badge"><?= date('H:i', strtotime($record->time_in)) ?></span>
+                                <?php else: ?>
+                                    <span style="color: #95a5a6;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($record->break_out)): ?>
+                                    <span class="time-badge"><?= date('H:i', strtotime($record->break_out)) ?></span>
+                                <?php else: ?>
+                                    <span style="color: #95a5a6;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($record->break_in)): ?>
+                                    <span class="time-badge"><?= date('H:i', strtotime($record->break_in)) ?></span>
                                 <?php else: ?>
                                     <span style="color: #95a5a6;">-</span>
                                 <?php endif; ?>

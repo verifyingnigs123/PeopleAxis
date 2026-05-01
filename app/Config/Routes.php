@@ -70,6 +70,7 @@ $routes->get('/employee/review/(:num)', 'Employees::review/$1');
 $routes->post('/employee/approve-account/(:num)', 'Employees::approveAccount/$1');
 $routes->post('/employee/reject-account/(:num)', 'Employees::rejectAccount/$1');
 $routes->get('/employees/salary', 'Employees::salary');
+$routes->get('/salary_rates', 'Employees::salary'); // Alias for the old link
 $routes->post('/employees/salary/update', 'Employees::updateSalary');
 
 // Settings routes
@@ -84,10 +85,17 @@ $routes->post('/profile/update', 'Dashboard::updateProfile');
 $routes->get('/attendance', 'Attendance::index');
 $routes->get('/attendance/logs', 'Attendance::logs');
 $routes->get('/attendance/team', 'Attendance::team');
+$routes->get('/attendance/now', 'Attendance::now');
+$routes->get('/attendance/check-in', 'Attendance::checkIn');
+$routes->get('/attendance/check-out', 'Attendance::checkOut');
+$routes->get('/attendance/break-out', 'Attendance::breakOut');
+$routes->get('/attendance/break-in', 'Attendance::breakIn');
 
 // RFID attendance routes
 $routes->get('/attendance/scanner', 'Attendance::scanner');
 $routes->post('/attendance/scan', 'Attendance::scan');
+$routes->post('/attendance/recordRfid', 'Attendance::recordRfid');
+$routes->post('/api/attendance/rfid-process', 'Attendance::rfidProcess');
 
 // Activity Logs / Audit routes
 $routes->get('/activity-logs', 'Audit::index');

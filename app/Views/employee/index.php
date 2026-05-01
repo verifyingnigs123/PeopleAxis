@@ -754,6 +754,36 @@
                     </div>
                 </div>
 
+                <!-- Employment and Salary Row -->
+                <div class="form-row-modal">
+                    <div class="form-group-modal">
+                        <label for="add_employment_type" class="form-label">Employment Type</label>
+                        <select class="form-control-modal" id="add_employment_type" name="employment_type">
+                            <option value="" selected>Select employment type</option>
+                            <option value="full_time">Full-Time</option>
+                            <option value="part_time">Part-Time</option>
+                            <option value="contractual">Contractual</option>
+                            <option value="probationary">Probationary</option>
+                        </select>
+                    </div>
+                    <div class="form-group-modal">
+                        <label for="add_rate" class="form-label">Rate</label>
+                        <input type="number" class="form-control-modal" id="add_rate" name="rate" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row-modal full-width-row">
+                    <div class="form-group-modal">
+                        <label for="add_rate_type" class="form-label">Rate Type</label>
+                        <select class="form-control-modal" id="add_rate_type" name="rate_type">
+                            <option value="" selected>Select rate type</option>
+                            <option value="hourly">Hourly</option>
+                            <option value="daily">Daily</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Status Row -->
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">

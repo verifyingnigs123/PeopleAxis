@@ -74,8 +74,18 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
-            'csrf',
-            'activeUser',
+            'csrf' => [
+                'except' => [
+                    'api/attendance/rfid-process',
+                    'attendance/now',
+                ],
+            ],
+            'activeUser' => [
+                'except' => [
+                    'api/attendance/rfid-process',
+                    'attendance/now',
+                ],
+            ],
         ],
         'after' => [
             // 'honeypot',

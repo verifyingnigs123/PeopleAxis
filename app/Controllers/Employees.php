@@ -363,7 +363,8 @@ class Employees extends BaseController
             'date_of_birth'   => 'required|valid_date',
             'date_of_joining' => 'required|valid_date',
             'status'          => 'required|in_list[active,inactive,suspended]',
-            'rate'            => 'permit_empty',
+            'employment_type' => 'permit_empty|in_list[full_time,part_time,contractual,probationary]',
+            'rate'            => 'permit_empty|decimal',
             'rate_type'       => 'permit_empty|in_list[hourly,daily,monthly]',
         ];
 
@@ -455,6 +456,7 @@ class Employees extends BaseController
             'date_hired'      => $dateHired,
             'status'          => $this->request->getPost('status') ?? 'active',
             'account_status'  => 'pending',
+            'employment_type' => $this->request->getPost('employment_type') ?: null,
             'rate'            => $this->request->getPost('rate') ?: null,
             'rate_type'       => $this->request->getPost('rate_type') ?: null,
         ];
@@ -1315,7 +1317,7 @@ class Employees extends BaseController
 
             // Load ALL active employees with their salary info (left join so unsalaried employees appear too)
             // Position resolved the same way as employee index: employees → users (by email) → roles
-            $employees = $db->table('employees')
+            $queryBuilder = $db->table('employees')
                 ->select("employees.id AS employee_pk, employees.employee_id AS emp_code,
                           CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
                           employees.status,
@@ -1337,7 +1339,14 @@ class Employees extends BaseController
                 ->join('roles',        'roles.id = users.role_id AND roles.deleted_at IS NULL', 'left')
                 ->join('departments',  'departments.id = employees.department_id', 'left')
                 ->join('salaries',     'salaries.employee_id = employees.id', 'left')
-                ->where('employees.status', 'active')
+                ->where('employees.status', 'active');
+            
+            // HR Admin only sees Employees and Managers (exclude Super Admin and other HR Admins)
+            if (in_array($role, ['HR Admin', 'hr', 'hr_admin'])) {
+                $queryBuilder->whereIn('roles.name', ['Employee', 'Manager', 'User', 'employee', 'manager', 'user']);
+            }
+            
+            $employees = $queryBuilder
                 ->orderBy('employees.first_name', 'ASC')
                 ->get()->getResultObject();
         } catch (\Exception $e) {
