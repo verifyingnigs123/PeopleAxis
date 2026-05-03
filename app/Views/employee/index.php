@@ -869,17 +869,8 @@
                         </select>
                     </div>
                 </div>
-                <!-- Position and Employment Type -->
-                <div class="form-row-modal">
-                    <div class="form-group-modal">
-                        <label class="form-label">Position</label>
-                        <select class="form-control-modal" id="edit_role_id" name="role_id">
-                            <option value="">Select Position</option>
-                            <?php foreach ($positions ?? [] as $pos): ?>
-                                <option value="<?= $pos->id ?>"><?= esc($pos->name) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                <!-- Employment Type -->
+                <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label class="form-label">Employment Type</label>
                         <select class="form-control-modal" id="edit_employment_type" name="employment_type">
@@ -1314,7 +1305,6 @@
             document.getElementById('edit_date_of_birth').value   = e.date_of_birth ?? '';
             document.getElementById('edit_date_of_joining').value = e.date_of_joining ?? '';
             document.getElementById('edit_department_id').value   = e.department_id ?? '';
-            document.getElementById('edit_role_id').value          = e.role_id       ?? '';
             document.getElementById('edit_status').value           = e.status        ?? 'active';
             document.getElementById('edit_employment_type').value = e.employment_type ?? '';
             document.getElementById('edit_rate').value            = e.rate            ?? '';
