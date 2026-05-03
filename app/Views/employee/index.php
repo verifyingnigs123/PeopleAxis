@@ -219,6 +219,26 @@
         border-collapse: collapse;
     }
 
+    .emp-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .emp-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg,#2f5f45 0%,#6ea988 100%);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+
     .admin-table thead th {
         background: #f7f9fc;
         color: #445b72;
@@ -514,7 +534,13 @@
                     <?php foreach ($employees as $i => $employee): ?>
                         <tr>
                             <td><strong><?= esc($employee->employee_id) ?></strong></td>
-                            <td><?= esc(trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''))) ?></td>
+                            <td>
+                                <?php $fullName = trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? '')); ?>
+                                <div class="emp-name">
+                                    <div class="emp-avatar"><?= esc(strtoupper(substr(trim($fullName), 0, 1)) ?: 'U') ?></div>
+                                    <div><?= esc($fullName) ?></div>
+                                </div>
+                            </td>
                             <td><?= esc($employee->email ?? '') ?></td>
                             <td><?= esc($departmentMap[$employee->department_id] ?? 'N/A') ?></td>
                             <td><?= esc($employee->user_role_name ?? 'N/A') ?></td>
