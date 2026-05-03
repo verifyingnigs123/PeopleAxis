@@ -586,14 +586,6 @@ if ($isManager) {
                     </a>
                 </div>
 
-                <!-- Profile Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Profile</div>
-                    <a href="<?= base_url('profile') ?>" class="sidebar-link">
-                        <i class="fas fa-user"></i> View My Profile
-                    </a>
-                </div>
-
                 <!-- Attendance Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Attendance</div>
@@ -677,14 +669,6 @@ if ($isManager) {
                     <div class="sidebar-section-title">Reports</div>
                     <a href="<?= base_url('reports') ?>" class="sidebar-link">
                         <i class="fas fa-file-alt"></i> Reports
-                    </a>
-                </div>
-
-                <!-- Profile Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Profile</div>
-                    <a href="<?= base_url('profile') ?>" class="sidebar-link">
-                        <i class="fas fa-user"></i> Profile
                     </a>
                 </div>
 
