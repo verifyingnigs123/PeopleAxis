@@ -313,6 +313,7 @@ class Dashboard extends BaseController
         }
 
         $userModel = new UserModel();
+        $db = \Config\Database::connect();
         $userId = session()->get('user_id');
 
         $data['user'] = $userModel->find($userId);
@@ -331,6 +332,7 @@ class Dashboard extends BaseController
         }
 
         $userModel = new UserModel();
+        $db = \Config\Database::connect();
         $userId = session()->get('user_id');
 
         $rules = [
@@ -339,6 +341,12 @@ class Dashboard extends BaseController
         ];
 
         if (!$this->validate($rules)) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'errors' => $this->validator->getErrors(),
+                ]);
+            }
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -350,11 +358,84 @@ class Dashboard extends BaseController
 
         // Update password if provided
         $password = $this->request->getPost('password');
-        if (!empty($password) && strlen($password >= 6)) {
-            $data['password'] = $password;
+        if (!empty($password) && strlen($password) >= 6) {
+            $data['password'] = password_hash(trim($password), PASSWORD_BCRYPT);
         }
 
-        $userModel->update($userId, $data);
+        $uploadError = null;
+
+        // Handle profile photo upload
+        $photo = $this->request->getFile('profile_photo');
+        if ($photo && $photo->getName() !== '') {
+            if (!$photo->isValid()) {
+                $uploadError = $photo->getErrorString() ?: 'Profile photo upload failed.';
+            } else {
+                // Validate MIME type and size (max 2MB)
+                $allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+                if (!in_array($photo->getClientMimeType(), $allowed, true)) {
+                    $uploadError = 'Profile photo must be a PNG, JPG, or WEBP image.';
+                } elseif ($photo->getSize() > 2 * 1024 * 1024) {
+                    $uploadError = 'Profile photo must be 2MB or smaller.';
+                } else {
+                    try {
+                        $newName = $photo->getRandomName();
+                        $uploadPath = FCPATH . 'uploads/profile_photos/';
+                        if (!is_dir($uploadPath)) {
+                            mkdir($uploadPath, 0755, true);
+                        }
+                        $photo->move($uploadPath, $newName);
+                        $data['profile_photo'] = 'uploads/profile_photos/' . $newName;
+                    } catch (\Throwable $e) {
+                        $uploadError = 'Unable to save the uploaded photo.';
+                        log_message('error', 'Profile photo upload failed: ' . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        if ($uploadError !== null) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'errors' => ['profile_photo' => $uploadError],
+                ]);
+            }
+            return redirect()->back()->withInput()->with('errors', ['profile_photo' => $uploadError]);
+        }
+
+        $updated = $db->table('users')->where('id', $userId)->update($data);
+        if ($updated === false) {
+            $error = ['profile' => 'Unable to update profile.'];
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'errors' => $error,
+                ]);
+            }
+            return redirect()->back()->withInput()->with('errors', $error);
+        }
+
+        $updatedUser = $userModel->find($userId);
+        session()->set([
+            'name' => $updatedUser->name ?? $data['name'],
+            'email' => $updatedUser->email ?? $data['email'],
+            'profile_photo' => $updatedUser->profile_photo ?? null,
+        ]);
+
+        $payload = [
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'id' => $updatedUser->id ?? $userId,
+                'name' => $updatedUser->name ?? $data['name'],
+                'email' => $updatedUser->email ?? $data['email'],
+                'profile_photo' => !empty($updatedUser->profile_photo) ? base_url($updatedUser->profile_photo) . '?v=' . time() : null,
+            ],
+        ];
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON($payload);
+        }
 
         return redirect()->back()->with('success', 'Profile updated successfully');
     }
