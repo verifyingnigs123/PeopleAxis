@@ -654,7 +654,6 @@
                 </div>
 
                 <?php
-                $employeePositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
                 $employeeTypeOptions = ['Manager', 'Employee'];
                 ?>
 
@@ -720,17 +719,8 @@
                     </div>
                 </div>
 
-                <!-- Position and Type Row -->
-                <div class="form-row-modal">
-                    <div class="form-group-modal">
-                        <label for="position" class="form-label">Position <span class="required-star">*</span></label>
-                        <select class="form-control-modal" id="position" name="position" required>
-                            <option value="" disabled <?= old('position') ? '' : 'selected' ?>>Select position</option>
-                            <?php foreach ($employeePositionOptions as $option): ?>
-                                <option value="<?= esc($option) ?>" <?= old('position') === $option ? 'selected' : '' ?>><?= esc($option) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                <!-- Type Row -->
+                <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="employee_type" class="form-label">Type <span class="required-star">*</span></label>
                         <select class="form-control-modal" id="employee_type" name="employee_type" required>
@@ -1484,7 +1474,7 @@
         const fnOk = validateSpecialChars(document.getElementById('first_name'), 'add_first_name_err', 'name');
         const lnOk = validateSpecialChars(document.getElementById('last_name'),  'add_last_name_err',  'name');
         const phoneOk = validateSpecialChars(document.getElementById('phone'), 'add_phone_err', 'phone');
-        const requiredFields = ['rfid_number', 'position', 'employee_type', 'date_of_birth', 'date_of_joining', 'status'];
+        const requiredFields = ['rfid_number', 'employee_type', 'date_of_birth', 'date_of_joining', 'status'];
         const missingRequired = requiredFields.some(function(fieldId) {
             const field = document.getElementById(fieldId);
             return !field || field.value.trim() === '';

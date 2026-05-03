@@ -195,7 +195,6 @@
         <?= csrf_field() ?>
 
         <?php
-        $employeePositionOptions = ['Front Counter', 'Kitchen/Prep', 'Drive-Thru', 'Dining Room'];
         $employeeTypeOptions = ['Manager', 'Employee'];
         ?>
 
@@ -275,20 +274,8 @@
             </div>
         </div>
 
-        <!-- Position and Type Row -->
-        <div class="form-row">
-            <div class="form-group">
-                <label for="position" class="form-label">Position <span class="required-star">*</span></label>
-                <select class="form-control" id="position" name="position" required>
-                    <option value="" disabled <?= old('position') ? '' : 'selected' ?>>Select position</option>
-                    <?php foreach ($employeePositionOptions as $option): ?>
-                        <option value="<?= esc($option) ?>" <?= old('position') === $option ? 'selected' : '' ?>>
-                            <?= esc($option) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
+        <!-- Type Row -->
+        <div class="form-row full">
             <div class="form-group">
                 <label for="employee_type" class="form-label">Type <span class="required-star">*</span></label>
                 <select class="form-control" id="employee_type" name="employee_type" required>
@@ -408,7 +395,7 @@ document.getElementById('employeeForm').addEventListener('submit', function(e) {
     const fnOk = validateSpecialChars(document.getElementById('first_name'), 'err_first_name', 'name');
     const lnOk = validateSpecialChars(document.getElementById('last_name'),  'err_last_name',  'name');
     const phOk = validateSpecialChars(document.getElementById('phone'), 'err_phone', 'phone');
-    const requiredFields = ['rfid_number', 'position', 'employee_type', 'date_of_birth', 'date_of_joining', 'status'];
+    const requiredFields = ['rfid_number', 'employee_type', 'date_of_birth', 'date_of_joining', 'status'];
     const missingRequired = requiredFields.some(function(fieldId) {
         const field = document.getElementById(fieldId);
         return !field || field.value.trim() === '';

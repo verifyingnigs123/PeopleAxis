@@ -358,7 +358,6 @@ class Employees extends BaseController
             'phone'           => 'permit_empty|max_length[20]',
             'rfid_number'     => 'required|max_length[100]|is_unique[employees.rfid_number]',
             'department_id'   => 'permit_empty|numeric',
-            'position'        => 'required|in_list[Front Counter,Kitchen/Prep,Drive-Thru,Dining Room]',
             'employee_type'   => 'required|in_list[Manager,Employee]',
             'date_of_birth'   => 'required|valid_date',
             'date_of_joining' => 'required|valid_date',
@@ -437,9 +436,7 @@ class Employees extends BaseController
         $dateHired = trim($this->request->getPost('date_of_joining') ?? '');
         $rfidNumber = trim($this->request->getPost('rfid_number') ?? '');
         $departmentId = (int) ($this->request->getPost('department_id') ?? 0);
-        $positionName = trim((string) $this->request->getPost('position'));
         $employeeType = trim((string) $this->request->getPost('employee_type'));
-        $positionId = $this->resolvePositionId($positionName);
         $roleId = $this->resolveRoleId($employeeType);
         $data = [
             'employee_id'     => $employeeId,
@@ -449,7 +446,6 @@ class Employees extends BaseController
             'phone'           => $phone ?: null,
             'rfid_number'     => $rfidNumber,
             'department_id'   => $departmentId > 0 ? $departmentId : null,
-            'position_id'     => $positionId,
             'role_id'         => $roleId,
             'date_of_birth'   => $dateOfBirth,
             'date_of_joining' => $dateHired,
