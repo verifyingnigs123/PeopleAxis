@@ -1,4 +1,5 @@
 /vendor/
 /writable/*
+/uploads/*
 !.env
 .env

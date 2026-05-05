@@ -97,6 +97,17 @@ if ($isManager) {
         margin-left: 0.35rem;
     }
 
+    .utility-menu-dropdown img {
+        border: 2px solid #e1efe6;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .utility-menu-dropdown:hover img,
+    .utility-menu-dropdown:focus-visible img {
+        border-color: #b6d3c1;
+        box-shadow: 0 2px 8px rgba(47, 95, 69, 0.2);
+    }
+
     .utility-menu-label {
         max-width: 150px;
         overflow: hidden;
@@ -690,7 +701,7 @@ if ($isManager) {
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Attendance</div>
                     <a class="sidebar-link" href="<?= base_url('attendance/team') ?>">
-                        <i class="fas fa-calendar"></i> View Team Attendance (Only)
+                        <i class="fas fa-calendar"></i> View Team Attendance
                     </a>
                 </div>
 
@@ -758,9 +769,17 @@ if ($isManager) {
                 </div>
 
                 <div class="dropdown">
+                    <?php 
+                        $profilePhoto = session()->get('profile_photo');
+                        $userName = esc(session()->get('name') ?? 'User');
+                    ?>
                     <button class="utility-menu-dropdown dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle"></i>
-                        <span class="utility-menu-label"><?= esc(session()->get('name') ?? 'User') ?></span>
+                        <?php if (!empty($profilePhoto)): ?>
+                            <img src="<?= base_url($profilePhoto) ?>?v=<?= strtotime('now') ?>" alt="Profile" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                        <?php else: ?>
+                            <i class="fas fa-user-circle"></i>
+                        <?php endif; ?>
+                        <span class="utility-menu-label"><?= $userName ?></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="fas fa-user"></i> My Profile</a></li>

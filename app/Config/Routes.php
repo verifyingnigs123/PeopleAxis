@@ -80,6 +80,8 @@ $routes->post('/settings/update', 'Settings::update');
 // Profile routes
 $routes->get('/profile', 'Dashboard::profile');
 $routes->post('/profile/update', 'Dashboard::updateProfile');
+$routes->post('/profile/remove-photo', 'Dashboard::removeProfilePhoto');
+$routes->get('/profile/check-status', 'Dashboard::checkProfilePhotoStatus');
 
 // Attendance routes
 $routes->get('/attendance', 'Attendance::index');
@@ -146,6 +148,11 @@ $routes->get('/admin/all-delete-requests', 'AdminController::allDeleteRequests')
 $routes->get('/admin/notifications', 'AdminController::getNotifications');
 $routes->post('/admin/mark-notification-read/(:num)', 'AdminController::markNotificationRead/$1');
 $routes->get('/admin/dashboard-stats', 'AdminController::getDashboardStats');
+
+// Admin Profile Photos routes
+$routes->get('/admin/profile-photos', 'AdminController::profilePhotos');
+$routes->get('/admin/profile-photos/stats', 'AdminController::profilePhotosStats');
+$routes->post('/admin/profile-photos/delete/(:num)', 'AdminController::deleteProfilePhoto/$1');
 
 // Forgot Password routes
 $routes->get('/forgot-password', 'Auth::forgotPassword');

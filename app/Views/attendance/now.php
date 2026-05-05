@@ -418,7 +418,62 @@
         margin: 0 auto 20px;
         border: 3px solid #6ea988;
         object-fit: cover;
-        background: #f0f7f2;
+        background: linear-gradient(135deg, #2f5f45, #6ea988);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .rfid-employee-avatar.loading {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .avatar-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        border: 3px solid #6ea988;
+        overflow: hidden;
+        background: linear-gradient(135deg, #2f5f45, #6ea988);
+    }
+
+    .avatar-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-fallback {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #2f5f45, #6ea988);
+    }
+
+    .avatar-fallback.show {
+        display: flex;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
     }
 
     .rfid-employee-name {
@@ -809,13 +864,31 @@
         
         const actionColor = actionColors[data.actionType] || 'rfid-action-check-in';
         
+        // Get employee initials for fallback
+        const employeeName = data.employee.name || 'User';
+        const initials = employeeName.split(' ').map(n => n.charAt(0)).join('').toUpperCase();
+        
         content.innerHTML = `
             <div class="rfid-modal-success">
                 <div class="rfid-success-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <img src="${data.employee.profile_photo}" alt="${data.employee.name}" class="rfid-employee-avatar">
-                <div class="rfid-employee-name">${data.employee.name}</div>
+                <div 
+                    class="rfid-employee-avatar loading" 
+                    id="avatarContainer"
+                    style="position: relative; overflow: hidden;"
+                >
+                    <img 
+                        id="employeeAvatar"
+                        src="${data.employee.profile_photo}" 
+                        alt="${employeeName}" 
+                        class="rfid-employee-avatar"
+                        style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; margin: 0; border: none;"
+                        onerror="showAvatarFallback('${initials}')"
+                    >
+                    <span id="avatarFallback" style="display: none; position: absolute; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center;">${initials}</span>
+                </div>
+                <div class="rfid-employee-name">${employeeName}</div>
                 <div class="rfid-employee-id">ID: ${data.employee.employee_id}</div>
                 
                 <div class="rfid-action-badge ${actionColor}">
@@ -853,12 +926,33 @@
         
         modal.classList.add('active');
         
+        // Remove loading animation when image loads
+        const img = document.getElementById('employeeAvatar');
+        img.addEventListener('load', function() {
+            document.getElementById('avatarContainer').classList.remove('loading');
+        });
+        
         // Auto-close after 5 seconds
         setTimeout(() => {
             if (modal.classList.contains('active')) {
                 closeRfidModal();
             }
         }, 5000);
+    }
+
+    function showAvatarFallback(initials) {
+        const img = document.getElementById('employeeAvatar');
+        if (img) {
+            img.style.display = 'none';
+        }
+        const fallback = document.getElementById('avatarFallback');
+        if (fallback) {
+            fallback.style.display = 'flex';
+        }
+        const container = document.getElementById('avatarContainer');
+        if (container) {
+            container.classList.remove('loading');
+        }
     }
 
     function closeRfidModal() {

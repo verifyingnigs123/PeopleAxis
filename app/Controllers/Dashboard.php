@@ -6,6 +6,7 @@ use App\Models\UserModel;
 use App\Models\EmployeeModel;
 use App\Models\AttendanceModel;
 use App\Models\LeaveModel;
+use App\Models\ProfilePhotoModel;
 use Config\Database;
 
 class Dashboard extends BaseController
@@ -341,13 +342,14 @@ class Dashboard extends BaseController
         ];
 
         if (!$this->validate($rules)) {
+            $errors = $this->validator->getErrors();
             if ($this->request->isAJAX()) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
-                    'errors' => $this->validator->getErrors(),
+                    'errors' => $errors,
                 ]);
             }
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->back()->withInput()->with('errors', $errors);
         }
 
         $data = [
@@ -363,6 +365,7 @@ class Dashboard extends BaseController
         }
 
         $uploadError = null;
+        $photoUploadData = null;
 
         // Handle profile photo upload
         $photo = $this->request->getFile('profile_photo');
@@ -384,7 +387,16 @@ class Dashboard extends BaseController
                             mkdir($uploadPath, 0755, true);
                         }
                         $photo->move($uploadPath, $newName);
-                        $data['profile_photo'] = 'uploads/profile_photos/' . $newName;
+                        $photoPath = 'uploads/profile_photos/' . $newName;
+                        $data['profile_photo'] = $photoPath;
+                        
+                        // Store photo metadata for profile_photos table
+                        $photoUploadData = [
+                            'file_path' => $photoPath,
+                            'original_filename' => $photo->getClientName(),
+                            'file_size' => $photo->getSize(),
+                            'mime_type' => $photo->getClientMimeType(),
+                        ];
                     } catch (\Throwable $e) {
                         $uploadError = 'Unable to save the uploaded photo.';
                         log_message('error', 'Profile photo upload failed: ' . $e->getMessage());
@@ -403,24 +415,65 @@ class Dashboard extends BaseController
             return redirect()->back()->withInput()->with('errors', ['profile_photo' => $uploadError]);
         }
 
-        $updated = $db->table('users')->where('id', $userId)->update($data);
-        if ($updated === false) {
-            $error = ['profile' => 'Unable to update profile.'];
+        // Update user profile
+        try {
+            $updateResult = $db->table('users')->where('id', $userId)->update($data);
+            if ($updateResult === false) {
+                $dbError = $db->error();
+                $errorMsg = 'Database error: ' . ($dbError['message'] ?? 'Unknown error');
+                log_message('error', 'Profile update failed: ' . $errorMsg);
+                
+                if ($this->request->isAJAX()) {
+                    return $this->response->setStatusCode(500)->setJSON([
+                        'success' => false,
+                        'errors' => ['profile' => $errorMsg],
+                    ]);
+                }
+                return redirect()->back()->withInput()->with('errors', ['profile' => $errorMsg]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Profile update exception: ' . $e->getMessage());
             if ($this->request->isAJAX()) {
-                return $this->response->setStatusCode(422)->setJSON([
+                return $this->response->setStatusCode(500)->setJSON([
                     'success' => false,
-                    'errors' => $error,
+                    'errors' => ['profile' => 'Unable to update profile.'],
                 ]);
             }
-            return redirect()->back()->withInput()->with('errors', $error);
+            return redirect()->back()->withInput()->with('errors', ['profile' => 'Unable to update profile.']);
         }
 
-        $updatedUser = $userModel->find($userId);
-        session()->set([
-            'name' => $updatedUser->name ?? $data['name'],
-            'email' => $updatedUser->email ?? $data['email'],
-            'profile_photo' => $updatedUser->profile_photo ?? null,
-        ]);
+        // Save to profile_photos table if photo was uploaded
+        if ($photoUploadData !== null) {
+            try {
+                $profilePhotoModel = new ProfilePhotoModel();
+                $profilePhotoModel->saveProfilePhoto(
+                    $userId,
+                    $photoUploadData['file_path'],
+                    $photoUploadData['original_filename'],
+                    $photoUploadData['file_size'],
+                    $photoUploadData['mime_type']
+                );
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to save profile photo metadata: ' . $e->getMessage());
+                // Continue anyway - the photo is still saved in users table
+            }
+        }
+
+        // Fetch updated user
+        $updatedUser = null;
+        try {
+            $updatedUser = $userModel->find($userId);
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to fetch updated user: ' . $e->getMessage());
+        }
+
+        if ($updatedUser) {
+            session()->set([
+                'name' => $updatedUser->name,
+                'email' => $updatedUser->email,
+                'profile_photo' => $updatedUser->profile_photo ?? null,
+            ]);
+        }
 
         $payload = [
             'success' => true,
@@ -429,14 +482,186 @@ class Dashboard extends BaseController
                 'id' => $updatedUser->id ?? $userId,
                 'name' => $updatedUser->name ?? $data['name'],
                 'email' => $updatedUser->email ?? $data['email'],
-                'profile_photo' => !empty($updatedUser->profile_photo) ? base_url($updatedUser->profile_photo) . '?v=' . time() : null,
+                'profile_photo' => (!empty($updatedUser->profile_photo) ? base_url($updatedUser->profile_photo) : null),
             ],
         ];
 
         if ($this->request->isAJAX()) {
-            return $this->response->setJSON($payload);
+            return $this->response
+                ->setStatusCode(200)
+                ->setContentType('application/json')
+                ->setJSON($payload);
         }
 
         return redirect()->back()->with('success', 'Profile updated successfully');
+    }
+
+    /**
+     * Remove/delete profile photo
+     */
+    public function removeProfilePhoto()
+    {
+        // Check if user is logged in
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $userModel = new UserModel();
+        $profilePhotoModel = new ProfilePhotoModel();
+        $db = \Config\Database::connect();
+        $userId = session()->get('user_id');
+
+        try {
+            $user = $userModel->find($userId);
+            if (!$user) {
+                if ($this->request->isAJAX()) {
+                    return $this->response
+                        ->setStatusCode(404)
+                        ->setContentType('application/json')
+                        ->setJSON([
+                            'success' => false,
+                            'message' => 'User not found',
+                        ]);
+                }
+                return redirect()->back()->with('error', 'User not found');
+            }
+
+            // Delete the physical file if it exists
+            if (!empty($user->profile_photo)) {
+                $filePath = FCPATH . $user->profile_photo;
+                if (is_file($filePath)) {
+                    @unlink($filePath);
+                }
+
+                // Soft delete matching record in profile_photos table
+                try {
+                    $profilePhoto = $profilePhotoModel->where('user_id', $userId)
+                        ->where('file_path', $user->profile_photo)
+                        ->where('deleted_at', null)
+                        ->first();
+                    
+                    if ($profilePhoto) {
+                        $profilePhotoModel->softDelete($profilePhoto->id);
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', 'Failed to soft delete profile photo record: ' . $e->getMessage());
+                    // Continue anyway - the file is still deleted
+                }
+            }
+
+            // Clear the profile_photo field in users table
+            $updated = $db->table('users')->where('id', $userId)->update([
+                'profile_photo' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            if ($updated === false) {
+                if ($this->request->isAJAX()) {
+                    return $this->response
+                        ->setStatusCode(500)
+                        ->setContentType('application/json')
+                        ->setJSON([
+                            'success' => false,
+                            'message' => 'Failed to remove profile photo',
+                        ]);
+                }
+                return redirect()->back()->with('error', 'Failed to remove profile photo');
+            }
+
+            // Update session
+            session()->set([
+                'profile_photo' => null,
+            ]);
+
+            $payload = [
+                'success' => true,
+                'message' => 'Profile photo removed successfully',
+                'profile_photo' => null,
+            ];
+
+            if ($this->request->isAJAX()) {
+                return $this->response
+                    ->setStatusCode(200)
+                    ->setContentType('application/json')
+                    ->setJSON($payload);
+            }
+
+            return redirect()->back()->with('success', 'Profile photo removed successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Remove profile photo failed: ' . $e->getMessage());
+            if ($this->request->isAJAX()) {
+                return $this->response
+                    ->setStatusCode(500)
+                    ->setContentType('application/json')
+                    ->setJSON([
+                        'success' => false,
+                        'message' => 'Error: ' . $e->getMessage(),
+                    ]);
+            }
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Debug/Check database profile photo status
+     */
+    public function checkProfilePhotoStatus()
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'error' => 'Not logged in'
+            ]);
+        }
+
+        $userId = session()->get('user_id');
+        $userModel = new UserModel();
+        $profilePhotoModel = new ProfilePhotoModel();
+        $db = \Config\Database::connect();
+
+        // Check users table
+        $userProfilePhoto = $db->table('users')
+            ->select('id, profile_photo')
+            ->where('id', $userId)
+            ->first();
+
+        // Check profile_photos table
+        $profilePhotos = $profilePhotoModel->where('user_id', $userId)
+            ->where('deleted_at', null)
+            ->orderBy('uploaded_at', 'DESC')
+            ->findAll();
+
+        // Check if file exists
+        $fileStatus = [];
+        if ($userProfilePhoto && !empty($userProfilePhoto->profile_photo)) {
+            $filePath = FCPATH . $userProfilePhoto->profile_photo;
+            $fileStatus = [
+                'path' => $userProfilePhoto->profile_photo,
+                'exists' => is_file($filePath),
+                'file_size' => is_file($filePath) ? filesize($filePath) : 0,
+                'last_modified' => is_file($filePath) ? date('Y-m-d H:i:s', filemtime($filePath)) : null,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'user_id' => $userId,
+            'users_table' => [
+                'profile_photo_path' => $userProfilePhoto?->profile_photo,
+                'has_photo' => !empty($userProfilePhoto?->profile_photo),
+            ],
+            'profile_photos_table' => [
+                'count' => count($profilePhotos),
+                'photos' => array_map(function($p) {
+                    return [
+                        'id' => $p->id,
+                        'file_path' => $p->file_path,
+                        'file_size' => $p->file_size,
+                        'mime_type' => $p->mime_type,
+                        'uploaded_at' => $p->uploaded_at,
+                    ];
+                }, $profilePhotos),
+            ],
+            'file_system' => $fileStatus,
+        ]);
     }
 }

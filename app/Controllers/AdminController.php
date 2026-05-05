@@ -7,6 +7,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\DeleteRequest;
 use App\Models\Notification;
 use App\Models\User;
+use App\Models\ProfilePhotoModel;
 
 class AdminController extends BaseController
 {
@@ -289,6 +290,159 @@ class AdminController extends BaseController
             'notifications' => $notifications,
             'unread_count' => count($notifications)
         ]);
+    }
+
+    /**
+     * View all profile photos organized by user role
+     */
+    public function profilePhotos()
+    {
+        // Check if user is logged in and has admin role
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        $roleName = session()->get('role_name') ?? '';
+        if (!in_array($roleName, ['Super Admin', 'HR Admin'])) {
+            return redirect()->back()->with('error', 'Access denied. Admin access required.');
+        }
+
+        $profilePhotoModel = new ProfilePhotoModel();
+        $db = \Config\Database::connect();
+
+        // Get counts by role
+        $roles = ['Super Admin', 'HR Admin', 'Manager', 'Employee'];
+        $photosByRole = [];
+        $statistics = [];
+
+        foreach ($roles as $role) {
+            $count = $profilePhotoModel->getCountByRole($role);
+            $statistics[$role] = $count;
+
+            // Get photos for this role (limit to 20 per role for display)
+            $photos = $db->table('profile_photos')
+                ->select('profile_photos.*, users.name, users.email, roles.name as role_name')
+                ->join('users', 'users.id = profile_photos.user_id', 'left')
+                ->join('roles', 'roles.id = users.role_id', 'left')
+                ->where('profile_photos.deleted_at', null)
+                ->where('users.deleted_at', null)
+                ->where('roles.name', $role)
+                ->orderBy('profile_photos.uploaded_at', 'DESC')
+                ->limit(20)
+                ->get()
+                ->getResultArray();
+
+            $photosByRole[$role] = $photos;
+        }
+
+        $data = [
+            'title' => 'Profile Photos Gallery',
+            'statistics' => $statistics,
+            'photosByRole' => $photosByRole,
+            'user' => session()->get(),
+        ];
+
+        return view('admin/profile_photos', $data);
+    }
+
+    /**
+     * Get profile photos statistics API
+     */
+    public function profilePhotosStats()
+    {
+        // Check if user is logged in and has admin role
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'error' => 'Unauthorized'
+            ]);
+        }
+
+        $roleName = session()->get('role_name') ?? '';
+        if (!in_array($roleName, ['Super Admin', 'HR Admin'])) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'error' => 'Access denied'
+            ]);
+        }
+
+        $profilePhotoModel = new ProfilePhotoModel();
+        $db = \Config\Database::connect();
+
+        $roles = ['Super Admin', 'HR Admin', 'Manager', 'Employee'];
+        $statistics = [
+            'total' => 0,
+            'by_role' => [],
+            'recent_uploads' => [],
+        ];
+
+        foreach ($roles as $role) {
+            $count = $profilePhotoModel->getCountByRole($role);
+            $statistics['by_role'][$role] = $count;
+            $statistics['total'] += $count;
+        }
+
+        // Get recent 10 uploads
+        $recent = $db->table('profile_photos')
+            ->select('profile_photos.*, users.name, roles.name as role_name')
+            ->join('users', 'users.id = profile_photos.user_id', 'left')
+            ->join('roles', 'roles.id = users.role_id', 'left')
+            ->where('profile_photos.deleted_at', null)
+            ->where('users.deleted_at', null)
+            ->orderBy('profile_photos.uploaded_at', 'DESC')
+            ->limit(10)
+            ->get()
+            ->getResultArray();
+
+        $statistics['recent_uploads'] = $recent;
+
+        return $this->response->setJSON($statistics);
+    }
+
+    /**
+     * Delete a profile photo (for admins)
+     */
+    public function deleteProfilePhoto($photoId)
+    {
+        // Check if user is logged in and has admin role
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ]);
+        }
+
+        $roleName = session()->get('role_name') ?? '';
+        if (!in_array($roleName, ['Super Admin'])) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Only Super Admins can delete profile photos'
+            ]);
+        }
+
+        try {
+            $profilePhotoModel = new ProfilePhotoModel();
+            $profilePhoto = $profilePhotoModel->find($photoId);
+
+            if (!$profilePhoto) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Profile photo not found'
+                ]);
+            }
+
+            // Hard delete (file and record)
+            $profilePhotoModel->hardDeletePhoto($photoId);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Profile photo deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Delete profile photo error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**
