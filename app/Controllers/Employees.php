@@ -393,14 +393,14 @@ class Employees extends BaseController
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
             if ((int)$dob->format('Y') >= 2026) {
-                $err = ['date_of_birth' => 'Users must be 18 years old or older to create an account.'];
+                $err = ['date_of_birth' => 'Employees below 18 years old are not allowed.'];
                 if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
                     return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
                 }
                 return redirect()->back()->withInput()->with('errors', $err);
             }
             if ($age < 18) {
-                $err = ['date_of_birth' => 'Employee must be at least 18 years old.'];
+                $err = ['date_of_birth' => 'Employees below 18 years old are not allowed.'];
                 if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
                     return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $err]);
                 }
@@ -813,14 +813,14 @@ class Employees extends BaseController
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
             if ((int)$dob->format('Y') >= 2026) {
-                $dobErrors = ['date_of_birth' => 'Users must be 18 years old or older to create an account.'];
+                $dobErrors = ['date_of_birth' => 'Employees below 18 years old are not allowed.'];
                 if ($isAjax) {
                     return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $dobErrors, 'csrf_hash' => csrf_hash()]);
                 }
                 return redirect()->back()->withInput()->with('errors', $dobErrors);
             }
             if ($age < 18) {
-                $dobErrors = ['date_of_birth' => 'Employee must be at least 18 years old.'];
+                $dobErrors = ['date_of_birth' => 'Employees below 18 years old are not allowed.'];
                 if ($isAjax) {
                     return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => $dobErrors, 'csrf_hash' => csrf_hash()]);
                 }
@@ -979,7 +979,7 @@ class Employees extends BaseController
             $today = new \DateTime();
             $age   = $today->diff($dob)->y;
             if ($age < 18) {
-                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Employee must be at least 18 years old.'], 'csrf_hash' => csrf_hash()]);
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'errors' => ['date_of_birth' => 'Employees below 18 years old are not allowed.'], 'csrf_hash' => csrf_hash()]);
             }
         }
 
