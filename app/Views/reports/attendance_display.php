@@ -319,7 +319,7 @@
 </div>
 
 <!-- Report Table -->
-<div class="report-table-container">
+<div class="report-table-container" data-print-root>
     <div class="table-header">
         <h3><i class="fas fa-table"></i> Attendance Records</h3>
         <div class="table-period"><?= $reportData['period'] ?? date('Y-m') ?></div>
@@ -366,17 +366,9 @@
         </div>
     <?php endif; ?>
     
-    <!-- Export Buttons -->
-    <div class="export-buttons" style="padding: 14px;">
-        <a href="<?= base_url('reports/generate/attendance?format=csv') ?>" class="btn-export">
-            <i class="fas fa-file-csv"></i> Export CSV
-        </a>
-        <a href="<?= base_url('reports/generate/attendance?format=pdf') ?>" class="btn-export">
-            <i class="fas fa-file-pdf"></i> Export PDF
-        </a>
-        <button onclick="window.print()" class="btn-export">
-            <i class="fas fa-print"></i> Print Report
-        </button>
+    <!-- Print Only -->
+    <div style="padding:14px;">
+        <?= view('reports/_print_helpers') ?>
     </div>
 </div>
 

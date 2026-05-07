@@ -461,6 +461,7 @@
         <div class="preview-header">
             <h3><i class="fas fa-eye"></i> Report Preview</h3>
             <div id="reportTitle" class="preview-period"></div>
+            <?= view('reports/_print_helpers') ?>
         </div>
         <div class="preview-content" id="reportPreview">
             <div class="empty-state">
@@ -528,6 +529,7 @@
                     <div class="summary-value">78</div>
                 </div>
             </div>
+            <div class="report-table-container" data-print-root>
         `;
 
         if (reportType === 'summary') {
@@ -654,13 +656,8 @@
         }
 
         html += `
+            </div>
             <div class="export-buttons">
-                <button class="btn-export" onclick="exportReport('pdf')">
-                    <i class="fas fa-file-pdf"></i> Export PDF
-                </button>
-                <button class="btn-export" onclick="exportReport('csv')">
-                    <i class="fas fa-file-csv"></i> Export CSV
-                </button>
                 <button class="btn-export" onclick="printReport()">
                     <i class="fas fa-print"></i> Print
                 </button>
@@ -675,15 +672,6 @@
         document.getElementById('reportTitle').textContent = `${startStr} - ${endStr}`;
     }
 
-    function exportReport(format) {
-        alert(`Report will be exported as ${format.toUpperCase()}`);
-        // Implement actual export functionality
-    }
-
-    function printReport() {
-        alert('Print dialog will open');
-        window.print();
-    }
 </script>
 
 <?= $this->endSection() ?>

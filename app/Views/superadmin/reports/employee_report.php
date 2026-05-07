@@ -262,7 +262,7 @@
 </div>
 
 <!-- Employee Table -->
-<div class="employee-table">
+<div class="employee-table" data-print-root>
     <table class="table">
         <thead>
             <tr>
@@ -321,36 +321,7 @@
     <a href="<?= base_url('reports') ?>" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to Reports
     </a>
-    <button onclick="window.print()" class="btn btn-primary">
-        <i class="fas fa-print"></i> Print Report
-    </button>
-    <a href="<?= base_url('reports/generate/employee') ?>" class="btn btn-primary" onclick="exportToJSON(event)">
-        <i class="fas fa-download"></i> Export JSON
-    </a>
+    <?= view('reports/_print_helpers') ?>
 </div>
-
-<script>
-function exportToJSON(event) {
-    event.preventDefault();
-    
-    const data = {
-        title: '<?= esc($title) ?>',
-        generated_at: '<?= $generated_at ?>',
-        total_employees: <?= $total_employees ?>,
-        by_department: <?= json_encode($by_department) ?>,
-        employees: <?= json_encode($employees) ?>
-    };
-    
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'employee_report_' + new Date().toISOString().slice(0,10) + '.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-}
-</script>
 
 <?= $this->endSection() ?>

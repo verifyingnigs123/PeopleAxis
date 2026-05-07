@@ -240,26 +240,8 @@
         </div>
     </div>
     
-    <!-- Export Buttons -->
-    <div class="export-buttons">
-        <button class="export-btn export-pdf" onclick="window.print()">
-            <i class="fas fa-file-pdf"></i> Export as PDF
-        </button>
-        <form action="<?= base_url('reports/export/csv') ?>" method="POST" style="display:inline;">
-            <?= csrf_field() ?>
-            <input type="hidden" name="report_type" value="<?= $reportType ?? '' ?>">
-            <button type="submit" class="export-btn export-csv">
-                <i class="fas fa-file-csv"></i> Export as CSV
-            </button>
-        </form>
-        <form action="<?= base_url('reports/export/excel') ?>" method="POST" style="display:inline;">
-            <?= csrf_field() ?>
-            <input type="hidden" name="report_type" value="<?= $reportType ?? '' ?>">
-            <button type="submit" class="export-btn export-excel">
-                <i class="fas fa-file-excel"></i> Export as Excel
-            </button>
-        </form>
-    </div>
+    <!-- Export / Print Helpers -->
+    <?= view('reports/_print_helpers') ?>
 </div>
 
 <!-- Report Container -->
@@ -279,7 +261,7 @@
     <?php endif; ?>
 
     <!-- Report Data Table -->
-    <div class="table-responsive">
+    <div class="table-responsive" data-print-root>
         <?php if (!empty($data)): ?>
             <table class="report-table">
                 <thead>
@@ -312,17 +294,6 @@
     </div>
 </div>
 
-<script>
-    // Print styling
-    @media print {
-        body {
-            background: white;
-        }
-        .back-link,
-        .export-buttons {
-            display: none;
-        }
-    }
-</script>
+<!-- Print helpers included via partial -->
 
 <?= $this->endSection() ?>
