@@ -390,6 +390,7 @@
             // Handle form submissions
             document.addEventListener('submit', function(e) {
                 const form = e.target;
+                if (e.defaultPrevented) return;
                 if (form && form.method !== 'get') {
                     showLoading();
                 }

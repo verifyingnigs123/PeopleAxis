@@ -687,14 +687,14 @@
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="first_name" class="form-label">First Name <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="first_name" name="first_name" 
+                        <input type="text" class="form-control-modal" id="first_name" name="first_name" autocomplete="given-name"
                                placeholder="Enter first name" required value="<?= esc(old('first_name') ?? '') ?>"
                                oninput="validateSpecialChars(this,'add_first_name_err','name')">
                         <span id="add_first_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">First name cannot contain special characters.</span>
                     </div>
                     <div class="form-group-modal">
                         <label for="last_name" class="form-label">Last Name <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="last_name" name="last_name" 
+                        <input type="text" class="form-control-modal" id="last_name" name="last_name" autocomplete="family-name"
                                placeholder="Enter last name" required value="<?= esc(old('last_name') ?? '') ?>"
                                oninput="validateSpecialChars(this,'add_last_name_err','name')">
                         <span id="add_last_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">Last name cannot contain special characters.</span>
@@ -705,12 +705,12 @@
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="rfid_number" class="form-label">RFID Number <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="rfid_number" name="rfid_number"
+                        <input type="text" class="form-control-modal" id="rfid_number" name="rfid_number" autocomplete="off"
                                placeholder="Enter RFID number" required value="<?= esc(old('rfid_number') ?? '') ?>">
                     </div>
                     <div class="form-group-modal">
                         <label for="email" class="form-label">Email <span class="required-star">*</span></label>
-                        <input type="email" class="form-control-modal" id="email" name="email" 
+                        <input type="email" class="form-control-modal" id="email" name="email" autocomplete="email"
                                placeholder="Enter email address" required value="<?= esc(old('email') ?? '') ?>">
                     </div>
                 </div>
@@ -719,7 +719,7 @@
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="phone" class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control-modal" id="phone" name="phone"
+                        <input type="tel" class="form-control-modal" id="phone" name="phone" autocomplete="tel"
                                placeholder="Enter phone number" value="<?= esc(old('phone') ?? '') ?>"
                                oninput="validateSpecialChars(this,'add_phone_err','phone')">
                         <span id="add_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;"></span>
@@ -730,7 +730,7 @@
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="department_id" class="form-label">Department</label>
-                        <select class="form-control-modal" id="department_id" name="department_id">
+                        <select class="form-control-modal" id="department_id" name="department_id" autocomplete="off">
                             <option value="" <?= old('department_id') ? '' : 'selected' ?>>Select department</option>
                             <?php foreach (($departments ?? []) as $dept): ?>
                                 <?php
@@ -749,7 +749,7 @@
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="employee_type" class="form-label">Type <span class="required-star">*</span></label>
-                        <select class="form-control-modal" id="employee_type" name="employee_type" required>
+                        <select class="form-control-modal" id="employee_type" name="employee_type" autocomplete="off" required>
                             <option value="" disabled <?= old('employee_type') ? '' : 'selected' ?>>Select type</option>
                             <?php foreach ($employeeTypeOptions as $option): ?>
                                 <option value="<?= esc($option) ?>" <?= old('employee_type') === $option ? 'selected' : '' ?>><?= esc($option) ?></option>
@@ -762,11 +762,11 @@
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="date_of_birth" class="form-label">Date of Birth <span class="required-star">*</span></label>
-                        <input type="date" class="form-control-modal" id="date_of_birth" name="date_of_birth" required value="<?= esc(old('date_of_birth') ?? '') ?>">
+                        <input type="date" class="form-control-modal" id="date_of_birth" name="date_of_birth" autocomplete="bday" required value="<?= esc(old('date_of_birth') ?? '') ?>">
                     </div>
                     <div class="form-group-modal">
                         <label for="date_of_joining" class="form-label">Date of Hired <span class="required-star">*</span></label>
-                        <input type="date" class="form-control-modal" id="date_of_joining" name="date_of_joining" required value="<?= esc(old('date_of_joining') ?? date('Y-m-d')) ?>">
+                        <input type="date" class="form-control-modal" id="date_of_joining" name="date_of_joining" autocomplete="off" required value="<?= esc(old('date_of_joining') ?? date('Y-m-d')) ?>">
                     </div>
                 </div>
 
@@ -774,7 +774,7 @@
                 <div class="form-row-modal">
                     <div class="form-group-modal">
                         <label for="add_employment_type" class="form-label">Employment Type</label>
-                        <select class="form-control-modal" id="add_employment_type" name="employment_type">
+                        <select class="form-control-modal" id="add_employment_type" name="employment_type" autocomplete="off">
                             <option value="" selected>Select employment type</option>
                             <option value="full_time">Full-Time</option>
                             <option value="part_time">Part-Time</option>
@@ -784,14 +784,14 @@
                     </div>
                     <div class="form-group-modal">
                         <label for="add_rate" class="form-label">Rate</label>
-                        <input type="number" class="form-control-modal" id="add_rate" name="rate" placeholder="0.00" min="0" step="0.01">
+                        <input type="number" class="form-control-modal" id="add_rate" name="rate" autocomplete="off" placeholder="0.00" min="0" step="0.01">
                     </div>
                 </div>
 
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="add_rate_type" class="form-label">Rate Type</label>
-                        <select class="form-control-modal" id="add_rate_type" name="rate_type">
+                        <select class="form-control-modal" id="add_rate_type" name="rate_type" autocomplete="off">
                             <option value="" selected>Select rate type</option>
                             <option value="hourly">Hourly</option>
                             <option value="daily">Daily</option>
@@ -804,7 +804,7 @@
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
                         <label for="status" class="form-label">Status <span class="required-star">*</span></label>
-                        <select class="form-control-modal" id="status" name="status" required>
+                        <select class="form-control-modal" id="status" name="status" autocomplete="off" required>
                             <option value="active" <?= old('status', 'active') === 'active' ? 'selected' : '' ?>>Active</option>
                             <option value="inactive" <?= old('status') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
                             <option value="suspended" <?= old('status') === 'suspended' ? 'selected' : '' ?>>Suspended</option>
@@ -849,14 +849,14 @@
                 <!-- First & Last Name -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">First Name <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="edit_first_name" name="first_name" placeholder="Enter first name" required
+                        <label for="edit_first_name" class="form-label">First Name <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="edit_first_name" name="first_name" autocomplete="given-name" placeholder="Enter first name" required
                                oninput="validateSpecialChars(this,'edit_first_name_err','name')">
                         <span id="edit_first_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">First name cannot contain special characters.</span>
                     </div>
                     <div class="form-group-modal">
-                        <label class="form-label">Last Name <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="edit_last_name" name="last_name" placeholder="Enter last name" required
+                        <label for="edit_last_name" class="form-label">Last Name <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="edit_last_name" name="last_name" autocomplete="family-name" placeholder="Enter last name" required
                                oninput="validateSpecialChars(this,'edit_last_name_err','name')">
                         <span id="edit_last_name_err" style="display:none;color:#dc3545;font-size:0.8rem;">Last name cannot contain special characters.</span>
                     </div>
@@ -864,12 +864,12 @@
                 <!-- Email & Phone -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">Email <span class="required-star">*</span></label>
-                        <input type="email" class="form-control-modal" id="edit_email" name="email" placeholder="Enter email address" required>
+                        <label for="edit_email" class="form-label">Email <span class="required-star">*</span></label>
+                        <input type="email" class="form-control-modal" id="edit_email" name="email" autocomplete="email" placeholder="Enter email address" required>
                     </div>
                     <div class="form-group-modal">
-                        <label class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" placeholder="09xxxxxxxxx or +639xxxxxxxxx" maxlength="15"
+                        <label for="edit_phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control-modal" id="edit_phone" name="phone" autocomplete="tel" placeholder="09xxxxxxxxx or +639xxxxxxxxx" maxlength="15"
                                oninput="validatePhilippinePhoneEdit(this,'edit_phone_err')">
                         <span id="edit_phone_err" style="display:none;color:#dc3545;font-size:0.8rem;"></span>
                         <div style="font-size:0.75rem;color:#7f8c8d;margin-top:4px;">
@@ -879,15 +879,15 @@
                 </div>
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">RFID Number <span class="required-star">*</span></label>
-                        <input type="text" class="form-control-modal" id="edit_rfid_number" name="rfid_number" placeholder="Scan or enter RFID number" required>
+                        <label for="edit_rfid_number" class="form-label">RFID Number <span class="required-star">*</span></label>
+                        <input type="text" class="form-control-modal" id="edit_rfid_number" name="rfid_number" autocomplete="off" placeholder="Scan or enter RFID number" required>
                     </div>
                 </div>
                 <!-- RFID Number and Department -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">Department</label>
-                        <select class="form-control-modal" id="edit_department_id" name="department_id">
+                        <label for="edit_department_id" class="form-label">Department</label>
+                        <select class="form-control-modal" id="edit_department_id" name="department_id" autocomplete="off">
                             <option value="">Select Department</option>
                             <?php foreach ($departments ?? [] as $dept): ?>
                                 <option value="<?= $dept->id ?>"><?= esc($dept->name ?? 'N/A') ?></option>
@@ -898,8 +898,8 @@
                 <!-- Employment Type -->
                 <div class="form-row-modal full-width-row">
                     <div class="form-group-modal">
-                        <label class="form-label">Employment Type</label>
-                        <select class="form-control-modal" id="edit_employment_type" name="employment_type">
+                        <label for="edit_employment_type" class="form-label">Employment Type</label>
+                        <select class="form-control-modal" id="edit_employment_type" name="employment_type" autocomplete="off">
                             <option value="">Select Type</option>
                             <option value="full_time">Full-Time</option>
                             <option value="part_time">Part-Time</option>
@@ -911,24 +911,24 @@
                 <!-- DOB & Date Hired -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">Date of Birth</label>
-                        <input type="date" class="form-control-modal" id="edit_date_of_birth" name="date_of_birth">
+                        <label for="edit_date_of_birth" class="form-label">Date of Birth</label>
+                        <input type="date" class="form-control-modal" id="edit_date_of_birth" name="date_of_birth" autocomplete="bday">
                     </div>
                     <div class="form-group-modal">
-                        <label class="form-label">Date Hired <span class="required-star">*</span></label>
-                        <input type="date" class="form-control-modal" id="edit_date_of_joining" name="date_of_joining" required>
+                        <label for="edit_date_of_joining" class="form-label">Date Hired <span class="required-star">*</span></label>
+                        <input type="date" class="form-control-modal" id="edit_date_of_joining" name="date_of_joining" autocomplete="off" required>
                     </div>
                 </div>
                 <!-- Salary Rate & Rate Type -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">Salary Rate</label>
-                        <input type="number" class="form-control-modal" id="edit_rate" name="rate"
+                        <label for="edit_rate" class="form-label">Salary Rate</label>
+                        <input type="number" class="form-control-modal" id="edit_rate" name="rate" autocomplete="off"
                                placeholder="0.00" min="0" step="0.01">
                     </div>
                     <div class="form-group-modal">
-                        <label class="form-label">Rate Type</label>
-                        <select class="form-control-modal" id="edit_rate_type" name="rate_type">
+                        <label for="edit_rate_type" class="form-label">Rate Type</label>
+                        <select class="form-control-modal" id="edit_rate_type" name="rate_type" autocomplete="off">
                             <option value="">Select Rate Type</option>
                             <option value="hourly">Hourly</option>
                             <option value="daily">Daily</option>
@@ -939,8 +939,8 @@
                 <!-- Status -->
                 <div class="form-row-modal">
                     <div class="form-group-modal">
-                        <label class="form-label">Status</label>
-                        <select class="form-control-modal" id="edit_status" name="status">
+                        <label for="edit_status" class="form-label">Status</label>
+                        <select class="form-control-modal" id="edit_status" name="status" autocomplete="off">
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                             <option value="suspended">Suspended</option>
@@ -1041,6 +1041,17 @@
 
     .modal-close:hover {
         background: rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
     }
 
     .modal-body {
@@ -1235,6 +1246,31 @@
 </style>
 
 <script>
+    // ── Notification System ────────────────────────────────────
+    function showNotification(message) {
+        // Create notification container if it doesn't exist
+        let notifContainer = document.getElementById('notificationContainer');
+        if (!notifContainer) {
+            notifContainer = document.createElement('div');
+            notifContainer.id = 'notificationContainer';
+            notifContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            document.body.appendChild(notifContainer);
+        }
+        
+        // Create notification element
+        const notif = document.createElement('div');
+        notif.style.cssText = 'background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 16px 20px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideInRight 0.3s ease;';
+        notif.innerHTML = `
+            <i class="fas fa-exclamation-circle" style="color: #ff9800; font-size: 1.2rem; flex-shrink: 0;"></i>
+            <span style="color: #333; flex: 1; font-size: 0.95rem;">${message}</span>
+            <button onclick="this.parentElement.remove()" style="background: none; border: none; color: #999; cursor: pointer; font-size: 1.5rem; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">&times;</button>
+        `;
+        notifContainer.appendChild(notif);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => notif.remove(), 5000);
+    }
+
     // ── Delete Confirmation Modal ──
     function openDeleteModal(action, name, isRejected, isRequest) {
         const modal     = document.getElementById('deleteConfirmModal');
@@ -1430,6 +1466,25 @@
         const fnOk = validateSpecialChars(document.getElementById('edit_first_name'), 'edit_first_name_err', 'name');
         const lnOk = validateSpecialChars(document.getElementById('edit_last_name'),  'edit_last_name_err',  'name');
         const phOk = validatePhilippinePhoneEdit(document.getElementById('edit_phone'),       'edit_phone_err');
+        const dobField = document.getElementById('edit_date_of_birth');
+        if (dobField && dobField.value) {
+            const dob = new Date(dobField.value + 'T00:00:00');
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                const dobField = document.getElementById('edit_date_of_birth');
+                dobField.style.borderColor = '#e74c3c';
+                dobField.style.boxShadow = '0 0 0 3px rgba(231, 76, 60, 0.2)';
+                dobField.focus();
+                showNotification('Employees below 18 years old are not allowed. Please update the date of birth.');
+                   setTimeout(() => closeEditModal(), 2000);
+                   return;
+            }
+        }
         if (!fnOk || !lnOk || !phOk) return;
 
         const formData = new FormData(this);
@@ -1467,6 +1522,15 @@
                     for (const [, msg] of Object.entries(data.errors)) html += `<li>${msg}</li>`;
                     html += '</ul>';
                     errList.innerHTML = html;
+                    if (data.errors.date_of_birth) {
+                        const dobMessages = Array.isArray(data.errors.date_of_birth) ? data.errors.date_of_birth : [data.errors.date_of_birth];
+                        const dobField = document.getElementById('edit_date_of_birth');
+                        if (dobField) {
+                            dobField.style.borderColor = '#e74c3c';
+                            dobField.style.boxShadow = '0 0 0 3px rgba(231, 76, 60, 0.2)';
+                        }
+                        showNotification(dobMessages[0]);
+                    }
                 } else {
                     errList.innerHTML = `<strong>${data.message ?? 'An error occurred.'}</strong>`;
                 }
@@ -1495,6 +1559,25 @@
             const field = document.getElementById(fieldId);
             return !field || field.value.trim() === '';
         });
+        const dobField = document.getElementById('date_of_birth');
+        if (dobField && dobField.value) {
+            const dob = new Date(dobField.value + 'T00:00:00');
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                const dobField = document.getElementById('date_of_birth');
+                dobField.style.borderColor = '#e74c3c';
+                dobField.style.boxShadow = '0 0 0 3px rgba(231, 76, 60, 0.2)';
+                dobField.focus();
+                showNotification('Employees below 18 years old are not allowed. Please update the date of birth.');
+                   setTimeout(() => closeAddEmployeeModal(), 2000);
+                   return;
+            }
+        }
         if (!fnOk || !lnOk || !phoneOk || missingRequired) return;
         
         const formData = new FormData(this);
@@ -1507,12 +1590,30 @@
         errorDiv.style.display = 'none';
         successDiv.style.display = 'none';
         
+        // Disable submit button to prevent double submissions
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        
+        // Set a timeout to prevent infinite loading
+        let redirectTimeout;
+        const abortController = new AbortController();
+        redirectTimeout = setTimeout(() => {
+            abortController.abort();
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            errorDiv.style.display = 'flex';
+            errorList.innerHTML = '<strong>Request timeout</strong><p>The operation took too long. Please try again.</p>';
+        }, 15000); // 15 second timeout
+        
         fetch('<?= base_url('employee/store') ?>', {
             method: 'POST',
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            signal: abortController.signal
         })
         .then(response => {
             if (response.status === 422) {
@@ -1526,6 +1627,7 @@
             return response.json();
         })
         .then(data => {
+            clearTimeout(redirectTimeout);
             if (data.success) {
                 // Show success message with auto-generated ID
                 successDiv.style.display = 'flex';
@@ -1542,11 +1644,25 @@
                 // Reload page after 2 seconds
                 setTimeout(() => {
                     window.location.href = '<?= base_url('employee') ?>';
-                }, 2000);
+                }, 1500);
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                errorDiv.style.display = 'flex';
+                errorList.innerHTML = '<strong>Error creating employee</strong><p>' + (data.message || 'Please try again') + '</p>';
             }
         })
         .catch(error => {
+            clearTimeout(redirectTimeout);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
             errorDiv.style.display = 'flex';
+            
+            if (error.name === 'AbortError') {
+                errorList.innerHTML = '<strong>Request timeout</strong><p>The operation took too long. Please try again.</p>';
+                return;
+            }
+            
             if (error.isValidationError) {
                 // Display validation errors
                 let errorHtml = '<strong>Validation Errors:</strong><ul style="margin: 10px 0 0 0; padding-left: 20px;">';
@@ -1561,8 +1677,17 @@
                 }
                 errorHtml += '</ul>';
                 errorList.innerHTML = errorHtml;
+                if (error.errors.date_of_birth) {
+                    const dobMessages = Array.isArray(error.errors.date_of_birth) ? error.errors.date_of_birth : [error.errors.date_of_birth];
+                    const dobField = document.getElementById('date_of_birth');
+                    if (dobField) {
+                        dobField.style.borderColor = '#e74c3c';
+                        dobField.style.boxShadow = '0 0 0 3px rgba(231, 76, 60, 0.2)';
+                    }
+                    showNotification(dobMessages[0]);
+                }
             } else {
-                errorList.innerHTML = '<strong>An error occurred</strong><p>Please try again</p>';
+                errorList.innerHTML = '<strong>An error occurred</strong><p>' + (error.message || 'Please try again') + '</p>';
             }
         });
     });
