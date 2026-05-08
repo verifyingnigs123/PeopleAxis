@@ -499,8 +499,11 @@
 <?php
     $isActive = isset($user->is_active) ? ((int) $user->is_active === 1) : true;
     $roleName = session()->get('role_name') ?? 'Employee';
+    $normalizedRoleName = strtolower(trim((string) $roleName));
     $initial = strtoupper(substr(trim((string) ($user->name ?? 'U')), 0, 1));
     $profilePhotoUrl = !empty($user->profile_photo) ? base_url($user->profile_photo) . '?v=' . strtotime((string) ($user->updated_at ?? 'now')) : '';
+    $employee = $employee ?? null;
+    $department = $department ?? null;
 ?>
 
 <!-- Profile Photo Modal -->
@@ -613,6 +616,10 @@
                 <div class="detail-value" id="profileNameDetail"><?= esc($user->name ?? 'N/A') ?></div>
             </div>
             <div class="detail-item">
+                <div class="detail-label">Employee ID</div>
+                <div class="detail-value"><?= esc($employee?->employee_id ?? 'N/A') ?></div>
+            </div>
+            <div class="detail-item">
                 <div class="detail-label">Role</div>
                 <div class="detail-value"><?= esc($roleName) ?></div>
             </div>
@@ -645,6 +652,19 @@
                 <div class="detail-label">Account ID</div>
                 <div class="detail-value"><?= esc($user->id ?? 'N/A') ?></div>
             </div>
+        </div>
+
+        <div class="detail-card">
+            <h3><i class="fas fa-building"></i> Department Information</h3>
+
+            <?php if (in_array($normalizedRoleName, ['employee', 'manager'], true)): ?>
+                <div class="detail-item">
+                    <div class="detail-label">Department Name</div>
+                    <div class="detail-value"><?= esc($department?->name ?? 'Unassigned') ?></div>
+                </div>
+            <?php else: ?>
+                <p class="muted">No department is assigned to this profile yet.</p>
+            <?php endif; ?>
         </div>
 
         <div class="detail-card full-width">

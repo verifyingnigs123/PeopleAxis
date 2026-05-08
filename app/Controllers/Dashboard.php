@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\EmployeeModel;
+use App\Models\DepartmentModel;
 use App\Models\AttendanceModel;
 use App\Models\LeaveModel;
 use App\Models\ProfilePhotoModel;
@@ -314,10 +315,25 @@ class Dashboard extends BaseController
         }
 
         $userModel = new UserModel();
-        $db = \Config\Database::connect();
+        $departmentModel = new DepartmentModel();
         $userId = session()->get('user_id');
 
         $data['user'] = $userModel->find($userId);
+        $data['employee'] = $this->getCurrentEmployeeRecord();
+
+        $department = null;
+        if ($data['employee'] !== null && !empty($data['employee']->department_id)) {
+            $department = $departmentModel->find((int) $data['employee']->department_id);
+        }
+
+        if ($department === null && $this->isManagerUser()) {
+            $department = $departmentModel->where('manager_id', (int) $userId)
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getRow();
+        }
+
+        $data['department'] = $department;
 
         return view('profile/view', $data);
     }
@@ -622,7 +638,8 @@ class Dashboard extends BaseController
         $userProfilePhoto = $db->table('users')
             ->select('id, profile_photo')
             ->where('id', $userId)
-            ->first();
+            ->get()
+            ->getRow();
 
         // Check profile_photos table
         $profilePhotos = $profilePhotoModel->where('user_id', $userId)

@@ -66,8 +66,8 @@ abstract class BaseController extends Controller
     }
 
     /**
-     * Returns departments managed by the logged-in manager and all employees
-     * approved by Super Admin for manager team-level dashboards.
+     * Returns departments managed by the logged-in manager and the employees
+     * assigned to those same departments.
      *
      * @return array<string, array<int, array<string, mixed>>|array<int, int>>
      */
@@ -113,6 +113,10 @@ abstract class BaseController extends Controller
                 ->groupEnd()
                 ->whereIn('employees.department_id', $departmentIds)
                 ->groupStart()
+                    ->where('employees.user_id IS NULL', null, false)
+                    ->orWhere('employees.user_id !=', $managerId)
+                ->groupEnd()
+                ->groupStart()
                     ->whereNotIn('LOWER(roles.name)', $adminRoleNames)
                     ->orWhere('roles.name IS NULL', null, false)
                 ->groupEnd()
@@ -124,30 +128,6 @@ abstract class BaseController extends Controller
             foreach ($managedEmployees as $employee) {
                 $teamMembersById[(int) $employee['id']] = $employee;
             }
-        }
-
-        $approvedEmployees = $db->table('employees')
-            ->select('employees.id, employees.employee_id, employees.first_name, employees.last_name, employees.email, employees.department_id, employees.status, employees.account_status, departments.name as department_name')
-            ->join('departments', 'departments.id = employees.department_id', 'left')
-            ->join('users', 'users.email = employees.email', 'left')
-            ->join('roles', 'roles.id = users.role_id', 'left')
-            ->where('employees.account_status', 'approved')
-            ->groupStart()
-                ->where('employees.status', 'active')
-                ->orWhere('employees.status IS NULL', null, false)
-                ->orWhere('employees.status', '')
-            ->groupEnd()
-            ->groupStart()
-                ->whereNotIn('LOWER(roles.name)', $adminRoleNames)
-                ->orWhere('roles.name IS NULL', null, false)
-            ->groupEnd()
-            ->orderBy('employees.first_name', 'ASC')
-            ->orderBy('employees.last_name', 'ASC')
-            ->get()
-            ->getResultArray();
-
-        foreach ($approvedEmployees as $employee) {
-            $teamMembersById[(int) $employee['id']] = $employee;
         }
 
         $teamMembers = array_values($teamMembersById);
