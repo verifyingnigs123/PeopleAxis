@@ -1657,8 +1657,8 @@ class Employees extends BaseController
                 }
             }
 
-            // Send email with credentials
-            $this->sendCredentialsEmail($employee->email, $username, $password, $employee->first_name);
+            // Send email with credentials, but do not block approval if mail delivery fails.
+            $emailSent = $this->sendCredentialsEmail($employee->email, $username, $password, $employee->first_name);
 
             // Notify HR Admin
             if ($hrAdminRole) {
@@ -1683,9 +1683,14 @@ class Employees extends BaseController
                 }
             }
 
+            $message = 'Employee account approved! Credentials sent to ' . $employee->email;
+            if (!$emailSent) {
+                $message = 'Employee account approved, but the credentials email could not be sent automatically.';
+            }
+
             return $this->response->setJSON([
                 'success'   => true,
-                'message'   => 'Employee account approved! Credentials sent to ' . $employee->email,
+                'message'   => $message,
                 'csrf_hash' => csrf_hash()
             ]);
         } catch (\Exception $e) {
@@ -1845,8 +1850,9 @@ class Employees extends BaseController
     private function sendCredentialsEmail($email, $username, $password, $firstName)
     {
         try {
+            $emailConfig = new \Config\Email();
             $emailService = \Config\Services::email();
-            $emailService->setFrom(env('email.fromEmail'), env('email.fromName', 'PeopleAxis HR System'));
+            $emailService->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
             $emailService->setTo($email);
             $emailService->setSubject('Welcome to PeopleAxis HR System - Your Account Credentials');
 
@@ -1892,7 +1898,7 @@ class Employees extends BaseController
             $emailService->send();
 
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             log_message('error', 'Failed to send credentials email: ' . $e->getMessage());
             return false;
         }
