@@ -25,6 +25,10 @@ class DepartmentModel extends Model
 
     public function getActiveDepartments()
     {
-        return $this->where('is_active', 1)->findAll();
+        return $this->select('MIN(id) as id, name, description, manager_id, is_active')
+            ->where('is_active', 1)
+            ->groupBy('name')
+            ->orderBy('name', 'ASC')
+            ->findAll();
     }
 }
