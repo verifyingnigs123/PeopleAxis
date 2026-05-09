@@ -90,6 +90,18 @@ class Users extends BaseController
             || $roleName === 'super admin';
     }
 
+    private function isProtectedSuperAdminAccount(?object $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $roleName = strtolower((string) ($user->role_name ?? ''));
+        $roleSlug = strtolower((string) ($user->role ?? ''));
+
+        return $roleName === 'super admin' || $roleSlug === 'super_admin';
+    }
+
     private function generateEmployeeId(): string
     {
         $db = \Config\Database::connect();
@@ -263,7 +275,7 @@ class Users extends BaseController
             $mail->AltBody  = strip_tags($htmlBody);
             $mail->send();
             return true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $details = $mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage();
             log_message('error', '[sendWelcomeEmail] PHPMailer error to [' . $to . ']: ' . $details);
             return false;
@@ -625,6 +637,18 @@ class Users extends BaseController
         if (!$user) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException("User not found");
         }
+        $db = \Config\Database::connect();
+        $roleRecord = $db->table('roles')
+            ->select('name')
+            ->where('id', $user->role_id)
+            ->get()
+            ->getRow();
+        $user->role_name = $roleRecord->name ?? null;
+
+        if ($this->isProtectedSuperAdminAccount($user)) {
+            return redirect()->to('/users')->with('error', 'Super Admin accounts cannot be edited.');
+        }
+
         $data['user'] = $user;
         return view('auth/edit_user', $data);
     }
@@ -640,6 +664,21 @@ class Users extends BaseController
             $user = $this->userModel->find($id);
             if (!$user) {
                 return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'User not found']);
+            }
+
+            $db = \Config\Database::connect();
+            $targetRole = $db->table('roles')
+                ->select('name')
+                ->where('id', $user->role_id)
+                ->get()
+                ->getRow();
+            $user->role_name = $targetRole->name ?? null;
+
+            if ($this->isProtectedSuperAdminAccount($user)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Super Admin accounts cannot be edited.'
+                ]);
             }
 
             // Get form data

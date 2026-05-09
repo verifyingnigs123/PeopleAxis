@@ -9,6 +9,10 @@ use PHPMailer\PHPMailer\Exception;
 class Auth extends BaseController
 {
     protected $userModel;
+    private const LOGIN_MAX_ATTEMPTS = 3;
+    private const LOGIN_LOCKOUT_MINUTES = 15;
+    private const LOGIN_ATTEMPT_KEY_PREFIX = 'login_failed_attempts_';
+    private const LOGIN_LOCKOUT_KEY_PREFIX = 'login_locked_until_';
 
     public function __construct()
     {
@@ -24,6 +28,12 @@ class Auth extends BaseController
     {
         $login = trim((string) $this->request->getPost('email'));
         $password = $this->request->getPost('password');
+        $loginKey = $this->getLoginThrottleKey($login);
+
+        $lockoutMessage = $this->getLoginLockoutMessage($loginKey);
+        if ($lockoutMessage !== null) {
+            return redirect()->to('/login')->with('error', $lockoutMessage);
+        }
 
         // Validate input
         if ($login === '' || empty($password)) {
@@ -39,19 +49,19 @@ class Auth extends BaseController
             ->first();
         
         if (!$anyUser) {
-            return redirect()->to('/login')->with('error', 'Account not found. Please check your email/username.');
+            return $this->handleFailedLogin($loginKey, 'Account not found. Please check your email/username.');
         }
 
         // Check if user is inactive
         if ($anyUser->is_active == 0) {
-            return redirect()->to('/login')->with('error', 'Your account is deactivated. Please contact an administrator.');
+            return $this->handleFailedLogin($loginKey, 'Your account is deactivated. Please contact an administrator.');
         }
 
         // Get active user
         $user = $this->userModel->getUserByEmail($login);
 
         if (!$user) {
-            return redirect()->to('/login')->with('error', 'User account is not active.');
+            return $this->handleFailedLogin($loginKey, 'User account is not active.');
         }
 
         // Check if password is properly hashed and verify
@@ -69,8 +79,10 @@ class Auth extends BaseController
         $verified = $this->userModel->verifyPassword($password, $user->password);
         
         if (!$verified) {
-            return redirect()->to('/login')->with('error', 'Invalid email or password');
+            return $this->handleFailedLogin($loginKey, 'Invalid email or password');
         }
+
+        $this->clearLoginAttempts($loginKey);
 
         // Determine role name and slug (role slug is source-of-truth when present).
         $roleName = $this->userModel->getRoleName($user->id) ?? '';
@@ -138,8 +150,87 @@ class Auth extends BaseController
 
     public function logout()
     {
+        $this->clearLoginAttempts();
         session()->destroy();
         return redirect()->to('/')->with('success', 'You have been logged out');
+    }
+
+    private function getLoginThrottleKey(string $login): string
+    {
+        return hash('sha256', strtolower(trim($login)));
+    }
+
+    private function getLoginAttemptKey(string $loginKey): string
+    {
+        return self::LOGIN_ATTEMPT_KEY_PREFIX . $loginKey;
+    }
+
+    private function getLoginLockoutKey(string $loginKey): string
+    {
+        return self::LOGIN_LOCKOUT_KEY_PREFIX . $loginKey;
+    }
+
+    private function getLoginLockoutMessage(string $loginKey): ?string
+    {
+        $lockedUntil = (int) session()->getTempdata($this->getLoginLockoutKey($loginKey));
+
+        if ($lockedUntil <= 0) {
+            return null;
+        }
+
+        $remainingSeconds = $lockedUntil - time();
+        if ($remainingSeconds <= 0) {
+            $this->clearLoginAttempts();
+            return null;
+        }
+
+        $remainingMinutes = max(1, (int) ceil($remainingSeconds / 60));
+
+        return 'Too many failed login attempts. Please try again in ' . $remainingMinutes . ' minute' . ($remainingMinutes === 1 ? '' : 's') . '.';
+    }
+
+    private function handleFailedLogin(string $loginKey, string $message)
+    {
+        $attempts = (int) session()->get($this->getLoginAttemptKey($loginKey));
+        $attempts++;
+
+        if ($attempts >= self::LOGIN_MAX_ATTEMPTS) {
+            $this->clearLoginAttempts($loginKey);
+            session()->setTempdata(
+                $this->getLoginLockoutKey($loginKey),
+                time() + (self::LOGIN_LOCKOUT_MINUTES * 60),
+                self::LOGIN_LOCKOUT_MINUTES * 60
+            );
+
+            return redirect()->to('/login')->with(
+                'error',
+                'Too many failed login attempts. Please try again in ' . self::LOGIN_LOCKOUT_MINUTES . ' minutes.'
+            );
+        }
+
+        session()->set($this->getLoginAttemptKey($loginKey), $attempts);
+
+        return redirect()->to('/login')->with('error', $message);
+    }
+
+    private function clearLoginAttempts(?string $loginKey = null): void
+    {
+        if ($loginKey === null) {
+            foreach (session()->get() as $key => $value) {
+                if (is_string($key) && str_starts_with($key, self::LOGIN_ATTEMPT_KEY_PREFIX)) {
+                    session()->remove($key);
+                }
+
+                if (is_string($key) && str_starts_with($key, self::LOGIN_LOCKOUT_KEY_PREFIX)) {
+                    session()->remove($key);
+                }
+            }
+
+            return;
+        }
+
+        session()->remove($this->getLoginAttemptKey($loginKey));
+        session()->remove($this->getLoginLockoutKey($loginKey));
     }
 
     public function register()

@@ -668,6 +668,8 @@
                                 ? trim(($linkedEmp['first_name'] ?? '') . ' ' . ($linkedEmp['last_name'] ?? ''))
                                 : $u->name;
                             $displayName = $displayName ?: $u->name;
+                            $roleName = isset($u->role_name) ? $u->role_name : ($roleMap[$u->role_id] ?? (isset($u->role) ? $u->role : 'User'));
+                            $isProtectedSuperAdmin = strtolower((string) $roleName) === 'super admin' || strtolower((string) ($u->role ?? '')) === 'super_admin';
                         ?>
                         <tr data-user-id="<?= $u->id ?>">
                             <td>
@@ -689,10 +691,7 @@
                             </td>
                             <td><?= esc($u->email) ?></td>
                             <td>
-                                <?php
-                                    $roleName = isset($u->role_name) ? $u->role_name : ($roleMap[$u->role_id] ?? (isset($u->role) ? $u->role : 'User'));
-                                    $roleClass = (strtolower($roleName) === 'super admin' || strtolower($roleName) === 'admin') ? 'badge-admin' : 'badge-user';
-                                ?>
+                                <?php $roleClass = (strtolower($roleName) === 'super admin' || strtolower($roleName) === 'admin') ? 'badge-admin' : 'badge-user'; ?>
                                 <span class="badge <?= $roleClass ?>">
                                     <?= esc($roleName) ?>
                                 </span>
@@ -705,10 +704,12 @@
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
                             <td>
                                 <div class="action-buttons">
+                                    <?php if (! $isProtectedSuperAdmin): ?>
                                         <button type="button" class="btn btn-sm btn-edit" style="<?= !$u->is_active ? 'display: none;' : '' ?>" onclick="editUser(<?= $u->id ?>, '<?= esc($u->name) ?>', '<?= esc($u->email) ?>', <?= (int)($u->role_id ?? 0) ?>, <?= $u->is_active ?>)" title="Edit User">
                                             <i class="fas fa-edit"></i> Edit
                                         </button>
-                                        <?php if ($u->is_active): ?>
+                                    <?php endif; ?>
+                                    <?php if ($u->is_active): ?>
                                             <?php if ($u->id != $currentUserId): ?>
                                                 <button type="button" class="btn btn-sm btn-delete" data-user-id="<?= $u->id ?>" data-user-name="<?= esc($u->name) ?>" onclick="showDeleteModal(this, <?= $u->id ?>, '<?= esc($u->name) ?>')" title="Delete User">
                                                     <i class="fas fa-trash"></i> Delete
@@ -723,8 +724,8 @@
                                                 <i class="fas fa-undo"></i> Restore
                                             </button>
                                         <?php endif; ?>
-                                    </div>
-                                </td>
+                                </div>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
