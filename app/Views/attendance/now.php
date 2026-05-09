@@ -547,6 +547,11 @@
         color: #991b1b;
     }
 
+    .rfid-action-break-in-over {
+        background: #fed7aa;
+        color: #92400e;
+    }
+
     .rfid-success-icon {
         font-size: 3rem;
         color: #10b981;
@@ -859,6 +864,7 @@
             'check-in': 'rfid-action-check-in',
             'break-out': 'rfid-action-break-out',
             'break-in': 'rfid-action-break-in',
+            'break-in-over': 'rfid-action-break-in-over',
             'check-out': 'rfid-action-check-out',
         };
         

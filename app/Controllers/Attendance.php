@@ -213,9 +213,9 @@ class Attendance extends BaseController
         $currentMinute = (int) $now->format('i');
         $currentTime = $currentHour * 60 + $currentMinute; // Convert to minutes for easier comparison
 
-        $morningCheckInStart = 7 * 60;          // 7:00 AM
-        $morningCheckInEnd = (7 * 60) + 59;     // 7:59 AM
-        $morningLateStart = 8 * 60;             // 8:00 AM
+        $morningCheckInStart = 8 * 60;          // 8:00 AM
+        $morningCheckInEnd = 8 * 60;            // 8:00 AM
+        $morningLateStart = (8 * 60) + 1;       // 8:01 AM
         $morningLateEnd = (10 * 60) + 59;       // 10:59 AM
         $morningCheckOutStart = 11 * 60;        // 11:00 AM
         $morningCheckOutEnd = (11 * 60) + 59;   // 11:59 AM
@@ -246,7 +246,7 @@ class Attendance extends BaseController
             $isAfternoonLateWindow = $isWithin($currentTime, $afternoonLateStart, $afternoonLateEnd);
 
             if (! $isMorningCheckInWindow && ! $isMorningLateWindow && ! $isAfternoonCheckInWindow && ! $isAfternoonLateWindow) {
-                return redirect()->to('/attendance/scanner')->with('error', 'Check-in is only available from 7:00-10:59 AM or 12:00-3:59 PM.');
+                return redirect()->to('/attendance/scanner')->with('error', 'Check-in is only available from 8:00-10:59 AM or 12:00-3:59 PM.');
             }
 
             $status = ($isMorningCheckInWindow || $isAfternoonCheckInWindow) ? 'Present' : 'Late';
@@ -560,9 +560,9 @@ class Attendance extends BaseController
             $currentMinute = (int) $now->format('i');
             $currentTime = $currentHour * 60 + $currentMinute;
 
-            $morningCheckInStart = 7 * 60;          // 7:00 AM
-            $morningCheckInEnd = (7 * 60) + 59;     // 7:59 AM
-            $morningLateStart = 8 * 60;             // 8:00 AM
+            $morningCheckInStart = 8 * 60;          // 8:00 AM
+            $morningCheckInEnd = 8 * 60;            // 8:00 AM
+            $morningLateStart = (8 * 60) + 1;       // 8:01 AM
             $morningLateEnd = (10 * 60) + 59;       // 10:59 AM
             $morningCheckOutStart = 11 * 60;        // 11:00 AM
             $morningCheckOutEnd = (11 * 60) + 59;   // 11:59 AM
@@ -957,8 +957,13 @@ class Attendance extends BaseController
                     ['id' => $lastRecord['id']]
                 );
 
-                $action = 'BREAK IN';
-                $actionType = 'break-in';
+                // Check if break-in is after 1:00 PM (13:00)
+                $breakHour = (int) $now->format('H');
+                $breakMinute = (int) $now->format('i');
+                $breakTimeInMinutes = $breakHour * 60 + $breakMinute;
+                $breakInOverLimit = $breakTimeInMinutes > (13 * 60); // After 1:00 PM
+                $action = $breakInOverLimit ? 'BREAK IN (OVER BREAK)' : 'BREAK IN';
+                $actionType = $breakInOverLimit ? 'break-in-over' : 'break-in';
             } elseif (($lastRecord['time_out'] ?? null) === null) {
                 // Open record with break completed - Check Out
                 $db = \Config\Database::connect();
@@ -976,13 +981,7 @@ class Attendance extends BaseController
                 ]);
             }
 
-            // Get employee profile image
-            $profileImage = null;
-            if (!empty($employee->profile_photo)) {
-                $profileImage = base_url($employee->profile_photo);
-            } else {
-                $profileImage = base_url('assets/images/default-avatar.png');
-            }
+            $profileImage = $this->resolveEmployeeProfilePhoto($employee);
 
             return $this->response->setJSON([
                 'success' => true,
@@ -1011,6 +1010,94 @@ class Attendance extends BaseController
                 'message' => 'Error processing RFID: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Resolve the best available profile photo URL for an employee.
+     */
+    protected function resolveEmployeeProfilePhoto(object $employee): ?string
+    {
+        $db = \Config\Database::connect();
+        $userId = (int) ($employee->user_id ?? 0);
+        $email = trim((string) ($employee->email ?? ''));
+
+        $resolveUrl = static function (?string $path): ?string {
+            $path = trim((string) $path);
+
+            if ($path === '') {
+                return null;
+            }
+
+            if (preg_match('#^https?://#i', $path) === 1) {
+                return $path;
+            }
+
+            return base_url($path);
+        };
+
+        $userPhotoPath = null;
+
+        if ($userId > 0) {
+            $userRow = $db->table('users')
+                ->select('id, profile_photo')
+                ->where('id', $userId)
+                ->where('deleted_at', null)
+                ->get()
+                ->getRow();
+
+            if ($userRow && !empty($userRow->profile_photo)) {
+                $userPhotoPath = $userRow->profile_photo;
+            }
+
+            if ($userPhotoPath === null) {
+                $latestPhoto = $db->table('profile_photos')
+                    ->select('file_path')
+                    ->where('user_id', $userId)
+                    ->where('deleted_at', null)
+                    ->orderBy('uploaded_at', 'DESC')
+                    ->get(1)
+                    ->getRow();
+
+                if ($latestPhoto && !empty($latestPhoto->file_path)) {
+                    $userPhotoPath = $latestPhoto->file_path;
+                }
+            }
+        }
+
+        if ($userPhotoPath === null && $email !== '') {
+            $userRow = $db->table('users')
+                ->select('id, profile_photo')
+                ->where('email', $email)
+                ->where('deleted_at', null)
+                ->get()
+                ->getRow();
+
+            if ($userRow) {
+                $userId = (int) $userRow->id;
+
+                if (!empty($userRow->profile_photo)) {
+                    $userPhotoPath = $userRow->profile_photo;
+                } else {
+                    $latestPhoto = $db->table('profile_photos')
+                        ->select('file_path')
+                        ->where('user_id', $userId)
+                        ->where('deleted_at', null)
+                        ->orderBy('uploaded_at', 'DESC')
+                        ->get(1)
+                        ->getRow();
+
+                    if ($latestPhoto && !empty($latestPhoto->file_path)) {
+                        $userPhotoPath = $latestPhoto->file_path;
+                    }
+                }
+            }
+        }
+
+        if ($userPhotoPath === null && !empty($employee->profile_photo)) {
+            $userPhotoPath = $employee->profile_photo;
+        }
+
+        return $resolveUrl($userPhotoPath);
     }
 
 }
