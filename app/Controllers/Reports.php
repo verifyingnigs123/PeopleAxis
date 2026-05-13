@@ -803,4 +803,168 @@ class Reports extends BaseController
             return null;
         }
     }
+
+    /**
+     * Generate PDF for attendance report
+     */
+    public function generateAttendancePdf()
+    {
+        try {
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            $reportData = $this->generateReportData('attendance');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to generate attendance report.');
+            }
+
+            return $this->generatePdfReport('Attendance_Report', 'reports/attendance_display', $reportData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Generate Attendance PDF error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate PDF.');
+        }
+    }
+
+    /**
+     * Generate PDF for leave report
+     */
+    public function generateLeavePdf()
+    {
+        try {
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            $reportData = $this->generateReportData('leave');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to generate leave report.');
+            }
+
+            return $this->generatePdfReport('Leave_Report', 'reports/leave_display', $reportData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Generate Leave PDF error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate PDF.');
+        }
+    }
+
+    /**
+     * Generate PDF for salary report
+     */
+    public function generateSalaryPdf()
+    {
+        try {
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            $reportData = $this->generateReportData('salary');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to generate salary report.');
+            }
+
+            return $this->generatePdfReport('Salary_Report', 'reports/salary_display', $reportData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Generate Salary PDF error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate PDF.');
+        }
+    }
+
+    /**
+     * Generate PDF for department report
+     */
+    public function generateDepartmentPdf()
+    {
+        try {
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            $reportData = $this->generateReportData('department');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to generate department report.');
+            }
+
+            return $this->generatePdfReport('Department_Report', 'reports/department_display', $reportData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Generate Department PDF error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate PDF.');
+        }
+    }
+
+    /**
+     * Generate PDF for employee report
+     */
+    public function generateEmployeePdf()
+    {
+        try {
+            if (session()->get('role') !== 'admin') {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. Super Admin only.');
+            }
+
+            $reportData = $this->generateReportData('employee');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to generate employee report.');
+            }
+
+            return $this->generatePdfReport('Employee_Report', 'superadmin/reports/employee_report', $reportData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Generate Employee PDF error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate PDF.');
+        }
+    }
+
+    /**
+     * Generate a PDF report using Dompdf
+     */
+    private function generatePdfReport($reportName, $viewPath, $data)
+    {
+        try {
+            // Check if Dompdf is available
+            if (!class_exists('\Dompdf\Dompdf')) {
+                log_message('error', 'Dompdf library not found');
+                return redirect()->to('/reports')->with('error', 'PDF generation is not configured.');
+            }
+
+            // Render HTML from view without the dashboard shell.
+            $html = view($viewPath, [
+                'reportData' => $data,
+                'pdf' => true,
+            ]);
+
+            // Create PDF
+            $dompdf = new \Dompdf\Dompdf();
+            
+            // Set paper size and orientation
+            $dompdf->setPaper('A4', 'portrait');
+            
+            // Load HTML content
+            $dompdf->loadHtml($html);
+            
+            // Render PDF
+            $dompdf->render();
+
+            // Generate filename
+            $filename = $reportName . '_' . date('Y-m-d_H-i-s') . '.pdf';
+
+            // Send the PDF as a binary download response.
+            return $this->response->download($filename, $dompdf->output(), true);
+
+        } catch (\Throwable $e) {
+            log_message('error', 'PDF generation error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to generate PDF: ' . $e->getMessage());
+        }
+    }
 }
