@@ -819,15 +819,21 @@
                     <?php
                         $addUserTypeOptions = [];
                         $isHrAdminForm = strtolower((string) session()->get('role_name')) === 'hr admin';
+                        $isSuperAdmin = strtolower((string) session()->get('role')) === 'admin';
+                        
                         foreach ($rolesList as $roleOption) {
                             $roleName = strtolower((string) ($roleOption->name ?? ''));
-                            // Only SuperAdmin can create HR Admin and SuperAdmin users
-                            if ($isHrAdminForm) {
-                                if (in_array($roleName, ['manager', 'employee'], true)) {
+                            
+                            // Super Admin can assign any role
+                            if ($isSuperAdmin) {
+                                // Exclude only internal/system roles from dropdown (keep dynamic)
+                                if (!in_array($roleName, ['super admin'], true)) {
                                     $addUserTypeOptions[] = $roleOption;
                                 }
-                            } else {
-                                if (in_array($roleName, ['manager', 'employee', 'hr admin', 'super admin'], true)) {
+                            } 
+                            // HR Admin can only assign Manager and Employee roles
+                            else if ($isHrAdminForm) {
+                                if (in_array($roleName, ['manager', 'employee'], true)) {
                                     $addUserTypeOptions[] = $roleOption;
                                 }
                             }

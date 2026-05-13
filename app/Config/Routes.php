@@ -49,6 +49,7 @@ $routes->post('/roles/update/(:num)', 'Roles::update/$1');
 $routes->post('/roles/delete/(:num)', 'Roles::delete/$1');
 $routes->post('/roles/restore/(:num)', 'Roles::restore/$1');
 $routes->get('/roles/getRole/(:num)', 'Roles::getRole/$1');
+$routes->get('/roles/getDetails/(:num)', 'Roles::getDetails/$1');
 
 // Employees
 $routes->get('/employees', 'Employees::index');

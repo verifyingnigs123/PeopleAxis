@@ -362,11 +362,169 @@
 </style>
 
 <?php $roleName = session()->get('role_name') ?? session()->get('role'); ?>
+<?php 
+    $isDashboardFromPrivilege = isset($isDashboardFromPrivilege) && $isDashboardFromPrivilege;
+    $dashboardType = $dashboardType ?? null;
+?>
 
 <div class="dashboard-shell">
 
-<!-- Super Admin Dashboard -->
-<?php if ($roleName === 'Super Admin'): ?>
+<!-- PRIVILEGE-BASED CUSTOM ROLE DASHBOARD -->
+<?php if ($isDashboardFromPrivilege): ?>
+    
+    <!-- Users Manager Dashboard -->
+    <?php if ($dashboardType === 'users_manager'): ?>
+        <div class="admin-header">
+            <div>
+                <h1><i class="fas fa-users-cog"></i> User Management Dashboard</h1>
+                <p>Manage user accounts and permissions</p>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-box">
+                <i class="fas fa-users"></i>
+                <div class="stat-info">
+                    <h5>Total Users</h5>
+                    <h3><?= $totalUsers ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-user-shield"></i>
+                <div class="stat-info">
+                    <h5>Total Employees</h5>
+                    <h3><?= $totalEmployees ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-lock"></i>
+                <div class="stat-info">
+                    <h5>Access Control</h5>
+                    <h3>Active</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <div class="action-card">
+                <i class="fas fa-users"></i>
+                <h3>Manage Users</h3>
+                <p>Create, update, and manage user accounts across the system.</p>
+                <a href="<?= base_url('users') ?>" class="btn btn-outline-primary">Open Users</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Employees Manager Dashboard -->
+    <?php if ($dashboardType === 'employees_manager'): ?>
+        <div class="admin-header">
+            <div>
+                <h1><i class="fas fa-id-badge"></i> Employee Management Dashboard</h1>
+                <p>Manage employee records and information</p>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-box">
+                <i class="fas fa-users"></i>
+                <div class="stat-info">
+                    <h5>Total Employees</h5>
+                    <h3><?= $totalEmployees ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-hourglass-half"></i>
+                <div class="stat-info">
+                    <h5>Pending Leaves</h5>
+                    <h3><?= $pendingLeaves ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-calendar-check"></i>
+                <div class="stat-info">
+                    <h5>Present Today</h5>
+                    <h3><?= $attendanceSummary['present'] ?? 0 ?></h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <div class="action-card">
+                <i class="fas fa-id-badge"></i>
+                <h3>Manage Employees</h3>
+                <p>Create, update, and manage employee records</p>
+                <a href="<?= base_url('employees') ?>" class="btn btn-outline-primary">Open Employees</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Leaves Manager Dashboard -->
+    <?php if ($dashboardType === 'leaves_manager'): ?>
+        <div class="admin-header">
+            <div>
+                <h1><i class="fas fa-calendar-check"></i> Leave Management Dashboard</h1>
+                <p>Manage and approve leave requests</p>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-box">
+                <i class="fas fa-hourglass-half"></i>
+                <div class="stat-info">
+                    <h5>Pending Leaves</h5>
+                    <h3><?= $pendingLeaves ?? 0 ?></h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <div class="action-card">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Leave Requests</h3>
+                <p>Review and manage pending leave requests</p>
+                <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary">View Requests</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Attendance Viewer Dashboard -->
+    <?php if ($dashboardType === 'attendance_viewer'): ?>
+        <div class="admin-header">
+            <div>
+                <h1><i class="fas fa-calendar"></i> Attendance Dashboard</h1>
+                <p>View and manage attendance records</p>
+            </div>
+        </div>
+
+        <div class="admin-stats">
+            <div class="stat-box">
+                <i class="fas fa-user-check"></i>
+                <div class="stat-info">
+                    <h5>Present Today</h5>
+                    <h3><?= $attendanceSummary['present'] ?? 0 ?></h3>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-user-times"></i>
+                <div class="stat-info">
+                    <h5>Absent Today</h5>
+                    <h3><?= $attendanceSummary['absent'] ?? 0 ?></h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <div class="action-card">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Attendance Logs</h3>
+                <p>View attendance records and statistics</p>
+                <a href="<?= base_url('attendance/logs') ?>" class="btn btn-outline-primary">View Attendance</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
+<!-- STANDARD ROLE-BASED DASHBOARDS -->
+<?php elseif ($roleName === 'Super Admin'): ?>
     <div class="admin-header">
         <div>
             <h1><i class="fas fa-shield-alt"></i> Super Admin Dashboard</h1>

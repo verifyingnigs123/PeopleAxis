@@ -1,12 +1,69 @@
 <?php
 $role = strtolower(trim((string) (session()->get('role') ?? '')));
 $roleName = strtolower(trim((string) (session()->get('role_name') ?? '')));
+
+// Determine if this is a custom role (not one of the 4 standard roles)
+$standardRoles = ['super admin', 'hr admin', 'manager', 'employee'];
+$isCustomRole = !in_array($roleName, $standardRoles);
+
 $isManager = $role === 'manager' || $roleName === 'manager';
 $isSuperAdmin = in_array($role, ['admin', 'super_admin'], true) || $roleName === 'super admin';
 $isHRAdmin = in_array($role, ['hr', 'hr_admin'], true) || $roleName === 'hr admin';
 $isEmployee = in_array($role, ['user', 'employee'], true) || $roleName === 'employee';
 $canManageUsers = $isSuperAdmin;
 $managerLeaveUnreadCount = 0;
+
+// Load privilege helper for dynamic permission checking
+try {
+    $privilegeHelper = new \App\Helpers\PrivilegeHelper();
+    
+    // For custom roles, use ONLY privilege-based checks (no role fallback)
+    // For standard roles, use role-based checks with privilege fallback
+    if ($isCustomRole) {
+        // Custom role: check privileges directly
+        $canViewUsers = $privilegeHelper->hasPrivilege('users_view');
+        $canCreateUsers = $privilegeHelper->hasPrivilege('users_create');
+        $canViewEmployees = $privilegeHelper->hasPrivilege('employees_view');
+        $canCreateEmployees = $privilegeHelper->hasPrivilege('employees_create');
+        $canViewAttendance = $privilegeHelper->hasPrivilege('attendance_view');
+        $canManageAttendance = $privilegeHelper->hasPrivilege('attendance_manage');
+        $canViewLeaves = $privilegeHelper->hasPrivilege('leaves_view');
+        $canApproveLeaves = $privilegeHelper->hasPrivilege('leaves_approve');
+    } else {
+        // Standard role: use role-based checks with privilege fallback
+        $canViewUsers = $isSuperAdmin || $privilegeHelper->hasPrivilege('users_view');
+        $canCreateUsers = $isSuperAdmin || $privilegeHelper->hasPrivilege('users_create');
+        $canViewEmployees = $isHRAdmin || $isSuperAdmin || $privilegeHelper->hasPrivilege('employees_view');
+        $canCreateEmployees = $isHRAdmin || $isSuperAdmin || $privilegeHelper->hasPrivilege('employees_create');
+        $canViewAttendance = $isManager || $isSuperAdmin || $isHRAdmin || $privilegeHelper->hasPrivilege('attendance_view');
+        $canManageAttendance = $isManager || $isSuperAdmin || $isHRAdmin || $privilegeHelper->hasPrivilege('attendance_manage');
+        $canViewLeaves = $isManager || $isSuperAdmin || $isHRAdmin || $privilegeHelper->hasPrivilege('leaves_view');
+        $canApproveLeaves = $isManager || $isSuperAdmin || $isHRAdmin || $privilegeHelper->hasPrivilege('leaves_approve');
+    }
+} catch (\Exception $e) {
+    // Fallback if privilege helper fails
+    if ($isCustomRole) {
+        // Custom role with no privileges = no access to anything
+        $canViewUsers = false;
+        $canCreateUsers = false;
+        $canViewEmployees = false;
+        $canCreateEmployees = false;
+        $canViewAttendance = false;
+        $canManageAttendance = false;
+        $canViewLeaves = false;
+        $canApproveLeaves = false;
+    } else {
+        // Standard role fallback
+        $canViewUsers = $isSuperAdmin;
+        $canCreateUsers = $isSuperAdmin;
+        $canViewEmployees = $isHRAdmin || $isSuperAdmin;
+        $canCreateEmployees = $isHRAdmin || $isSuperAdmin;
+        $canViewAttendance = $isManager || $isSuperAdmin || $isHRAdmin;
+        $canManageAttendance = $isManager || $isSuperAdmin || $isHRAdmin;
+        $canViewLeaves = $isManager || $isSuperAdmin || $isHRAdmin;
+        $canApproveLeaves = $isManager || $isSuperAdmin || $isHRAdmin;
+    }
+}
 
 if ($isManager) {
     try {
@@ -586,7 +643,94 @@ if ($isManager) {
 <!-- ===== MAIN CONTENT LAYOUT ===== -->
 <div class="layout-container">
 
-    <?php if ($isEmployee): ?>
+    <?php if ($isCustomRole): ?>
+        <!-- ===== CUSTOM ROLE SIDEBAR (PRIVILEGE-BASED) ===== -->
+        <aside class="sidebar">
+            <nav>
+                <!-- Dashboard -->
+                <div class="sidebar-section">
+                    <a href="<?= base_url('dashboard') ?>" class="sidebar-link">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </div>
+
+                <!-- User Management Section -->
+                <?php if ($canViewUsers || $canCreateUsers): ?>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">User Management</div>
+                    <?php if ($canViewUsers): ?>
+                    <a href="<?= base_url('users') ?>" class="sidebar-link">
+                        <i class="fas fa-users"></i> View Users
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($canCreateUsers): ?>
+                    <a href="<?= base_url('users/create') ?>" class="sidebar-link">
+                        <i class="fas fa-user-plus"></i> Add User
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Employee Management Section -->
+                <?php if ($canViewEmployees || $canCreateEmployees): ?>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Employee Management</div>
+                    <?php if ($canViewEmployees): ?>
+                    <a href="<?= base_url('employees') ?>" class="sidebar-link">
+                        <i class="fas fa-id-badge"></i> View Employees
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($canCreateEmployees): ?>
+                    <a href="<?= base_url('employees/create') ?>" class="sidebar-link">
+                        <i class="fas fa-user-plus"></i> Add Employee
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Attendance Section -->
+                <?php if ($canViewAttendance || $canManageAttendance): ?>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Attendance</div>
+                    <?php if ($canViewAttendance || $canManageAttendance): ?>
+                    <a href="<?= base_url('attendance/logs') ?>" class="sidebar-link">
+                        <i class="fas fa-calendar-check"></i> Attendance Logs
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($canManageAttendance): ?>
+                    <a href="<?= base_url('attendance/manage') ?>" class="sidebar-link">
+                        <i class="fas fa-cog"></i> Manage Attendance
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Leave Management Section -->
+                <?php if ($canViewLeaves || $canApproveLeaves): ?>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Leave Management</div>
+                    <?php if ($canViewLeaves): ?>
+                    <a href="<?= base_url('leaves') ?>" class="sidebar-link">
+                        <i class="fas fa-calendar"></i> View Leave Requests
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($canApproveLeaves): ?>
+                    <a href="<?= base_url('leaves/approve') ?>" class="sidebar-link">
+                        <i class="fas fa-check-circle"></i> Approve Leaves
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Permissions Info -->
+                <div class="permission-note">
+                    <i class="fas fa-key"></i>
+                    <span>Limited access based on assigned privileges</span>
+                </div>
+            </nav>
+        </aside>
+
+    <?php elseif ($isEmployee): ?>
         <!-- ===== EMPLOYEE SIDEBAR ===== -->
         <aside class="sidebar">
             <nav>
@@ -636,20 +780,23 @@ if ($isManager) {
                     <a href="<?= base_url('users') ?>" class="sidebar-link">
                         <i class="fas fa-users"></i> Manage Users
                     </a>
+                    <a href="<?= base_url('roles') ?>" class="sidebar-link">
+                        <i class="fas fa-lock"></i> Manage Roles
+                    </a>
                 </div>
                 <?php endif; ?>
 
                 <!-- Employee Management Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Employee Management</div>
-                    <?php if ($isSuperAdmin): ?>
+                    <?php if ($isSuperAdmin && $canViewEmployees): ?>
                     <a href="<?= base_url('employees') ?>" class="sidebar-link">
                         <i class="fas fa-id-badge"></i> Employees Approval
                     </a>
                     <a href="<?= base_url('employees/salary') ?>" class="sidebar-link">
                         <i class="fas fa-money-bill-wave"></i> Salary Rate
                     </a>
-                    <?php else: ?>
+                    <?php elseif ($canViewEmployees): ?>
                     <a href="<?= base_url('employees') ?>" class="sidebar-link">
                         <i class="fas fa-id-badge"></i> Employees
                     </a>
@@ -661,18 +808,22 @@ if ($isManager) {
 
                 <!-- Attendance Section -->
                 <div class="sidebar-section">
+                    <?php if ($canViewAttendance): ?>
                     <div class="sidebar-section-title">Attendance</div>
                     <a href="<?= base_url('attendance/logs') ?>" class="sidebar-link">
                         <i class="fas fa-calendar-check"></i> Attendance
                     </a>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Leave Requests Section -->
                 <div class="sidebar-section">
+                    <?php if ($canViewLeaves): ?>
                     <div class="sidebar-section-title">Leave Requests</div>
                     <a href="<?= base_url('leaves') ?>" class="sidebar-link">
                         <i class="fas fa-clipboard-list"></i> Leave Requests
                     </a>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Reports Section -->

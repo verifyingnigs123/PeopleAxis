@@ -74,11 +74,9 @@ class Users extends BaseController
 
     private function canManageUsers(): bool
     {
-        $role = strtolower((string) session()->get('role'));
-        $roleName = strtolower((string) session()->get('role_name'));
-
-        return in_array($role, ['admin', 'super_admin'], true)
-            || $roleName === 'super admin';
+        // Use privilege helper for dynamic privilege checking
+        $helper = new \App\Helpers\PrivilegeHelper();
+        return $helper->canManageUsers();
     }
 
     private function isSuperAdminUser(): bool

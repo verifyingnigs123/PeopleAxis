@@ -309,9 +309,11 @@ class Employees extends BaseController
             return redirect()->to('/login');
         }
 
-        // Check access: HR Admin or Super Admin
+        // Check access: HR Admin or Super Admin, or has employees_create privilege
+        $privilegeHelper = new \App\Helpers\PrivilegeHelper();
         $role = session()->get('role_name') ?? session()->get('role');
-        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'])) {
+        
+        if (!in_array($role, ['HR Admin', 'Super Admin', 'hr', 'admin'], true) && !$privilegeHelper->hasPrivilege('employees_create')) {
             return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
 

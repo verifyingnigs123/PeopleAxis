@@ -20,7 +20,7 @@ class RoleModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Validation
-    protected $allowedFields = ['name', 'description', 'deleted_at'];
+    protected $allowedFields = ['name', 'description', 'deleted_at', 'privileges'];
 
     protected $validationRules = [
         'name'        => 'required|min_length[3]|max_length[100]',

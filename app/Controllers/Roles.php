@@ -69,12 +69,25 @@ class Roles extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->roleModel->insert([
+        // Get privileges from form
+        $privileges = $this->request->getPost('privileges') ?? [];
+        
+        // Store role with privileges
+        $roleData = [
             'name' => $this->request->getPost('name'),
             'description' => $this->request->getPost('description'),
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        ];
+
+        // Add privileges if not empty - store as JSON
+        if (!empty($privileges)) {
+            $roleData['privileges'] = json_encode($privileges);
+        } else {
+            $roleData['privileges'] = null;
+        }
+
+        $this->roleModel->insert($roleData);
 
         return redirect()->to('/roles')->with('success', 'Role created successfully!');
     }
@@ -129,7 +142,7 @@ class Roles extends BaseController
         }
 
         $rules = [
-            'name' => 'required|min_length[3]|max_length[50]|alpha_space',
+            'name' => 'permit_empty|min_length[3]|max_length[50]|alpha_space',
             'description' => 'permit_empty|max_length[255]'
         ];
 
@@ -141,16 +154,75 @@ class Roles extends BaseController
             ]);
         }
 
-        $this->roleModel->update($id, [
-            'name' => $this->request->getPost('name'),
-            'description' => $this->request->getPost('description'),
+        // Get privileges from form
+        $privileges = $this->request->getPost('privileges') ?? [];
+
+        $updateData = [
             'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        ];
+
+        // Only update name if provided and different
+        $newName = $this->request->getPost('name');
+        if (!empty(trim($newName))) {
+            $updateData['name'] = trim($newName);
+        }
+
+        // Update description
+        $updateData['description'] = $this->request->getPost('description');
+
+        // Update privileges if provided
+        if (!empty($privileges)) {
+            $updateData['privileges'] = json_encode($privileges);
+        } else {
+            $updateData['privileges'] = null;
+        }
+
+        $this->roleModel->update($id, $updateData);
 
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Role updated successfully',
             'csrf_hash' => csrf_hash()
+        ]);
+    }
+
+    /**
+     * Get role details with privileges (AJAX)
+     */
+    public function getDetails($id)
+    {
+        // Check if user is Super Admin
+        if (session()->get('role') !== 'admin') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Super Admin only.'
+            ]);
+        }
+
+        $role = $this->roleModel->find($id);
+        if (!$role) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Role not found'
+            ]);
+        }
+
+        // Decode privileges JSON
+        $privileges = [];
+        if (!empty($role->privileges)) {
+            $privileges = json_decode($role->privileges, true) ?? [];
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'role' => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'description' => $role->description ?? '',
+                'privileges' => $privileges,
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at
+            ]
         ]);
     }
 

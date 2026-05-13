@@ -253,6 +253,39 @@
         from { transform: translateX(0); opacity: 1; }
         to { transform: translateX(100%); opacity: 0; }
     }
+
+    .form-check {
+        margin-bottom: 8px;
+    }
+
+    .form-check-input {
+        width: 18px;
+        height: 18px;
+        margin-top: 0.25rem;
+        margin-right: 8px;
+        border: 2px solid #d0d0d0;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .form-check-input:hover {
+        border-color: #6ea988;
+        background-color: #f0f0f0;
+    }
+
+    .form-check-input:checked {
+        background-color: #6ea988;
+        border-color: #6ea988;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        color: #555;
+        margin-bottom: 0;
+        display: flex;
+        align-items: center;
+    }
 </style>
 
 <!-- ============================================================
@@ -402,7 +435,7 @@
                     </div>
 
                     <!-- Description Field -->
-                    <div class="form-group">
+                    <div class="form-group mb-4">
                         <label for="addRoleDescription" class="form-label fw-600">Description</label>
                         <textarea 
                             class="form-control" 
@@ -411,6 +444,116 @@
                             placeholder="Describe what this role does and its responsibilities"
                             rows="4"
                         ></textarea>
+                    </div>
+
+                    <!-- Privileges Section -->
+                    <div style="border-top: 2px solid #e8eef0; padding-top: 20px; margin-top: 20px;">
+                        <h6 style="color: #2f5f45; font-weight: 700; margin-bottom: 15px;">
+                            <i class="fas fa-key"></i> Privileges
+                        </h6>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Select the privileges/permissions this role should have</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <!-- User Management Privileges -->
+                            <div style="padding: 15px; background: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e;">
+                                <h6 style="color: #15803d; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-users"></i> User Management
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_users_view" name="privileges[]" value="users_view">
+                                        <label class="form-check-label" for="priv_users_view" style="color: #555; font-size: 0.9rem;">View Users</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_users_create" name="privileges[]" value="users_create">
+                                        <label class="form-check-label" for="priv_users_create" style="color: #555; font-size: 0.9rem;">Create Users</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_users_edit" name="privileges[]" value="users_edit">
+                                        <label class="form-check-label" for="priv_users_edit" style="color: #555; font-size: 0.9rem;">Edit Users</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_users_delete" name="privileges[]" value="users_delete">
+                                        <label class="form-check-label" for="priv_users_delete" style="color: #555; font-size: 0.9rem;">Delete Users</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Employee Management Privileges -->
+                            <div style="padding: 15px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                                <h6 style="color: #b45309; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-id-badge"></i> Employee Management
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_employees_view" name="privileges[]" value="employees_view">
+                                        <label class="form-check-label" for="priv_employees_view" style="color: #555; font-size: 0.9rem;">View Employees</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_employees_create" name="privileges[]" value="employees_create">
+                                        <label class="form-check-label" for="priv_employees_create" style="color: #555; font-size: 0.9rem;">Create Employees</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_employees_edit" name="privileges[]" value="employees_edit">
+                                        <label class="form-check-label" for="priv_employees_edit" style="color: #555; font-size: 0.9rem;">Edit Employees</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_employees_delete" name="privileges[]" value="employees_delete">
+                                        <label class="form-check-label" for="priv_employees_delete" style="color: #555; font-size: 0.9rem;">Delete Employees</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- Leave Management Privileges -->
+                            <div style="padding: 15px; background: #fce7f3; border-radius: 6px; border-left: 4px solid #ec4899;">
+                                <h6 style="color: #be185d; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-calendar"></i> Leave Management
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_leaves_view" name="privileges[]" value="leaves_view">
+                                        <label class="form-check-label" for="priv_leaves_view" style="color: #555; font-size: 0.9rem;">View Leave Requests</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_leaves_approve" name="privileges[]" value="leaves_approve">
+                                        <label class="form-check-label" for="priv_leaves_approve" style="color: #555; font-size: 0.9rem;">Approve Leaves</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_leaves_reject" name="privileges[]" value="leaves_reject">
+                                        <label class="form-check-label" for="priv_leaves_reject" style="color: #555; font-size: 0.9rem;">Reject Leaves</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Attendance Privileges -->
+                            <div style="padding: 15px; background: #dbeafe; border-radius: 6px; border-left: 4px solid #3b82f6;">
+                                <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-calendar-check"></i> Attendance
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_attendance_view" name="privileges[]" value="attendance_view">
+                                        <label class="form-check-label" for="priv_attendance_view" style="color: #555; font-size: 0.9rem;">View Attendance</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_attendance_manage" name="privileges[]" value="attendance_manage">
+                                        <label class="form-check-label" for="priv_attendance_manage" style="color: #555; font-size: 0.9rem;">Manage Attendance</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="priv_attendance_reports" name="privileges[]" value="attendance_reports">
+                                        <label class="form-check-label" for="priv_attendance_reports" style="color: #555; font-size: 0.9rem;">View Reports</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tip Info -->
+                        <div style="margin-top: 20px; padding: 12px 15px; background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fas fa-lightbulb" style="color: #22c55e; margin-top: 2px; flex-shrink: 0;"></i>
+                            <span style="color: #166534; font-size: 0.9rem;"><strong>Tip:</strong> This role will automatically appear in the "Type" dropdown when creating new users.</span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
@@ -434,7 +577,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="editRoleForm" method="POST">
+            <form id="editRoleForm" method="POST" action="<?= base_url('roles/update/0') ?>">
                 <?= csrf_field() ?>
                 <div class="modal-body" style="padding:30px;">
                     <!-- Form Header -->
@@ -464,7 +607,7 @@
                     <!-- Role Name Field -->
                     <div class="form-group mb-3">
                         <label for="editRoleName" class="form-label fw-600">
-                            Role Name <span class="text-danger">*</span>
+                            Role Name
                         </label>
                         <input 
                             type="text" 
@@ -474,9 +617,9 @@
                             placeholder="e.g., Manager, Supervisor, Assistant"
                             pattern="^[a-zA-Z0-9 ]+$"
                             title="Only letters, numbers, and spaces are allowed"
-                            required
                         >
                         <small id="editNameError" class="text-danger" style="display:none;">Only letters, numbers, and spaces are allowed</small>
+                        <small style="color: #7f8c8d; display: block; margin-top: 5px;">Leave empty to keep the current role name</small>
                     </div>
 
                     <!-- Description Field -->
@@ -489,6 +632,116 @@
                             placeholder="Describe what this role does and its responsibilities"
                             rows="4"
                         ></textarea>
+                    </div>
+
+                    <!-- Privileges Section -->
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dbe9e0;">
+                        <h6 style="color: #2f5f45; font-weight: 700; margin-bottom: 20px;">
+                            <i class="fas fa-key"></i> Privileges
+                        </h6>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">Select the privileges/permissions this role should have</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <!-- User Management Privileges -->
+                            <div style="padding: 15px; background: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e;">
+                                <h6 style="color: #15803d; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-users"></i> User Management
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="users_view" id="edit_users_view">
+                                        <label class="form-check-label" for="edit_users_view" style="color: #555; font-size: 0.9rem;">View Users</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="users_create" id="edit_users_create">
+                                        <label class="form-check-label" for="edit_users_create" style="color: #555; font-size: 0.9rem;">Create Users</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="users_edit" id="edit_users_edit">
+                                        <label class="form-check-label" for="edit_users_edit" style="color: #555; font-size: 0.9rem;">Edit Users</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="users_delete" id="edit_users_delete">
+                                        <label class="form-check-label" for="edit_users_delete" style="color: #555; font-size: 0.9rem;">Delete Users</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Employee Management Privileges -->
+                            <div style="padding: 15px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                                <h6 style="color: #b45309; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-id-badge"></i> Employee Management
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="employees_view" id="edit_employees_view">
+                                        <label class="form-check-label" for="edit_employees_view" style="color: #555; font-size: 0.9rem;">View Employees</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="employees_create" id="edit_employees_create">
+                                        <label class="form-check-label" for="edit_employees_create" style="color: #555; font-size: 0.9rem;">Create Employees</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="employees_edit" id="edit_employees_edit">
+                                        <label class="form-check-label" for="edit_employees_edit" style="color: #555; font-size: 0.9rem;">Edit Employees</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="employees_delete" id="edit_employees_delete">
+                                        <label class="form-check-label" for="edit_employees_delete" style="color: #555; font-size: 0.9rem;">Delete Employees</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- Leave Management Privileges -->
+                            <div style="padding: 15px; background: #fce7f3; border-radius: 6px; border-left: 4px solid #ec4899;">
+                                <h6 style="color: #be185d; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-calendar"></i> Leave Management
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="leaves_view" id="edit_leaves_view">
+                                        <label class="form-check-label" for="edit_leaves_view" style="color: #555; font-size: 0.9rem;">View Leave Requests</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="leaves_approve" id="edit_leaves_approve">
+                                        <label class="form-check-label" for="edit_leaves_approve" style="color: #555; font-size: 0.9rem;">Approve Leaves</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="leaves_reject" id="edit_leaves_reject">
+                                        <label class="form-check-label" for="edit_leaves_reject" style="color: #555; font-size: 0.9rem;">Reject Leaves</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Attendance Privileges -->
+                            <div style="padding: 15px; background: #dbeafe; border-radius: 6px; border-left: 4px solid #3b82f6;">
+                                <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 12px; font-size: 0.95rem;">
+                                    <i class="fas fa-calendar-check"></i> Attendance
+                                </h6>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="attendance_view" id="edit_attendance_view">
+                                        <label class="form-check-label" for="edit_attendance_view" style="color: #555; font-size: 0.9rem;">View Attendance</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="attendance_manage" id="edit_attendance_manage">
+                                        <label class="form-check-label" for="edit_attendance_manage" style="color: #555; font-size: 0.9rem;">Manage Attendance</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input privilege-checkbox" type="checkbox" name="privileges[]" value="attendance_reports" id="edit_attendance_reports">
+                                        <label class="form-check-label" for="edit_attendance_reports" style="color: #555; font-size: 0.9rem;">View Reports</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tip Info -->
+                        <div style="margin-top: 20px; padding: 12px 15px; background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fas fa-lightbulb" style="color: #22c55e; margin-top: 2px; flex-shrink: 0;"></i>
+                            <span style="color: #166534; font-size: 0.9rem;"><strong>Tip:</strong> This role will automatically appear in the "Type" dropdown when creating new users.</span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer" style="border:none;padding:15px 30px 25px;">
@@ -791,11 +1044,65 @@ function showNotification(message, type) {
     }, 3000);
 }
 
+// Load role details and populate edit modal
+function editRole(roleId) {
+    fetch('<?= base_url("roles/getDetails") ?>/' + roleId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const role = data.role;
+                
+                // Populate form fields
+                document.getElementById('editRoleName').value = role.name;
+                document.getElementById('editRoleDescription').value = role.description || '';
+                document.getElementById('editRoleTitle').textContent = role.name;
+                document.getElementById('editRoleCreatedDate').textContent = new Date(role.created_at).toLocaleDateString();
+                document.getElementById('editRoleUpdatedDate').textContent = new Date(role.updated_at).toLocaleDateString();
+                
+                // Clear all checkboxes first
+                document.querySelectorAll('.privilege-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                
+                // Check the privileges that this role has
+                if (role.privileges && Array.isArray(role.privileges)) {
+                    role.privileges.forEach(privilege => {
+                        const checkbox = document.getElementById('edit_' + privilege);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+                
+                // Set the form action to the update endpoint
+                const editForm = document.getElementById('editRoleForm');
+                editForm.action = '<?= base_url("roles/update") ?>/' + roleId;
+                
+                // Store role ID for later use
+                editForm.dataset.roleId = roleId;
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading role details');
+        });
+}
+
 // Handle edit form submission
 document.getElementById('editRoleForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Get the role ID from the dataset
+    const roleId = this.dataset.roleId;
+    if (!roleId || roleId === '0') {
+        alert('Error: Role not found. Please try again.');
+        return;
+    }
+    
     const formData = new FormData(this);
-    const action = this.action;
+    const action = '<?= base_url("roles/update") ?>/' + roleId;
 
     fetch(action, {
         method: 'POST',
@@ -806,10 +1113,23 @@ document.getElementById('editRoleForm').addEventListener('submit', function(e) {
         if (data.success) {
             // Update CSRF token
             document.querySelector('[name="<?= csrf_token() ?>"]').value = data.csrf_hash;
-            alert(data.message);
-            location.reload();
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editRoleModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Show success notification
+            showNotification('Role updated successfully', 'success');
+            
+            // Reload page after a short delay
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
         } else {
-            alert('Error: ' + (data.message || 'Unknown error'));
+            // Show error notification
+            showNotification('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
@@ -938,6 +1258,37 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    // ===== PRIVILEGE HANDLING =====
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle Add Role Form Submission
+        const addRoleForm = document.getElementById('addRoleForm');
+        if (addRoleForm) {
+            addRoleForm.addEventListener('submit', function(e) {
+                // Collect all checked privileges
+                const privilegeCheckboxes = document.querySelectorAll('input[name="privileges[]"]:checked');
+                const selectedPrivileges = Array.from(privilegeCheckboxes).map(cb => cb.value);
+                
+                // Store privileges as JSON in hidden field
+                document.getElementById('privilegesJson').value = JSON.stringify(selectedPrivileges);
+            });
+        }
+
+        // Highlight checked privileges
+        const privilegeCheckboxes = document.querySelectorAll('input[name="privileges[]"]');
+        privilegeCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const parent = this.closest('.form-check');
+                if (this.checked) {
+                    parent.style.backgroundColor = '#f0f5f2';
+                    parent.style.borderLeft = '3px solid #27ae60';
+                } else {
+                    parent.style.backgroundColor = 'inherit';
+                    parent.style.borderLeft = 'none';
+                }
+            });
+        });
+    });
 });
 </script>
 

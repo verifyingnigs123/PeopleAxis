@@ -29,6 +29,76 @@ class Dashboard extends BaseController
 
         $data = ['user' => $session->get()];
 
+        // Check for privilege-based custom roles
+        $privilegeHelper = new \App\Helpers\PrivilegeHelper();
+        $privileges = $privilegeHelper->getAllPrivileges();
+        $isCustomRole = !in_array($role, ['Super Admin', 'HR Admin', 'Manager', 'Employee']);
+        
+        // For custom roles, determine dashboard type based on privileges
+        if ($isCustomRole && !empty($privileges)) {
+            $data['isDashboardFromPrivilege'] = true;
+            $data['userPrivileges'] = $privileges;
+            
+            // Determine dashboard type based on privileges
+            if ($privilegeHelper->hasPrivilege('users_view') || $privilegeHelper->hasPrivilege('users_create')) {
+                $data['dashboardType'] = 'users_manager';
+            } elseif ($privilegeHelper->hasPrivilege('employees_view') || $privilegeHelper->hasPrivilege('employees_create')) {
+                $data['dashboardType'] = 'employees_manager';
+            } elseif ($privilegeHelper->hasPrivilege('leaves_view') || $privilegeHelper->hasPrivilege('leaves_approve')) {
+                $data['dashboardType'] = 'leaves_manager';
+            } elseif ($privilegeHelper->hasPrivilege('attendance_view') || $privilegeHelper->hasPrivilege('attendance_manage')) {
+                $data['dashboardType'] = 'attendance_viewer';
+            } else {
+                $data['dashboardType'] = 'employee';
+            }
+            
+            // Load data based on dashboard type
+            if ($data['dashboardType'] === 'users_manager') {
+                $data['totalUsers'] = $userModel->countAllResults();
+                $data['totalEmployees'] = $employeeModel->countAllResults();
+                $data['auditCount'] = model('App\\Models\\AuditModel')->countAllResults();
+            } elseif ($data['dashboardType'] === 'employees_manager') {
+                $data['totalEmployees'] = $employeeModel->countAllResults();
+                $data['pendingLeaves'] = $leaveModel->where('status', 'pending')->countAllResults();
+                $data['attendanceSummary'] = $attendanceModel->getSummary();
+            } elseif ($data['dashboardType'] === 'leaves_manager') {
+                $data['pendingLeaves'] = $leaveModel->where('status', 'pending')->countAllResults();
+            } elseif ($data['dashboardType'] === 'attendance_viewer') {
+                $data['attendanceSummary'] = $attendanceModel->getSummary();
+            } elseif ($data['dashboardType'] === 'employee') {
+                // Employee dashboard data
+                try {
+                    $employee = $employeeModel->where('user_id', $session->get('user_id'))->first();
+                    if ($employee) {
+                        $data['employee'] = $employee;
+                        $db = Database::connect();
+                        $data['attendanceCount'] = (int) $db->table('attendance_logs')
+                            ->where('employee_id', $employee->id)
+                            ->countAllResults();
+                        $data['attendance'] = $attendanceModel
+                            ->where('employee_id', $employee->id)
+                            ->orderBy('date', 'DESC')
+                            ->orderBy('time_in', 'DESC')
+                            ->findAll(10);
+                        $data['leaves'] = $leaveModel->where('employee_id', $employee->id)->findAll();
+                    } else {
+                        $data['employee'] = null;
+                        $data['attendanceCount'] = 0;
+                        $data['attendance'] = [];
+                        $data['leaves'] = [];
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', 'Dashboard Employee Error: ' . $e->getMessage());
+                    $data['employee'] = null;
+                    $data['attendanceCount'] = 0;
+                    $data['attendance'] = [];
+                    $data['leaves'] = [];
+                }
+            }
+            
+            return view('auth/dashboard', $data);
+        }
+
         switch ($role) {
             case 'Super Admin':
                 $data['totalUsers'] = $userModel->countAllResults();
