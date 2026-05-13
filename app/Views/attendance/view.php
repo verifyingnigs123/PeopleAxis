@@ -33,71 +33,7 @@
         text-decoration: underline;
     }
 
-    /* RFID Scanner Section */
-    .rfid-scanner-section {
-        background: linear-gradient(135deg, #2f5f45 0%, #6ea988 100%);
-        border-radius: 15px;
-        padding: 35px;
-        color: white;
-        margin-bottom: 30px;
-        box-shadow: 0 8px 24px rgba(47, 95, 69, 0.2);
-    }
-
-    .rfid-scanner-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .rfid-scanner-subtitle {
-        font-size: 0.95rem;
-        opacity: 0.95;
-        margin-bottom: 25px;
-    }
-
-    .rfid-scanner-content {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 30px;
-        align-items: start;
-    }
-
-    .rfid-input-wrapper {
-        position: relative;
-    }
-
-    .rfid-input-wrapper input {
-        width: 100%;
-        padding: 16px 20px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 10px;
-        font-size: 1.1rem;
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        font-family: 'Courier New', monospace;
-        transition: all 0.3s ease;
-    }
-
-    .rfid-input-wrapper input::placeholder {
-        color: rgba(255, 255, 255, 0.6);
-    }
-
-    .rfid-input-wrapper input:focus {
-        outline: none;
-        border-color: white;
-        background: rgba(255, 255, 255, 0.15);
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-    }
-
-    .rfid-scanner-icon {
-        position: absolute;
-        right: 18px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 1.5rem;
+    /* RFID Scanner Section - Removed */
         opacity: 0.8;
     }
 
@@ -548,20 +484,12 @@
             grid-template-columns: 1fr;
         }
 
-        .rfid-scanner-content {
-            grid-template-columns: 1fr;
-        }
-
         .stats-grid {
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         }
     }
 
     @media (max-width: 768px) {
-        .rfid-scanner-section {
-            padding: 25px;
-        }
-
         .card-body {
             padding: 20px;
         }
@@ -752,41 +680,7 @@ updateElapsedTimes();
 setInterval(updateRealtimeClock, 1000);
 setInterval(updateElapsedTimes, 1000);
 
-// RFID Scanner functionality
-document.getElementById('rfidInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        const rfidValue = this.value.trim();
-        if (rfidValue) {
-            // Submit RFID to backend for attendance recording
-            fetch('<?= base_url('attendance/recordRfid') ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ rfid_number: rfidValue })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const action = data.action === 'checkout' ? 'Check Out' : 'Check In';
-                    alert('✓ ' + action + ' successful!');
-                    this.value = '';
-                    // Reload page after a short delay
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    alert('✗ Error: ' + (data.message || 'Failed to record attendance'));
-                    this.value = '';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('✗ Error recording attendance. Please try again.');
-                this.value = '';
-            });
-        }
-    }
-});
+// RFID Scanner functionality - Removed
 </script>
 
 <?= $this->endSection() ?>

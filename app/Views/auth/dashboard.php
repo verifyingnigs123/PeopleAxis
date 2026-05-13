@@ -489,7 +489,7 @@
                 Approved: <?= $employeeAccountStatusCounts['approved'] ?? 0 ?>,
                 Rejected: <?= $employeeAccountStatusCounts['rejected'] ?? 0 ?>
             </p>
-            <a href="<?= base_url('users') ?>" class="btn btn-outline-primary">Open Users</a>
+            <a href="<?= base_url('employees') ?>" class="btn btn-outline-primary">Open Users</a>
         </div>
         <div class="action-card">
             <i class="fas fa-clock"></i>
@@ -502,12 +502,6 @@
             <h3>Approve Leaves</h3>
             <p>Approve or reject leave requests</p>
             <a href="<?= base_url('leaves') ?>" class="btn btn-outline-primary">Leaves</a>
-        </div>
-        <div class="action-card">
-            <i class="fas fa-sync"></i>
-            <h3>RFID Scanner</h3>
-            <p>Open the RFID attendance scanner</p>
-            <a href="<?= base_url('attendance/scanner') ?>" class="btn btn-outline-primary">Open Scanner</a>
         </div>
     </div>
 

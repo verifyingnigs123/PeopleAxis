@@ -195,18 +195,6 @@
             <i class="fas fa-file-alt"></i> Generate
         </a>
     </div>
-
-    <!-- RFID Attendance Scanner Card -->
-    <div class="report-card">
-        <div class="report-icon">
-            <i class="fas fa-id-card"></i>
-        </div>
-        <h3 class="report-title">RFID Attendance Scanner</h3>
-        <p class="report-description">Open the RFID scanner used to record attendance entries.</p>
-        <a href="<?= base_url('attendance/scanner') ?>" class="report-btn">
-            <i class="fas fa-arrow-right"></i> Open Scanner
-        </a>
-    </div>
 </div>
 
 <?= $this->endSection() ?>

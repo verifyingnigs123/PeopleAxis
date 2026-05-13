@@ -93,12 +93,6 @@ $routes->get('/attendance/check-out', 'Attendance::checkOut');
 $routes->get('/attendance/break-out', 'Attendance::breakOut');
 $routes->get('/attendance/break-in', 'Attendance::breakIn');
 
-// RFID attendance routes
-$routes->get('/attendance/scanner', 'Attendance::scanner');
-$routes->post('/attendance/scan', 'Attendance::scan');
-$routes->post('/attendance/recordRfid', 'Attendance::recordRfid');
-$routes->post('/api/attendance/rfid-process', 'Attendance::rfidProcess');
-
 // Activity Logs / Audit routes
 $routes->get('/activity-logs', 'Audit::index');
 $routes->get('/audit', 'Audit::index');
@@ -110,9 +104,12 @@ $routes->get('/reports/team', 'Reports::team');
 $routes->get('/reports/generate/employee', 'Reports::generateEmployee');
 $routes->get('/reports/generate', 'Reports::generate');
 $routes->get('/reports/generate/attendance', 'Reports::generateAttendance');
+$routes->get('/reports/export/attendance-excel', 'Reports::exportAttendanceExcel');
 $routes->get('/reports/generate/leave', 'Reports::generateLeave');
 $routes->get('/reports/generate/salary', 'Reports::generateSalary');
+$routes->get('/reports/export/salary-excel', 'Reports::exportSalaryExcel');
 $routes->get('/reports/generate/department', 'Reports::generateDepartment');
+$routes->get('/reports/export/department-excel', 'Reports::exportDepartmentExcel');
 $routes->get('/reports/generate/(:any)', 'Reports::generate/$1');
 $routes->get('/reports/(:any)', 'Reports::view/$1');
 $routes->post('/reports/generate', 'Reports::generate');
