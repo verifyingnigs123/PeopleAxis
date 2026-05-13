@@ -74,6 +74,92 @@ class Reports extends BaseController
     }
 
     /**
+     * Export attendance report as Excel-compatible spreadsheet.
+     */
+    public function exportAttendanceExcel()
+    {
+        try {
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            $reportData = $this->generateReportData('attendance');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to export attendance report.');
+            }
+
+            $rows = $reportData['data'] ?? [];
+            $period = $reportData['period'] ?? date('Y-m');
+
+            $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+            $html .= '<style>
+                body { font-family: Arial, sans-serif; color: #1f2937; }
+                .report-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #2f5f45; }
+                .report-meta { margin-bottom: 14px; color: #6b7280; font-size: 12px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #dbe3ea; padding: 8px 10px; font-size: 12px; vertical-align: top; }
+                th { background: #2f5f45; color: #fff; text-align: left; }
+                tbody tr:nth-child(even) { background: #f8fbf9; }
+                .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; }
+                .present { background: #e9f7ec; color: #1d7a3f; }
+                .late { background: #fff4e4; color: #9f6310; }
+                .absent { background: #fdecec; color: #b43a3a; }
+                .leave { background: #e8f4fd; color: #1e6fa5; }
+                .text { white-space: nowrap; }
+            </style></head><body>';
+
+            $html .= '<div class="report-title">Attendance Report</div>';
+            $html .= '<div class="report-meta">Period: ' . htmlspecialchars(date('F Y', strtotime($period . '-01')), ENT_QUOTES, 'UTF-8') . ' | Generated on ' . date('M d, Y h:i A') . '</div>';
+            $html .= '<table><thead><tr>';
+
+            $headers = ['#', 'Employee', 'Employee ID', 'RFID Number', 'Department', 'Date', 'Time In', 'Break Out', 'Break In', 'Time Out', 'Status'];
+            foreach ($headers as $header) {
+                $html .= '<th>' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+
+            foreach ($rows as $index => $record) {
+                $employeeName = trim((string) (($record['first_name'] ?? '') . ' ' . ($record['last_name'] ?? '')));
+                $status = strtolower((string) ($record['status'] ?? ''));
+                $dateValue = !empty($record['date']) ? date('M d, Y', strtotime((string) $record['date'])) : '-';
+                $timeIn = !empty($record['time_in']) ? date('h:i A', strtotime((string) $record['time_in'])) : '-';
+                $breakOut = !empty($record['break_out']) ? date('h:i A', strtotime((string) $record['break_out'])) : '-';
+                $breakIn = !empty($record['break_in']) ? date('h:i A', strtotime((string) $record['break_in'])) : '-';
+                $timeOut = !empty($record['time_out']) ? date('h:i A', strtotime((string) $record['time_out'])) : '-';
+
+                $html .= '<tr>';
+                $html .= '<td class="text">' . ($index + 1) . '</td>';
+                $html .= '<td class="text"><strong>' . htmlspecialchars($employeeName, ENT_QUOTES, 'UTF-8') . '</strong></td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($record['emp_code'] ?? 'N/A'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($record['rfid_number'] ?? 'N/A'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($record['department_name'] ?? 'Unassigned'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="text">' . $dateValue . '</td>';
+                $html .= '<td class="text">' . $timeIn . '</td>';
+                $html .= '<td class="text">' . $breakOut . '</td>';
+                $html .= '<td class="text">' . $breakIn . '</td>';
+                $html .= '<td class="text">' . $timeOut . '</td>';
+                $html .= '<td><span class="badge ' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars(ucfirst($status ?: 'Pending'), ENT_QUOTES, 'UTF-8') . '</span></td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody></table></body></html>';
+
+            $filename = 'Attendance_Report_' . date('Y-m-d_H-i-s') . '.xls';
+
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->setBody($html);
+        } catch (\Throwable $e) {
+            log_message('error', 'Export Attendance Excel error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to export attendance report.');
+        }
+    }
+
+    /**
      * Generate leave report (for direct URL access)
      * This method handles the route: /reports/generate/leave
      */
@@ -158,6 +244,130 @@ class Reports extends BaseController
     }
 
     /**
+     * Export salary report as Excel (CSV format)
+     */
+    public function exportSalaryExcel()
+    {
+        try {
+            // Check if user is HR Admin or Super Admin
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+            
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            // Get salary data
+            $db = \Config\Database::connect();
+            $employees = $db->table('employees')
+                ->select("employees.id AS employee_pk, employees.employee_id AS emp_code,
+                          CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
+                          employees.status,
+                          employees.rate,
+                          employees.rate_type,
+                          roles.name AS role_name,
+                          departments.name AS department_name,
+                          salaries.id AS salary_id,
+                          salaries.base_salary,
+                          salaries.allowances,
+                          salaries.deductions,
+                          salaries.sss_contribution,
+                          salaries.philhealth_contribution,
+                          salaries.pagibig_contribution,
+                          salaries.withholding_tax,
+                          salaries.net_salary,
+                          salaries.effective_from")
+                ->join('users',        'users.email = employees.email AND users.deleted_at IS NULL AND users.is_active = 1', 'left')
+                ->join('roles',        'roles.id = users.role_id AND roles.deleted_at IS NULL', 'left')
+                ->join('departments',  'departments.id = employees.department_id', 'left')
+                ->join('salaries',     'salaries.employee_id = employees.id', 'left')
+                ->where('employees.status', 'active')
+                ->orderBy('employees.first_name', 'ASC')
+                ->get()
+                ->getResultObject();
+
+            $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+            $html .= '<style>
+                body { font-family: Arial, sans-serif; color: #1f2937; }
+                .report-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #2f5f45; }
+                .report-meta { margin-bottom: 14px; color: #6b7280; font-size: 12px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #dbe3ea; padding: 8px 10px; font-size: 12px; vertical-align: top; }
+                th { background: #2f5f45; color: #fff; text-align: left; }
+                tbody tr:nth-child(even) { background: #f8fbf9; }
+                .num { text-align: right; white-space: nowrap; }
+                .text { white-space: nowrap; }
+                .net { font-weight: 700; color: #166534; }
+                .currency { mso-number-format:"\0022Php\0022\#\,\#\#0\.00"; }
+                .date { white-space: nowrap; }
+            </style></head><body>';
+
+            $html .= '<div class="report-title">Salary Report</div>';
+            $html .= '<div class="report-meta">Generated on ' . date('M d, Y h:i A') . '</div>';
+            $html .= '<table><thead><tr>';
+            $headers = [
+                'Employee ID', 'Employee Name', 'Department', 'Position', 'Rate', 'Rate Type',
+                'Base Salary', 'Allowances', 'SSS', 'PhilHealth', 'Pag-IBIG', 'Withholding Tax',
+                'Extra Deductions', 'Gross', 'Net Pay', 'Effective From'
+            ];
+
+            foreach ($headers as $header) {
+                $html .= '<th>' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+            }
+
+            $html .= '</tr></thead><tbody>';
+
+            foreach ($employees as $emp) {
+                $empRate = (float)($emp->rate ?? 0);
+                $hasSalary = !empty($emp->salary_id);
+
+                $base = $hasSalary ? (float)($emp->base_salary ?? 0) : 0;
+                $allowances = $hasSalary ? (float)($emp->allowances ?? 0) : 0;
+                $sss = $hasSalary ? (float)($emp->sss_contribution ?? 0) : 0;
+                $philhealth = $hasSalary ? (float)($emp->philhealth_contribution ?? 0) : 0;
+                $pagibig = $hasSalary ? (float)($emp->pagibig_contribution ?? 0) : 0;
+                $wTax = $hasSalary ? (float)($emp->withholding_tax ?? 0) : 0;
+                $extraDed = $hasSalary ? (float)($emp->deductions ?? 0) : 0;
+                $gross = $base + $allowances;
+                $net = (float)($emp->net_salary ?? ($gross - $sss - $philhealth - $pagibig - $wTax - $extraDed));
+                $effectiveFrom = !empty($emp->effective_from) ? date('M d, Y', strtotime($emp->effective_from)) : '';
+
+                $html .= '<tr>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($emp->emp_code ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($emp->employee_name ?? ''), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($emp->department_name ?? 'Unassigned'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($emp->role_name ?? 'N/A'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="num currency">' . number_format($empRate, 2) . '</td>';
+                $html .= '<td class="text">' . htmlspecialchars((string) ($emp->rate_type ?? 'monthly'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="num currency">' . number_format($base, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($allowances, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($sss, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($philhealth, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($pagibig, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($wTax, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($extraDed, 2) . '</td>';
+                $html .= '<td class="num currency">' . number_format($gross, 2) . '</td>';
+                $html .= '<td class="num currency net">' . number_format($net, 2) . '</td>';
+                $html .= '<td class="text date">' . htmlspecialchars($effectiveFrom, ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody></table></body></html>';
+
+            $filename = 'Salary_Report_' . date('Y-m-d_H-i-s') . '.xls';
+
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->setBody($html);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'Export Salary Excel error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to export salary report.');
+        }
+    }
+
+    /**
      * Generate department report (for direct URL access)
      * This method handles the route: /reports/generate/department
      */
@@ -169,7 +379,7 @@ class Reports extends BaseController
                 ini_set('display_errors', 1);
                 error_reporting(E_ALL);
             }
-            
+
             // Check if user is HR Admin or Super Admin
             $roleName = session()->get('role_name');
             $role = session()->get('role');
@@ -200,6 +410,75 @@ class Reports extends BaseController
     }
 
     /**
+     * Export department report as Excel-compatible spreadsheet.
+     */
+    public function exportDepartmentExcel()
+    {
+        try {
+            $roleName = session()->get('role_name');
+            $role = session()->get('role');
+
+            if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
+                return redirect()->to('/dashboard')->with('error', 'Access denied. HR Admin only.');
+            }
+
+            $reportData = $this->generateReportData('department');
+            if (!$reportData) {
+                return redirect()->to('/reports')->with('error', 'Unable to export department report.');
+            }
+
+            $rows = $reportData['data'] ?? [];
+
+            $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+            $html .= '<style>
+                body { font-family: Arial, sans-serif; color: #1f2937; }
+                .report-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #2f5f45; }
+                .report-meta { margin-bottom: 14px; color: #6b7280; font-size: 12px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #dbe3ea; padding: 8px 10px; font-size: 12px; vertical-align: top; }
+                th { background: #2f5f45; color: #fff; text-align: left; }
+                tbody tr:nth-child(even) { background: #f8fbf9; }
+                .num { text-align: right; white-space: nowrap; }
+                .status-active { color: #1d7a3f; font-weight: 700; }
+                .status-inactive { color: #b43a3a; font-weight: 700; }
+            </style></head><body>';
+
+            $html .= '<div class="report-title">Department Report</div>';
+            $html .= '<div class="report-meta">Generated on ' . date('M d, Y h:i A') . '</div>';
+            $html .= '<table><thead><tr>';
+
+            foreach (['Department ID', 'Name', 'Description', 'Employee Count', 'Status'] as $header) {
+                $html .= '<th>' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+            }
+
+            $html .= '</tr></thead><tbody>';
+
+            foreach ($rows as $row) {
+                $isActive = (int) ($row['is_active'] ?? 0) === 1;
+                $html .= '<tr>';
+                $html .= '<td>' . htmlspecialchars((string) ($row['id'] ?? 'N/A'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td>' . htmlspecialchars((string) ($row['name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td>' . htmlspecialchars((string) ($row['description'] ?? 'No description'), ENT_QUOTES, 'UTF-8') . '</td>';
+                $html .= '<td class="num">' . (int) ($row['employee_count'] ?? 0) . '</td>';
+                $html .= '<td class="' . ($isActive ? 'status-active' : 'status-inactive') . '">' . ($isActive ? 'Active' : 'Inactive') . '</td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody></table></body></html>';
+
+            $filename = 'Department_Report_' . date('Y-m-d_H-i-s') . '.xls';
+
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->setBody($html);
+        } catch (\Throwable $e) {
+            log_message('error', 'Export Department Excel error: ' . $e->getMessage());
+            return redirect()->to('/reports')->with('error', 'Unable to export department report.');
+        }
+    }
+
+    /**
      * Display available reports
      */
     public function index()
@@ -211,379 +490,25 @@ class Reports extends BaseController
         if (!($role === 'admin' || $roleName === 'Super Admin' || in_array($roleName, ['HR Admin', 'hr']) || in_array($role, ['hr', 'hr_admin']))) {
             return redirect()->to('/dashboard')->with('error', 'Access denied.');
         }
-
-        $reports = [
-            [
-                'id' => 'employee-summary',
-                'title' => 'Employee Summary Report',
-                'description' => 'Overview of all employees in the system',
-                'icon' => 'fa-users'
-            ],
-            [
-                'id' => 'attendance-report',
-                'title' => 'Attendance Report',
-                'description' => 'Monthly and yearly attendance statistics',
-                'icon' => 'fa-calendar-check'
-            ],
-            [
-                'id' => 'leave-report',
-                'title' => 'Leave Report',
-                'description' => 'Leave requests and approvals summary',
-                'icon' => 'fa-calendar-times'
-            ],
-            [
-                'id' => 'salary-report',
-                'title' => 'Salary Report',
-                'description' => 'Employee salary and payroll information',
-                'icon' => 'fa-dollar-sign'
-            ],
-            [
-                'id' => 'user-activity',
-                'title' => 'User Activity Report',
-                'description' => 'System user activities and access logs',
-                'icon' => 'fa-history'
-            ],
-            [
-                'id' => 'department-report',
-                'title' => 'Department Report',
-                'description' => 'Department-wise employee distribution',
-                'icon' => 'fa-sitemap'
-            ]
-        ];
-
-        $data['reports'] = $reports;
-        return view('reports/index', $data);
+        return view('reports/index');
     }
 
     /**
-     * Manager-only team performance dashboard.
+     * Escape CSV values properly
      */
-    public function team()
+    private function escapeCsvValue($value)
     {
-        if (!session()->get('logged_in')) {
-            return redirect()->to('/login');
+        if ($value === null || $value === '') {
+            return '""';
         }
 
-        if (! $this->isManagerUser()) {
-            return redirect()->to('/dashboard')->with('error', 'Access denied. Manager only.');
+        $value = (string) $value;
+
+        if (strpos($value, ',') !== false || strpos($value, '"') !== false || strpos($value, "\n") !== false || strpos($value, "\r") !== false) {
+            return '"' . str_replace('"', '""', $value) . '"';
         }
 
-        $selectedMonth = (string) $this->request->getGet('month');
-        if (! preg_match('/^\d{4}-\d{2}$/', $selectedMonth)) {
-            $selectedMonth = date('Y-m');
-        }
-
-        $selectedDate = (string) $this->request->getGet('date');
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
-            $selectedDate = date('Y-m-d');
-        }
-
-        $dailySortBy = strtolower((string) $this->request->getGet('daily_sort_by'));
-        if (! in_array($dailySortBy, ['employee_name', 'date'], true)) {
-            $dailySortBy = 'date';
-        }
-
-        $dailySortDir = strtolower((string) $this->request->getGet('daily_sort_dir'));
-        if (! in_array($dailySortDir, ['asc', 'desc'], true)) {
-            $dailySortDir = 'desc';
-        }
-
-        $periodStart = $selectedMonth . '-01';
-        $periodEnd = date('Y-m-t', strtotime($periodStart));
-
-        try {
-            $teamContext = $this->getManagedTeamContext();
-            $data = [
-                'selectedMonth'      => $selectedMonth,
-                'selectedDate'       => $selectedDate,
-                'dailySortBy'        => $dailySortBy,
-                'dailySortDir'       => $dailySortDir,
-                'periodLabel'        => date('F Y', strtotime($periodStart)),
-                'managedDepartments' => $teamContext['departments'],
-                'summary'            => [
-                    'team_members'    => count($teamContext['teamMembers']),
-                    'average_score'   => 0,
-                    'pending_leaves'  => 0,
-                    'at_risk_members' => 0,
-                ],
-                'departmentBreakdown' => [],
-                'performanceRows'   => [],
-                'dailyAttendanceRows' => [],
-                'monthlyAttendanceRows' => [],
-            ];
-
-            if ($teamContext['employeeIds'] === []) {
-                return view('reports/team', $data);
-            }
-
-            $db = \Config\Database::connect();
-
-            $attendanceRows = $db->table('attendance_logs')
-                ->select('employee_id, MAX(date) AS last_attendance_date, SUM(CASE WHEN LOWER(status) = "present" THEN 1 ELSE 0 END) AS present_days, SUM(CASE WHEN LOWER(status) IN ("late", "half-day", "half day") THEN 1 ELSE 0 END) AS late_days, SUM(CASE WHEN LOWER(status) = "absent" THEN 1 ELSE 0 END) AS absent_days', false)
-                ->whereIn('employee_id', $teamContext['employeeIds'])
-                ->where('date >=', $periodStart)
-                ->where('date <=', $periodEnd)
-                ->groupBy('employee_id')
-                ->get()
-                ->getResultArray();
-
-            $leaveRows = $db->table('leave_requests')
-                ->select('employee_id, COUNT(*) AS leave_requests, SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) AS pending_leave_requests, SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) AS approved_leave_requests', false)
-                ->whereIn('employee_id', $teamContext['employeeIds'])
-                ->groupStart()
-                    ->where('start_date <=', $periodEnd)
-                    ->where('end_date >=', $periodStart)
-                ->groupEnd()
-                ->groupBy('employee_id')
-                ->get()
-                ->getResultArray();
-
-            $attendanceMap = [];
-            foreach ($attendanceRows as $row) {
-                $attendanceMap[(int) ($row['employee_id'] ?? 0)] = $row;
-            }
-
-            $leaveMap = [];
-            foreach ($leaveRows as $row) {
-                $leaveMap[(int) ($row['employee_id'] ?? 0)] = $row;
-            }
-
-            foreach ($teamContext['departments'] as $department) {
-                $departmentId = (int) ($department['id'] ?? 0);
-                $data['departmentBreakdown'][$departmentId] = [
-                    'name'           => $department['name'] ?? 'Unassigned',
-                    'members'        => 0,
-                    'total_score'    => 0,
-                    'pending_leaves' => 0,
-                ];
-            }
-
-            $totalScore = 0;
-            $scoredMembers = 0;
-
-            foreach ($teamContext['teamMembers'] as $member) {
-                $employeeId = (int) ($member['id'] ?? 0);
-                $departmentId = (int) ($member['department_id'] ?? 0);
-                $attendance = $attendanceMap[$employeeId] ?? [];
-                $leave = $leaveMap[$employeeId] ?? [];
-
-                $presentDays = (int) ($attendance['present_days'] ?? 0);
-                $lateDays = (int) ($attendance['late_days'] ?? 0);
-                $absentDays = (int) ($attendance['absent_days'] ?? 0);
-                $leaveRequests = (int) ($leave['leave_requests'] ?? 0);
-                $pendingLeaveRequests = (int) ($leave['pending_leave_requests'] ?? 0);
-                $trackedDays = $presentDays + $lateDays + $absentDays;
-                $score = $trackedDays > 0
-                    ? (int) round((($presentDays + ($lateDays * 0.6)) / $trackedDays) * 100)
-                    : 0;
-
-                if ($score >= 90) {
-                    $performanceLabel = 'Strong';
-                } elseif ($score >= 75) {
-                    $performanceLabel = 'Stable';
-                } elseif ($score >= 60) {
-                    $performanceLabel = 'Watch';
-                } else {
-                    $performanceLabel = 'At Risk';
-                }
-
-                $isAtRisk = $score < 60 || $absentDays >= 3 || $pendingLeaveRequests > 1;
-
-                if (! isset($data['departmentBreakdown'][$departmentId])) {
-                    $data['departmentBreakdown'][$departmentId] = [
-                        'name'           => $member['department_name'] ?? 'Unassigned',
-                        'members'        => 0,
-                        'total_score'    => 0,
-                        'pending_leaves' => 0,
-                    ];
-                }
-
-                $data['departmentBreakdown'][$departmentId]['members']++;
-                $data['departmentBreakdown'][$departmentId]['total_score'] += $score;
-                $data['departmentBreakdown'][$departmentId]['pending_leaves'] += $pendingLeaveRequests;
-
-                $data['summary']['pending_leaves'] += $pendingLeaveRequests;
-                if ($isAtRisk) {
-                    $data['summary']['at_risk_members']++;
-                }
-
-                $totalScore += $score;
-                $scoredMembers++;
-
-                $data['performanceRows'][] = [
-                    'employee_name'          => trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? '')),
-                    'employee_code'          => $member['employee_id'] ?? 'N/A',
-                    'department_name'        => $member['department_name'] ?? 'Unassigned',
-                    'present_days'           => $presentDays,
-                    'late_days'              => $lateDays,
-                    'absent_days'            => $absentDays,
-                    'leave_requests'         => $leaveRequests,
-                    'pending_leave_requests' => $pendingLeaveRequests,
-                    'score'                  => $score,
-                    'performance_label'      => $performanceLabel,
-                    'last_attendance_date'   => $attendance['last_attendance_date'] ?? null,
-                ];
-            }
-
-            if ($scoredMembers > 0) {
-                $data['summary']['average_score'] = (int) round($totalScore / $scoredMembers);
-            }
-
-            foreach ($data['departmentBreakdown'] as $departmentId => $department) {
-                $members = (int) ($department['members'] ?? 0);
-                $data['departmentBreakdown'][$departmentId]['average_score'] = $members > 0
-                    ? (int) round(((int) $department['total_score']) / $members)
-                    : 0;
-            }
-
-            $data['departmentBreakdown'] = array_values($data['departmentBreakdown']);
-
-            usort($data['performanceRows'], static function (array $left, array $right): int {
-                return $right['score'] <=> $left['score'];
-            });
-
-            if ($teamContext['employeeIds'] !== []) {
-                $dailyRows = $db->table('employees')
-                    ->select("employees.id AS employee_pk_id, employees.employee_id AS employee_code, employees.first_name, employees.last_name, departments.name AS department_name, MIN(attendance_logs.time_in) AS time_in, MAX(attendance_logs.time_out) AS time_out, GROUP_CONCAT(DISTINCT LOWER(attendance_logs.status)) AS statuses", false)
-                    ->join('departments', 'departments.id = employees.department_id', 'left')
-                    ->join('attendance_logs', "attendance_logs.employee_id = employees.id AND attendance_logs.date = " . $db->escape($selectedDate), 'left')
-                    ->whereIn('employees.id', $teamContext['employeeIds'])
-                    ->where('employees.account_status', 'approved')
-                    ->groupStart()
-                        ->where('employees.status', 'active')
-                        ->orWhere('employees.status IS NULL', null, false)
-                        ->orWhere('employees.status', '')
-                    ->groupEnd()
-                    ->groupBy('employees.id')
-                    ->groupBy('employees.employee_id')
-                    ->groupBy('employees.first_name')
-                    ->groupBy('employees.last_name')
-                    ->groupBy('departments.name')
-                    ->get()
-                    ->getResultArray();
-
-                $employeeIds = array_map('intval', array_column($dailyRows, 'employee_pk_id'));
-                $onLeaveRows = [];
-                if ($employeeIds !== []) {
-                    $onLeaveRows = $db->table('leave_requests')
-                        ->select('employee_id')
-                        ->distinct()
-                        ->whereIn('employee_id', $employeeIds)
-                        ->where('status', 'approved')
-                        ->where('early_returned_at', null)
-                        ->where('start_date <=', $selectedDate)
-                        ->where('end_date >=', $selectedDate)
-                        ->get()
-                        ->getResultArray();
-                }
-
-                $onLeaveLookup = [];
-                foreach ($onLeaveRows as $row) {
-                    $employeeId = (int) ($row['employee_id'] ?? 0);
-                    if ($employeeId > 0) {
-                        $onLeaveLookup[$employeeId] = true;
-                    }
-                }
-
-                $normalizedDailyRows = [];
-                foreach ($dailyRows as $row) {
-                    $employeePkId = (int) ($row['employee_pk_id'] ?? 0);
-                    $statuses = array_filter(array_map('trim', explode(',', (string) ($row['statuses'] ?? ''))));
-                    $statusLookup = array_fill_keys($statuses, true);
-                    $isOnLeave = isset($onLeaveLookup[$employeePkId]);
-
-                    if ($isOnLeave) {
-                        $normalizedStatus = 'Leave';
-                    } elseif (isset($statusLookup['absent']) || $statuses === []) {
-                        $normalizedStatus = 'Absent';
-                    } elseif (isset($statusLookup['late']) || isset($statusLookup['half-day']) || isset($statusLookup['half day'])) {
-                        $normalizedStatus = 'Late';
-                    } else {
-                        $normalizedStatus = 'Present';
-                    }
-
-                    $normalizedDailyRows[] = [
-                        'employee_name' => trim(((string) ($row['first_name'] ?? '')) . ' ' . ((string) ($row['last_name'] ?? ''))),
-                        'department_name' => (string) ($row['department_name'] ?? 'Unassigned'),
-                        'date' => $selectedDate,
-                        'time_in' => (string) ($row['time_in'] ?? ''),
-                        'time_out' => (string) ($row['time_out'] ?? ''),
-                        'status' => $normalizedStatus,
-                    ];
-                }
-
-                usort($normalizedDailyRows, static function (array $a, array $b) use ($dailySortBy, $dailySortDir): int {
-                    if ($dailySortBy === 'employee_name') {
-                        $compare = strcmp(strtolower((string) $a['employee_name']), strtolower((string) $b['employee_name']));
-                        if ($compare === 0) {
-                            $compare = strcmp(strtolower((string) $a['department_name']), strtolower((string) $b['department_name']));
-                        }
-                    } else {
-                        $compare = strcmp((string) $a['date'], (string) $b['date']);
-                        if ($compare === 0) {
-                            $compare = strcmp(strtolower((string) $a['employee_name']), strtolower((string) $b['employee_name']));
-                        }
-                    }
-
-                    return $dailySortDir === 'asc' ? $compare : -$compare;
-                });
-
-                $data['dailyAttendanceRows'] = $normalizedDailyRows;
-            }
-
-            $monthlyRows = $db->table('attendance_logs')
-                ->select("attendance_logs.date, attendance_logs.time_in, attendance_logs.time_out, employees.employee_id AS employee_code, CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name", false)
-                ->join('employees', 'employees.id = attendance_logs.employee_id', 'inner')
-                ->whereIn('attendance_logs.employee_id', $teamContext['employeeIds'])
-                ->where('attendance_logs.date >=', $periodStart)
-                ->where('attendance_logs.date <=', $periodEnd)
-                ->orderBy('attendance_logs.date', 'DESC')
-                ->orderBy('employees.first_name', 'ASC')
-                ->orderBy('employees.last_name', 'ASC')
-                ->orderBy('attendance_logs.time_in', 'DESC')
-                ->get()
-                ->getResultArray();
-
-            $normalizedMonthlyRows = [];
-            foreach ($monthlyRows as $row) {
-                $attendanceDate = (string) ($row['date'] ?? '');
-                $timeIn = (string) ($row['time_in'] ?? '');
-                $timeOut = (string) ($row['time_out'] ?? '');
-
-                $inDate = $timeIn !== '' ? $attendanceDate : '';
-                $outDate = '';
-
-                if ($timeOut !== '') {
-                    $outDate = $attendanceDate;
-
-                    if ($timeIn !== '') {
-                        $inTs = strtotime($attendanceDate . ' ' . $timeIn);
-                        $outTs = strtotime($attendanceDate . ' ' . $timeOut);
-
-                        if ($inTs !== false && $outTs !== false && $outTs < $inTs) {
-                            $outDate = date('Y-m-d', strtotime($attendanceDate . ' +1 day'));
-                        }
-                    }
-                }
-
-                $normalizedMonthlyRows[] = [
-                    'employee_id' => (string) ($row['employee_code'] ?? 'N/A'),
-                    'employee_name' => trim((string) ($row['employee_name'] ?? '')),
-                    'date' => $attendanceDate,
-                    'in_date' => $inDate,
-                    'in_time' => $timeIn,
-                    'out_date' => $outDate,
-                    'out_time' => $timeOut,
-                ];
-            }
-
-            $data['monthlyAttendanceRows'] = $normalizedMonthlyRows;
-
-            return view('reports/team', $data);
-        } catch (\Exception $e) {
-            log_message('error', 'Manager performance dashboard error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Unable to load team performance.');
-        }
+        return $value;
     }
 
     /**
@@ -762,7 +687,7 @@ class Reports extends BaseController
                         ->select('departments.name, COUNT(*) as count')
                         ->join('departments', 'departments.id = employees.department_id', 'left')
                         ->where('employees.account_status', 'approved')
-                        ->groupBy('departments.id', 'departments.name')
+                        ->groupBy('departments.id, departments.name', false)
                         ->orderBy('count', 'DESC')
                         ->get()
                         ->getResultArray();
@@ -781,7 +706,7 @@ class Reports extends BaseController
                     
                     // Enhanced query with better error handling
                     $attendanceData = $db->table('attendance_logs')
-                        ->select('attendance_logs.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, departments.name as department_name')
+                        ->select('attendance_logs.*, employees.first_name, employees.last_name, employees.employee_id as emp_code, employees.rfid_number, departments.name as department_name')
                         ->join('employees', 'employees.id = attendance_logs.employee_id', 'inner')
                         ->join('departments', 'departments.id = employees.department_id', 'left')
                         ->where('attendance_logs.date >=', $currentMonth . '-01')
@@ -816,16 +741,33 @@ class Reports extends BaseController
                     
                 case 'salary':
                 case 'salary-report':
+                    // Fetch complete salary information matching the salary management page
                     $salaryData = $db->table('employees')
-                        ->select('employees.*, departments.name as department_name, users.email as user_email')
-                        ->join('departments', 'departments.id = employees.department_id', 'left')
-                        ->join('users', 'users.id = employees.user_id', 'left')
-                        ->where('employees.account_status', 'approved')
-                        ->where('employees.rate IS NOT NULL')
-                        ->where('employees.rate >', 0)
-                        ->orderBy('employees.rate', 'DESC')
+                        ->select("employees.id AS employee_pk, employees.employee_id AS emp_code,
+                                  CONCAT(employees.first_name, ' ', employees.last_name) AS employee_name,
+                                  employees.status,
+                                  employees.rate,
+                                  employees.rate_type,
+                                  roles.name AS role_name,
+                                  departments.name AS department_name,
+                                  salaries.id AS salary_id,
+                                  salaries.base_salary,
+                                  salaries.allowances,
+                                  salaries.deductions,
+                                  salaries.sss_contribution,
+                                  salaries.philhealth_contribution,
+                                  salaries.pagibig_contribution,
+                                  salaries.withholding_tax,
+                                  salaries.net_salary,
+                                  salaries.effective_from")
+                        ->join('users',        'users.email = employees.email AND users.deleted_at IS NULL AND users.is_active = 1', 'left')
+                        ->join('roles',        'roles.id = users.role_id AND roles.deleted_at IS NULL', 'left')
+                        ->join('departments',  'departments.id = employees.department_id', 'left')
+                        ->join('salaries',     'salaries.employee_id = employees.id', 'left')
+                        ->where('employees.status', 'active')
+                        ->orderBy('employees.first_name', 'ASC')
                         ->get()
-                        ->getResultArray();
+                        ->getResultObject();
                     
                     return [
                         'title' => 'Salary Report',

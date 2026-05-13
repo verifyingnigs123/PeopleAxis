@@ -121,6 +121,13 @@
         font-size: 1.05rem;
     }
 
+    .table-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
     .table-period {
         font-size: 0.84rem;
         opacity: 0.92;
@@ -189,6 +196,10 @@
         background: #e7effa;
         border-color: #bdd2ee;
         text-decoration: none;
+    }
+
+    .btn-export.excel {
+        color: #1d7a3f;
     }
 
     .empty-state {
@@ -284,7 +295,7 @@
         </div>
         <div class="summary-item">
             <div class="summary-label">Status</div>
-            <div class="summary-value" style="color: #27ae60; font-size: 1.4rem;">D</div>
+            <div class="summary-value" style="color: #27ae60; font-size: 1.4rem;">✓</div>
         </div>
     </div>
 </div>
@@ -293,7 +304,12 @@
 <div class="report-table-container" data-print-root>
     <div class="table-header">
         <h3><i class="fas fa-table"></i> Department Records</h3>
-        <div class="table-period"><?= $reportData['generated_at'] ?? date('Y-m-d H:i:s') ?></div>
+        <div class="table-actions">
+            <div class="table-period"><?= $reportData['generated_at'] ?? date('Y-m-d H:i:s') ?></div>
+            <a href="<?= base_url('reports/export/department-excel') ?>" class="btn-export excel">
+                <i class="fas fa-file-excel"></i> Download Excel
+            </a>
+        </div>
     </div>
     
     <?php if (!empty($reportData['data'])): ?>

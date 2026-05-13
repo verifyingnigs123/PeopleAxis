@@ -2,6 +2,13 @@
 
 <?= $this->section('content') ?>
 
+<?php
+    $rows = $reportData['data'] ?? [];
+    $totalRecords = count($rows);
+    $periodValue = $reportData['period'] ?? date('Y-m');
+    $periodLabel = date('F Y', strtotime($periodValue . '-01'));
+?>
+
 <style>
     .attendance-display-shell {
         max-width: 1240px;
@@ -28,6 +35,15 @@
         margin: 0 6px;
     }
 
+    .page-header,
+    .report-info,
+    .report-table-container {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
     .page-header {
         display: flex;
         justify-content: space-between;
@@ -35,11 +51,7 @@
         gap: 14px;
         flex-wrap: wrap;
         margin-bottom: 14px;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
         padding: 16px 18px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     }
 
     .page-header h1 {
@@ -57,10 +69,6 @@
     }
 
     .report-info {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
         padding: 14px;
         margin-bottom: 14px;
     }
@@ -69,7 +77,6 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 12px;
-        margin-bottom: 16px;
     }
 
     .summary-item {
@@ -97,10 +104,6 @@
     }
 
     .report-table-container {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
         overflow: hidden;
     }
 
@@ -121,10 +124,43 @@
         font-size: 1.05rem;
     }
 
+    .table-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
     .table-period {
         font-size: 0.84rem;
         opacity: 0.92;
         font-weight: 600;
+    }
+
+    .btn-export {
+        padding: 8px 14px;
+        border: 1px solid #c9d8ef;
+        background: #f1f5fb;
+        color: #6ea988;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: background 0.2s ease, border-color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.84rem;
+        text-decoration: none;
+    }
+
+    .btn-export:hover {
+        background: #e7effa;
+        border-color: #bdd2ee;
+        text-decoration: none;
+    }
+
+    .btn-export.excel {
+        color: #1d7a3f;
     }
 
     .report-table {
@@ -154,6 +190,22 @@
 
     .report-table tbody tr:hover {
         background: #fbfdff;
+    }
+
+    .employee-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .employee-name {
+        font-weight: 700;
+        color: #2f5f45;
+    }
+
+    .employee-code {
+        font-size: 0.78rem;
+        color: #6f8192;
     }
 
     .status-badge {
@@ -191,35 +243,6 @@
         border-color: #c7dff1;
     }
 
-    .export-buttons {
-        display: flex;
-        gap: 8px;
-        margin-top: 14px;
-        flex-wrap: wrap;
-    }
-
-    .btn-export {
-        padding: 8px 14px;
-        border: 1px solid #c9d8ef;
-        background: #f1f5fb;
-        color: #6ea988;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 700;
-        transition: background 0.2s ease, border-color 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.84rem;
-        text-decoration: none;
-    }
-
-    .btn-export:hover {
-        background: #e7effa;
-        border-color: #bdd2ee;
-        text-decoration: none;
-    }
-
     .empty-state {
         text-align: center;
         padding: 40px 14px;
@@ -238,11 +261,15 @@
         margin-top: 8px;
     }
 
+    .report-footer {
+        padding: 14px;
+    }
+
     @media (max-width: 768px) {
         .report-summary {
             grid-template-columns: repeat(2, 1fr);
         }
-        
+
         .page-header {
             padding: 14px;
         }
@@ -266,8 +293,8 @@
             grid-template-columns: 1fr;
         }
 
-        .export-buttons {
-            flex-direction: column;
+        .table-actions {
+            width: 100%;
         }
 
         .btn-export {
@@ -278,100 +305,112 @@
 </style>
 
 <div class="attendance-display-shell">
-
-<!-- Breadcrumbs -->
-<div class="breadcrumbs">
-    <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
-    <span>/</span>
-    <a href="<?= base_url('reports') ?>"><i class="fas fa-chart-bar"></i> Reports</a>
-    <span>/</span>
-    <span>Attendance Report</span>
-</div>
-
-<!-- Page Header -->
-<div class="page-header">
-    <div>
-        <h1><i class="fas fa-chart-line"></i> Attendance Report</h1>
-        <p>Detailed attendance records for your organization</p>
+    <div class="breadcrumbs">
+        <a href="<?= base_url('dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a>
+        <span>/</span>
+        <a href="<?= base_url('reports') ?>"><i class="fas fa-chart-bar"></i> Reports</a>
+        <span>/</span>
+        <span>Attendance Report</span>
     </div>
-</div>
 
-<!-- Report Info -->
-<div class="report-info">
-    <div class="report-summary">
-        <div class="summary-item">
-            <div class="summary-label">Report Period</div>
-            <div class="summary-value"><?= date('M Y', strtotime($reportData['period'] ?? 'now')) ?></div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Total Records</div>
-            <div class="summary-value"><?= count($reportData['data'] ?? []) ?></div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Generated On</div>
-            <div class="summary-value" style="font-size: 1.2rem;"><?= date('M d', strtotime($reportData['generated_at'] ?? 'now')) ?></div>
-        </div>
-        <div class="summary-item">
-            <div class="summary-label">Status</div>
-            <div class="summary-value" style="color: #27ae60; font-size: 1.4rem;">✓</div>
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-chart-line"></i> Attendance Report</h1>
+            <p>Detailed attendance records for your organization</p>
         </div>
     </div>
-</div>
 
-<!-- Report Table -->
-<div class="report-table-container" data-print-root>
-    <div class="table-header">
-        <h3><i class="fas fa-table"></i> Attendance Records</h3>
-        <div class="table-period"><?= $reportData['period'] ?? date('Y-m') ?></div>
+    <div class="report-info">
+        <div class="report-summary">
+            <div class="summary-item">
+                <div class="summary-label">Report Period</div>
+                <div class="summary-value"><?= esc($periodLabel) ?></div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Total Records</div>
+                <div class="summary-value"><?= $totalRecords ?></div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Generated On</div>
+                <div class="summary-value" style="font-size: 1.2rem;"><?= date('M d', strtotime($reportData['generated_at'] ?? 'now')) ?></div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Status</div>
+                <div class="summary-value" style="color: #27ae60; font-size: 1.4rem;">✓</div>
+            </div>
+        </div>
     </div>
-    
-    <?php if (!empty($reportData['data'])): ?>
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Employee</th>
-                    <th>Employee ID</th>
-                    <th>Department</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($reportData['data'] as $record): ?>
+
+    <div class="report-table-container" data-print-root>
+        <div class="table-header">
+            <h3><i class="fas fa-table"></i> Attendance Records</h3>
+            <div class="table-actions">
+                <div class="table-period"><?= esc($reportData['period'] ?? date('Y-m')) ?></div>
+                <a href="<?= base_url('reports/export/attendance-excel') ?>" class="btn-export excel">
+                    <i class="fas fa-file-excel"></i> Download Excel
+                </a>
+            </div>
+        </div>
+
+        <?php if (!empty($rows)): ?>
+            <table class="report-table">
+                <thead>
                     <tr>
-                        <td><?= date('M d, Y', strtotime($record['date'])) ?></td>
-                        <td>
-                            <strong><?= htmlspecialchars($record['first_name'] . ' ' . $record['last_name']) ?></strong>
-                        </td>
-                        <td><?= htmlspecialchars($record['emp_code'] ?? 'N/A') ?></td>
-                        <td><?= htmlspecialchars($record['department_name'] ?? 'Unassigned') ?></td>
-                        <td><?= date('h:i A', strtotime($record['time_in'])) ?></td>
-                        <td><?= date('h:i A', strtotime($record['time_out'])) ?></td>
-                        <td>
-                            <span class="status-badge badge-<?= strtolower($record['status']) ?>">
-                                <?= htmlspecialchars($record['status']) ?>
-                            </span>
-                        </td>
+                        <th>#</th>
+                        <th>Employee</th>
+                        <th>Employee ID</th>
+                        <th>RFID Number</th>
+                        <th>Department</th>
+                        <th>Date</th>
+                        <th>Time In</th>
+                        <th>Break Out</th>
+                        <th>Break In</th>
+                        <th>Time Out</th>
+                        <th>Status</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php else: ?>
-        <div class="empty-state">
-            <i class="fas fa-inbox"></i>
-            <p><strong>No attendance records found</strong></p>
-            <p class="empty-note">There are no attendance records for the selected period.</p>
-        </div>
-    <?php endif; ?>
-    
-    <!-- Print Only -->
-    <div style="padding:14px;">
-        <?= view('reports/_print_helpers') ?>
-    </div>
-</div>
+                </thead>
+                <tbody>
+                    <?php foreach ($rows as $index => $record): ?>
+                        <?php
+                            $status = strtolower((string) ($record['status'] ?? 'pending'));
+                            $employeeName = trim((string) (($record['first_name'] ?? '') . ' ' . ($record['last_name'] ?? '')));
+                        ?>
+                        <tr>
+                            <td><?= $index + 1 ?></td>
+                            <td>
+                                <div class="employee-cell">
+                                    <span class="employee-name"><?= esc($employeeName) ?></span>
+                                </div>
+                            </td>
+                            <td><?= esc($record['emp_code'] ?? 'N/A') ?></td>
+                            <td><?= esc($record['rfid_number'] ?? 'N/A') ?></td>
+                            <td><?= esc($record['department_name'] ?? 'Unassigned') ?></td>
+                            <td><?= !empty($record['date']) ? date('M d, Y', strtotime($record['date'])) : '-' ?></td>
+                            <td><?= !empty($record['time_in']) ? date('h:i A', strtotime($record['time_in'])) : '-' ?></td>
+                            <td><?= !empty($record['break_out']) ? date('h:i A', strtotime($record['break_out'])) : '-' ?></td>
+                            <td><?= !empty($record['break_in']) ? date('h:i A', strtotime($record['break_in'])) : '-' ?></td>
+                            <td><?= !empty($record['time_out']) ? date('h:i A', strtotime($record['time_out'])) : '-' ?></td>
+                            <td>
+                                <span class="status-badge badge-<?= esc($status) ?>">
+                                    <?= esc(ucfirst($record['status'] ?? 'Pending')) ?>
+                                </span>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p><strong>No attendance records found</strong></p>
+                <p class="empty-note">There are no attendance records for the selected period.</p>
+            </div>
+        <?php endif; ?>
 
+        <div class="report-footer">
+            <?= view('reports/_print_helpers') ?>
+        </div>
+    </div>
 </div>
 
 <?= $this->endSection() ?>
