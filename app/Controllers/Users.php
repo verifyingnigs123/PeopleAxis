@@ -840,6 +840,13 @@ class Users extends BaseController
                 ]);
             }
 
+            if ($this->isProtectedSuperAdminAccount($user)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Super Admin accounts cannot be modified.'
+                ]);
+            }
+
             if ($this->userModel->activateUser($id)) {
                 // Log audit
                 $userId = session()->get('user_id');
@@ -885,6 +892,13 @@ class Users extends BaseController
                 return $this->response->setStatusCode(404)->setJSON([
                     'success' => false,
                     'message' => 'User not found'
+                ]);
+            }
+
+            if ($this->isProtectedSuperAdminAccount($user)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Super Admin accounts cannot be modified.'
                 ]);
             }
 
@@ -943,6 +957,13 @@ class Users extends BaseController
                 return $this->response->setStatusCode(404)->setJSON([
                     'success' => false,
                     'message' => 'User not found'
+                ]);
+            }
+
+            if ($this->isProtectedSuperAdminAccount($user)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Super Admin accounts cannot be modified.'
                 ]);
             }
 

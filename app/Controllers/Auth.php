@@ -155,6 +155,45 @@ class Auth extends BaseController
         return redirect()->to('/')->with('success', 'You have been logged out');
     }
 
+    public function sessionStatus()
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setJSON([
+                'success'      => false,
+                'force_logout' => true,
+                'message'      => 'Your session has ended. Please sign in again.',
+            ])->setStatusCode(401);
+        }
+
+        $userId = (int) session()->get('user_id');
+        if ($userId <= 0) {
+            session()->destroy();
+
+            return $this->response->setJSON([
+                'success'      => false,
+                'force_logout' => true,
+                'message'      => 'Your session is invalid. Please sign in again.',
+            ])->setStatusCode(401);
+        }
+
+        $user = $this->userModel->select('id, is_active, deleted_at')->find($userId);
+
+        if (! $user || (int) $user->is_active !== 1 || ! empty($user->deleted_at)) {
+            session()->destroy();
+
+            return $this->response->setJSON([
+                'success'      => false,
+                'force_logout' => true,
+                'message'      => 'Your account has been removed or deactivated. Please sign in again.',
+            ])->setStatusCode(401);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'active'  => true,
+        ]);
+    }
+
     private function getLoginThrottleKey(string $login): string
     {
         return hash('sha256', strtolower(trim($login)));

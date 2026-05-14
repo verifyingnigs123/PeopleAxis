@@ -210,9 +210,9 @@
         }
 
         .alert-danger {
-            background-color: #e7f2ea;
-            color: #254132;
-            border-color: #c7ddd0;
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f1b0b7;
         }
 
         .alert-warning {

@@ -709,7 +709,7 @@
                                             <i class="fas fa-edit"></i> Edit
                                         </button>
                                     <?php endif; ?>
-                                    <?php if ($u->is_active): ?>
+                                    <?php if ($u->is_active && ! $isProtectedSuperAdmin): ?>
                                             <?php if ($u->id != $currentUserId): ?>
                                                 <button type="button" class="btn btn-sm btn-delete" data-user-id="<?= $u->id ?>" data-user-name="<?= esc($u->name) ?>" onclick="showDeleteModal(this, <?= $u->id ?>, '<?= esc($u->name) ?>')" title="Delete User">
                                                     <i class="fas fa-trash"></i> Delete
@@ -719,9 +719,13 @@
                                                     <i class="fas fa-shield-alt"></i>
                                                 </button>
                                             <?php endif; ?>
-                                        <?php else: ?>
+                                        <?php elseif (! $u->is_active && ! $isProtectedSuperAdmin): ?>
                                             <button type="button" class="btn btn-sm btn-restore" data-user-id="<?= $u->id ?>" onclick="showRestoreModal(<?= $u->id ?>, '<?= esc($u->name) ?>')" title="Restore User">
                                                 <i class="fas fa-undo"></i> Restore
+                                            </button>
+                                        <?php elseif ($isProtectedSuperAdmin): ?>
+                                            <button type="button" class="btn btn-sm btn-disabled" disabled title="Super Admin account is protected">
+                                                <i class="fas fa-shield-alt"></i>
                                             </button>
                                         <?php endif; ?>
                                 </div>

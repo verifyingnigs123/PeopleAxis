@@ -1146,12 +1146,21 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => {
+            if (response.status === 401) {
+                window.location.href = '<?= base_url('logout') ?>';
+                return null;
+            }
+
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             return response.json();
         })
         .then(data => {
+            if (!data) {
+                return;
+            }
+
             if (data.success && Array.isArray(data.notifications)) {
                 handleRealtimeNotifications(data.notifications);
                 renderNotifications(data.notifications);
@@ -1625,6 +1634,90 @@ document.addEventListener('DOMContentLoaded', function() {
         stopNotificationsPolling();
         if (streamReconnectHandle) {
             clearTimeout(streamReconnectHandle);
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sessionStatusUrl = '<?= base_url('api/auth/session-status') ?>';
+    const logoutUrl = '<?= base_url('logout') ?>';
+    const isLoggedIn = <?= session()->get('logged_in') ? 'true' : 'false' ?>;
+
+    if (!isLoggedIn) {
+        return;
+    }
+
+    let sessionCheckHandle = null;
+    let logoutTriggered = false;
+
+    function triggerLogout(message) {
+        if (logoutTriggered) {
+            return;
+        }
+
+        logoutTriggered = true;
+
+        if (sessionCheckHandle) {
+            clearInterval(sessionCheckHandle);
+            sessionCheckHandle = null;
+        }
+
+        if (message) {
+            console.warn(message);
+        }
+
+        window.location.href = logoutUrl;
+    }
+
+    function checkSessionStatus() {
+        fetch(sessionStatusUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                triggerLogout();
+                return null;
+            }
+
+            if (!response.ok) {
+                throw new Error('Session check failed');
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            if (!data || logoutTriggered) {
+                return;
+            }
+
+            if (data.force_logout || data.active === false) {
+                triggerLogout(data.message || 'Your account is no longer active.');
+            }
+        })
+        .catch(() => {
+            // Keep trying on transient network failures; the next successful check
+            // will still force a logout if the account has been disabled.
+        });
+    }
+
+    checkSessionStatus();
+    sessionCheckHandle = setInterval(checkSessionStatus, 2000);
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            checkSessionStatus();
+        }
+    });
+
+    window.addEventListener('focus', checkSessionStatus);
+    window.addEventListener('beforeunload', function() {
+        if (sessionCheckHandle) {
+            clearInterval(sessionCheckHandle);
         }
     });
 });

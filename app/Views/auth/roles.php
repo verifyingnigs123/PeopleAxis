@@ -827,38 +827,7 @@
         restoreName: null
     };
 
-    // ===== EDIT ROLE FUNCTION =====
-    fetch('<?= base_url('roles/getRole') ?>/' + roleId)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const role = data.data;
-                document.getElementById('editRoleTitle').textContent = role.name;
-                document.getElementById('editRoleName').value = role.name;
-                document.getElementById('editRoleDescription').value = role.description || '';
-                
-                // Format and display dates
-                const createdDate = new Date(role.created_at);
-                const updatedDate = new Date(role.updated_at || role.created_at);
-                document.getElementById('editRoleCreatedDate').textContent = createdDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-                document.getElementById('editRoleUpdatedDate').textContent = updatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-                
-                document.getElementById('editRoleForm').action = '<?= base_url('roles/update') ?>/' + roleId;
-                
-                // Clear previous errors
-                document.getElementById('editRoleErrors').style.display = 'none';
-                document.getElementById('editRoleErrorsList').innerHTML = '';
-            } else {
-                alert('Failed to load role data');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error loading role data');
-        });
-}
-
-function deleteRole(roleId, roleName) {
+    function deleteRole(roleId, roleName) {
     // Store the role data in variables
     pendingDeleteRoleId = roleId;
     pendingDeleteRoleName = roleName;

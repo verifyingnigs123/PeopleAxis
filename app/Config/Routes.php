@@ -14,6 +14,7 @@ $routes->get('/home', 'Home::index');
 $routes->get('/login', 'Auth::login');
 $routes->post('/login', 'Auth::loginProcess');
 $routes->get('/logout', 'Auth::logout');
+$routes->get('/api/auth/session-status', 'Auth::sessionStatus');
 $routes->get('/dashboard', 'Dashboard::index');
 
 // Leaves

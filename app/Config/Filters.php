@@ -82,6 +82,7 @@ class Filters extends BaseFilters
             ],
             'activeUser' => [
                 'except' => [
+                    'api/auth/session-status',
                     'api/attendance/rfid-process',
                     'attendance/now',
                 ],
