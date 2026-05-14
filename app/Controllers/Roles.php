@@ -179,6 +179,13 @@ class Roles extends BaseController
 
         $this->roleModel->update($id, $updateData);
 
+        // If privileges changed, invalidate sessions for users with this role
+        $oldPrivileges = $role->privileges ?? null;
+        $newPrivileges = $updateData['privileges'] ?? null;
+        if ($oldPrivileges !== $newPrivileges) {
+            $this->invalidateSessionsByRoleId($role->id);
+        }
+
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Role updated successfully',
@@ -260,6 +267,8 @@ class Roles extends BaseController
             $this->roleModel->update($id, [
                 'deleted_at' => date('Y-m-d H:i:s'),
             ]);
+            // Invalidate sessions for users with this role so they are forced to re-login
+            $this->invalidateSessionsByRoleId($role->id);
 
             return $this->response->setJSON([
                 'success' => true,
@@ -342,5 +351,46 @@ class Roles extends BaseController
             'success' => true,
             'data' => $role
         ]);
+    }
+
+    /**
+     * Invalidate session files for all users that have the given role id.
+     * This forces affected users to re-login so their privileges are reloaded.
+     */
+    private function invalidateSessionsByRoleId($roleId)
+    {
+        $sessionPath = WRITEPATH . 'session';
+        if (!is_dir($sessionPath)) {
+            return;
+        }
+
+        $files = scandir($sessionPath);
+        foreach ($files as $file) {
+            if (strpos($file, 'ci_session') !== 0) {
+                continue;
+            }
+
+            $full = $sessionPath . DIRECTORY_SEPARATOR . $file;
+            $contents = @file_get_contents($full);
+            if ($contents === false) {
+                continue;
+            }
+
+            // Look for role_id stored in session data. Session format stores key|s:length:"value";
+            if (strpos($contents, 'role_id|') === false) {
+                continue;
+            }
+
+            $matched = false;
+                if (preg_match('/role_id\\|s:\\d+:"([^\"]*)";/', $contents, $m)) {
+                $matched = ($m[1] === (string) $roleId);
+            } elseif (preg_match('/role_id\|i:(\d+);/', $contents, $m)) {
+                $matched = ((string) $m[1] === (string) $roleId);
+            }
+
+            if ($matched) {
+                @unlink($full);
+            }
+        }
     }
 }
