@@ -664,7 +664,7 @@ if ($isManager) {
                     </a>
                     <?php endif; ?>
                     <?php if ($canCreateUsers): ?>
-                    <a href="<?= base_url('users/create') ?>" class="sidebar-link">
+                    <a href="<?= base_url('users') . '#addUser' ?>" class="sidebar-link">
                         <i class="fas fa-user-plus"></i> Add User
                     </a>
                     <?php endif; ?>

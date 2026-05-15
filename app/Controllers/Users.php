@@ -290,7 +290,8 @@ class Users extends BaseController
         }
         
         // Redirect to users page - the add user modal is now on the main page
-        return redirect()->to('/users');
+        // Redirect with hash so the users page can open the add-user modal automatically
+        return redirect()->to('/users#addUser');
     }
 
     /**
@@ -382,6 +383,12 @@ class Users extends BaseController
         // Get role_id early to determine if this is an admin role
         $roleId = (int) $this->request->getPost('role_id');
         $roleName = $this->getRoleNameByRoleId($roleId);
+        // Prevent privilege escalation: only an actual Super Admin may assign the Super Admin role
+        if (strtolower(trim((string) $roleName)) === 'super admin' && ! $this->isSuperAdminUser()) {
+            return redirect()->back()->withInput()->with('errors', [
+                'role_id' => 'You are not authorized to assign the Super Admin role.'
+            ]);
+        }
         $isAdminRole = in_array(strtolower((string) $roleName), ['super admin', 'hr admin'], true);
         
         // Set validation rules based on role type
@@ -769,6 +776,14 @@ class Users extends BaseController
             }
 
             $roleName = strtolower(trim((string) $roleRecord->name));
+
+            // Prevent privilege escalation: only an actual Super Admin may assign the Super Admin role
+            if ($roleName === 'super admin' && ! $this->isSuperAdminUser()) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'You are not authorized to assign the Super Admin role.'
+                ]);
+            }
 
             // Prepare update data
             $updateData = [
