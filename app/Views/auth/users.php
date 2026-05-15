@@ -622,7 +622,7 @@
         $isSuperAdmin = in_array($sessionRole, ['super_admin', 'admin'], true) || $sessionRoleName === 'super admin';
     ?>
     <?php if ($isSuperAdmin): ?>
-    <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">
+    <button type="button" class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">
         <i class="fas fa-user-plus"></i> Add User
     </button>
     <?php endif; ?>
@@ -647,9 +647,26 @@
         <ul style="margin:8px 0 0 20px;">
             <?php foreach ($errors as $error): ?>
                 <li><?= esc($error) ?></li>
-            <?php endforeach; ?>
+            <?php endforeach; ?> 
         </ul>
     </div>
+<?php endif; ?>
+
+<?php if (session()->getFlashdata('errors')): ?>
+    <script>
+        // If server-side validation failed, open the add-user modal so errors are visible
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const modalEl = document.getElementById('addUserModal');
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+            } catch (e) {
+                console.error('Error opening add user modal for server errors:', e);
+            }
+        });
+    </script>
 <?php endif; ?>
 
 <!-- Users Table -->
@@ -744,9 +761,21 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
-                                    <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
-                                </span>
+                                <?php if ($isProtectedSuperAdmin): ?>
+                                    <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>" title="Super Admin account is protected">
+                                        <?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?>
+                                    </span>
+                                <?php else: ?>
+                                    <?php if ($u->is_active): ?>
+                                        <?php if ($u->id != $currentUserId): ?>
+                                            <button type="button" class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>" onclick="toggleUserStatus(<?= $u->id ?>, 'deactivate', this)" title="Click to deactivate user"><?= $u->is_active ? 'ACTIVE' : 'INACTIVE' ?></button>
+                                        <?php else: ?>
+                                            <span class="badge badge-active" id="status-<?= $u->id ?>" title="You cannot deactivate your own account">ACTIVE</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <button type="button" class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>" onclick="toggleUserStatus(<?= $u->id ?>, 'activate', this)" title="Click to activate user">INACTIVE</button>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </td>
                             <td><?= date('M d, Y', strtotime($u->created_at)) ?></td>
                             <td>
@@ -865,28 +894,47 @@
                         <ul style="margin-bottom:0;margin-top:10px;" id="addUserErrorsList"></ul>
                     </div>
 
-                    <input type="hidden" id="addUserName" name="name">
+                    <input type="hidden" id="addUserName" name="name" value="<?= esc(old('name') ?: '') ?>">
 
                     <?php
                         $addUserTypeOptions = [];
-                        $isHrAdminForm = strtolower((string) session()->get('role_name')) === 'hr admin';
-                        $isSuperAdmin = strtolower((string) session()->get('role')) === 'admin';
-                        
+                        $sessionRole = strtolower((string) session()->get('role'));
+                        $sessionRoleName = strtolower((string) session()->get('role_name'));
+                        $isSuperAdmin = in_array($sessionRole, ['super_admin', 'admin'], true) || $sessionRoleName === 'super admin';
+                        $isHrAdminForm = in_array($sessionRole, ['hr', 'hr_admin'], true) || $sessionRoleName === 'hr admin';
+
                         foreach ($rolesList as $roleOption) {
                             $roleName = strtolower((string) ($roleOption->name ?? ''));
-                            
-                            // Super Admin can assign any role
+
+                            // Super Admin can assign roles (but we may exclude the default Super Admin option itself)
                             if ($isSuperAdmin) {
-                                // Exclude only internal/system roles from dropdown (keep dynamic)
                                 if (!in_array($roleName, ['super admin'], true)) {
                                     $addUserTypeOptions[] = $roleOption;
                                 }
-                            } 
+                            }
+
                             // HR Admin can only assign Manager and Employee roles
                             else if ($isHrAdminForm) {
                                 if (in_array($roleName, ['manager', 'employee'], true)) {
                                     $addUserTypeOptions[] = $roleOption;
                                 }
+                            }
+                        }
+                        // If no options were added but the current user has the privilege to create users (custom role),
+                        // allow them to choose from available roles except Super Admin as a safe fallback.
+                        if (empty($addUserTypeOptions)) {
+                            try {
+                                $privHelper = new \App\Helpers\PrivilegeHelper();
+                                if ($privHelper->hasPrivilege('users_create')) {
+                                    foreach ($rolesList as $roleOption) {
+                                        $roleName = strtolower((string) ($roleOption->name ?? ''));
+                                        if (!in_array($roleName, ['super admin'], true)) {
+                                            $addUserTypeOptions[] = $roleOption;
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                // ignore and leave options empty
                             }
                         }
                     ?>
@@ -897,15 +945,15 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="addUserFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="addUserFirstName" name="first_name"
-                                       placeholder="Enter first name" required>
+                                                <input type="text" class="form-control" id="addUserFirstName" name="first_name"
+                                                    placeholder="Enter first name" required value="<?= esc(old('first_name') ?: '') ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="addUserLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="addUserLastName" name="last_name"
-                                       placeholder="Enter last name" required>
+                                                <input type="text" class="form-control" id="addUserLastName" name="last_name"
+                                                    placeholder="Enter last name" required value="<?= esc(old('last_name') ?: '') ?>">
                                 <small id="nameError" class="text-danger" style="display:none;"></small>
                             </div>
                         </div>
@@ -915,16 +963,16 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="addUserRfidNumber" class="form-label">RFID Number / Employee ID <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="addUserRfidNumber" name="rfid_number"
-                                       placeholder="Enter RFID number (will be used as Employee ID)" required>
+                                    <input type="text" class="form-control" id="addUserRfidNumber" name="rfid_number"
+                                        placeholder="Enter RFID number (will be used as Employee ID)" required value="<?= esc(old('rfid_number') ?: '') ?>">
                                 <small class="text-muted">This RFID number will be used as the Employee ID</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="addUserEmail" class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="addUserEmail" name="email"
-                                       placeholder="Enter email address" required>
+                                    <input type="email" class="form-control" id="addUserEmail" name="email"
+                                        placeholder="Enter email address" required value="<?= esc(old('email') ?: '') ?>">
                             </div>
                         </div>
                     </div>
@@ -933,8 +981,8 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="addUserPhone" class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="addUserPhone" name="phone"
-                                       placeholder="+639xxxxxxxxx" value="<?= esc(old('phone') ?: '+63') ?>" maxlength="13" autocomplete="off">
+                                    <input type="tel" class="form-control" id="addUserPhone" name="phone"
+                                        placeholder="+639xxxxxxxxx" value="<?= esc(old('phone') ?: '+63') ?>" maxlength="13" autocomplete="off">
                                 <small id="addUserPhoneError" class="text-danger" style="display:none;">Letters &amp; other Special Characters are not allowed</small>
                             </div>
                         </div>
@@ -942,13 +990,13 @@
                             <div class="mb-3">
                                 <label for="addUserDepartment" class="form-label">Department</label>
                                 <select class="form-select" id="addUserDepartment" name="department_id">
-                                    <option value="" selected>Select department</option>
-                                    <?php if (!empty($departments)): ?>
-                                        <?php foreach ($departments as $department): ?>
-                                            <option value="<?= (int) $department->id ?>"><?= esc($department->name) ?></option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
+                                        <option value="">Select department</option>
+                                        <?php if (!empty($departments)): ?>
+                                            <?php foreach ($departments as $department): ?>
+                                                <option value="<?= (int) $department->id ?>" <?= (old('department_id') == $department->id) ? 'selected' : '' ?>><?= esc($department->name) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
                             </div>
                         </div>
                     </div>
@@ -956,12 +1004,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="addUserDateOfBirth" class="form-label">Date of Birth <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="addUserDateOfBirth" name="date_of_birth" required>
+                            <input type="date" class="form-control" id="addUserDateOfBirth" name="date_of_birth" required value="<?= esc(old('date_of_birth') ?: '') ?>">
                             <small id="addUserDobError" class="text-danger" style="display:none;">User should be 18 and above (please be guided).</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="addUserDateHired" class="form-label">Date of Hired</label>
-                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining">
+                            <input type="date" class="form-control" id="addUserDateHired" name="date_of_joining" value="<?= esc(old('date_of_joining') ?: '') ?>">
                         </div>
                     </div>
 
@@ -970,9 +1018,9 @@
                             <div class="mb-3">
                                 <label for="addUserType" class="form-label">Type <span class="text-danger">*</span></label>
                                 <select class="form-select" id="addUserType" name="role_id" required>
-                                    <option value="" disabled selected>Select type</option>
+                                    <option value="" disabled <?= old('role_id') ? '' : 'selected' ?>>Select type</option>
                                     <?php foreach ($addUserTypeOptions as $typeOption): ?>
-                                        <option value="<?= $typeOption->id ?>"><?= esc($typeOption->name) ?></option>
+                                        <option value="<?= $typeOption->id ?>" <?= (old('role_id') == $typeOption->id) ? 'selected' : '' ?>><?= esc($typeOption->name) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -984,28 +1032,28 @@
                             <div class="mb-3">
                                 <label for="addUserEmploymentType" class="form-label">Employment Type</label>
                                 <select class="form-select" id="addUserEmploymentType" name="employment_type">
-                                    <option value="" selected>Select employment type</option>
-                                    <option value="full_time">Full-Time</option>
-                                    <option value="part_time">Part-Time</option>
-                                    <option value="contractual">Contractual</option>
-                                    <option value="probationary">Probationary</option>
+                                    <option value="">Select employment type</option>
+                                    <option value="full_time" <?= old('employment_type') === 'full_time' ? 'selected' : '' ?>>Full-Time</option>
+                                    <option value="part_time" <?= old('employment_type') === 'part_time' ? 'selected' : '' ?>>Part-Time</option>
+                                    <option value="contractual" <?= old('employment_type') === 'contractual' ? 'selected' : '' ?>>Contractual</option>
+                                    <option value="probationary" <?= old('employment_type') === 'probationary' ? 'selected' : '' ?>>Probationary</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="addUserRate" class="form-label">Rate</label>
-                                <input type="number" class="form-control" id="addUserRate" name="rate" min="0" step="0.01" placeholder="0.00">
+                                <input type="number" class="form-control" id="addUserRate" name="rate" min="0" step="0.01" placeholder="0.00" value="<?= esc(old('rate') ?: '') ?>">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="addUserRateType" class="form-label">Rate Type</label>
                                 <select class="form-select" id="addUserRateType" name="rate_type">
-                                    <option value="" selected>Select rate type</option>
-                                    <option value="hourly">Hourly</option>
-                                    <option value="daily">Daily</option>
-                                    <option value="monthly">Monthly</option>
+                                    <option value="">Select rate type</option>
+                                    <option value="hourly" <?= old('rate_type') === 'hourly' ? 'selected' : '' ?>>Hourly</option>
+                                    <option value="daily" <?= old('rate_type') === 'daily' ? 'selected' : '' ?>>Daily</option>
+                                    <option value="monthly" <?= old('rate_type') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
                                 </select>
                             </div>
                         </div>
@@ -1015,8 +1063,8 @@
                         <div class="col-12 mb-3">
                             <label for="addUserStatus" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="addUserStatus" name="is_active" required>
-                                <option value="1" selected>Active</option>
-                                <option value="0">Inactive</option>
+                                <option value="1" <?= (old('is_active') === null || old('is_active') == '1') ? 'selected' : '' ?>>Active</option>
+                                <option value="0" <?= old('is_active') == '0' ? 'selected' : '' ?>>Inactive</option>
                             </select>
                         </div>
                     </div>
@@ -1108,6 +1156,69 @@
 </div>
 
 <script>
+// If page loaded with hash #addUser, show the add-user modal automatically
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        if (window.location.hash === '#addUser') {
+            const modalEl = document.getElementById('addUserModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+                // Clear the hash so reloading doesn't reopen the modal unintentionally
+                history.replaceState(null, document.title, window.location.pathname + window.location.search);
+            }
+        }
+    } catch (e) {
+        console.error('Error opening add user modal from hash:', e);
+    }
+});
+
+// Delegated handler: intercept clicks to sidebar "Add User" link and open modal instead
+document.addEventListener('click', function (e) {
+    try {
+        const a = e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        // Handle legacy create route and hash-based addUser links
+        if (href.indexOf('users/create') !== -1 || href.indexOf('/users/create') !== -1 || href.indexOf('#addUser') !== -1) {
+            e.preventDefault();
+            const modalEl = document.getElementById('addUserModal');
+            if (modalEl) {
+                // If already on users page and link is only a hash, just open modal
+                if (window.location.pathname.replace(/\/$/, '') === '/users' || window.location.pathname.indexOf('/users') !== -1) {
+                    history.replaceState(null, document.title, window.location.pathname + window.location.search + '#addUser');
+                } else {
+                    history.replaceState(null, document.title, '/users#addUser');
+                }
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                // fallback: navigate to users page with hash if modal not present
+                window.location.href = '/users#addUser';
+            }
+        }
+    } catch (err) {
+        console.error('Error handling Add User link click:', err);
+    }
+});
+
+// Also support hashchange events (e.g., when navigating to /users#addUser)
+window.addEventListener('hashchange', function () {
+    try {
+        if (window.location.hash === '#addUser') {
+            const modalEl = document.getElementById('addUserModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+                // Keep URL clean after showing
+                history.replaceState(null, document.title, window.location.pathname + window.location.search);
+            }
+        }
+    } catch (e) {
+        console.error('Error handling hashchange for addUser:', e);
+    }
+});
+
 function blockSearchSpecialChars(input) {
     const SEARCH_ALLOWED = /^[a-zA-Z0-9\s@._\-]*$/;
     const errorDiv = document.getElementById(input.id + 'Error') || document.getElementById('userSearchError');
@@ -1222,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function toggleUserStatus(userId, action) {
+function toggleUserStatus(userId, action, source) {
     let confirmMessage = '';
     if (action === 'activate') {
         confirmMessage = 'Are you sure you want to activate this user?';
@@ -1242,11 +1353,14 @@ function toggleUserStatus(userId, action) {
         return;
     }
 
-    // Show loading state on button
-    const button = event.target.closest('button');
-    const originalContent = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    // Determine source button (supports inline onclick passing `this` or event-based calls)
+    let button = source || (typeof event !== 'undefined' ? event.target.closest('button') : null);
+    let originalContent = '';
+    if (button) {
+        originalContent = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    }
 
     const url = `<?= base_url('users/') ?>${action}/${userId}`;
     
@@ -1266,7 +1380,7 @@ function toggleUserStatus(userId, action) {
         if (data.success) {
             // Update status badge in real-time
             const statusBadge = document.getElementById(`status-${userId}`);
-            const actionCell = button.closest('td');
+            const actionCell = (button && button.closest) ? button.closest('td') : (statusBadge ? statusBadge.closest('tr').querySelector('.action-buttons') : null);
             
             if (data.status === 'ACTIVE') {
                 statusBadge.className = 'badge badge-active';
@@ -1317,8 +1431,10 @@ function toggleUserStatus(userId, action) {
         showNotification('An unexpected error occurred', 'error');
         
         // Restore button state
-        button.disabled = false;
-        button.innerHTML = originalContent;
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = originalContent;
+        }
     });
 }
 

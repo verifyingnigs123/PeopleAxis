@@ -94,6 +94,8 @@ $routes->get('/attendance/check-in', 'Attendance::checkIn');
 $routes->get('/attendance/check-out', 'Attendance::checkOut');
 $routes->get('/attendance/break-out', 'Attendance::breakOut');
 $routes->get('/attendance/break-in', 'Attendance::breakIn');
+// API endpoint for RFID processing (AJAX)
+$routes->post('/api/attendance/rfid-process', 'Attendance::rfidProcess');
 
 // Activity Logs / Audit routes
 $routes->get('/activity-logs', 'Audit::index');
