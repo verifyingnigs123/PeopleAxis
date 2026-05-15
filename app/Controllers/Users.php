@@ -305,7 +305,7 @@ class Users extends BaseController
         // Load users with role information to avoid N+1 queries in the view
         $db = \Config\Database::connect();
         $users = $db->table('users')
-            ->select('users.*, roles.id as role_id, roles.name as role_name')
+            ->select('users.*, roles.id as role_id, roles.name as role_name, roles.privileges as role_privileges')
             ->join('roles', 'roles.id = users.role_id', 'left')
             ->orderBy('users.created_at', 'DESC')
             ->get()
@@ -314,14 +314,28 @@ class Users extends BaseController
         $data['users'] = $users;
         $currentUserId = session()->get('user_id');
         
-        // Get role names for display
+        // Get role names and privileges for display
         $db = \Config\Database::connect();
         $roles = $db->table('roles')->get()->getResultArray();
         $roleMap = [];
+        $rolePrivilegesMap = [];
         foreach ($roles as $role) {
             $roleMap[$role['id']] = $role['name'];
+            $privileges = [];
+            if (!empty($role['privileges'])) {
+                try {
+                    $decoded = json_decode($role['privileges'], true);
+                    if (is_array($decoded)) {
+                        $privileges = $decoded;
+                    }
+                } catch (\Exception $e) {
+                    $privileges = [];
+                }
+            }
+            $rolePrivilegesMap[$role['id']] = $privileges;
         }
         $data['roleMap'] = $roleMap;
+        $data['rolePrivilegesMap'] = $rolePrivilegesMap;
         
         // Separate current admin from other users
         $adminUser = null;

@@ -437,6 +437,27 @@
         display: inline-block;
     }
 
+    .privilege-tag {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .privilege-tag:hover {
+        opacity: 0.85;
+    }
+
+    .privileges-display {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
     #addUserModal .modal-dialog {
         max-width: 900px;
     }
@@ -654,6 +675,7 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Privileges</th>
                         <th>Status</th>
                         <th>Joined</th>
                         <th>Actions</th>
@@ -695,6 +717,31 @@
                                 <span class="badge <?= $roleClass ?>">
                                     <?= esc($roleName) ?>
                                 </span>
+                            </td>
+                            <td>
+                                <?php
+                                    $userPrivileges = [];
+                                    if (!empty($u->role_id) && isset($rolePrivilegesMap[$u->role_id])) {
+                                        $userPrivileges = $rolePrivilegesMap[$u->role_id];
+                                    }
+                                    
+                                    if (!empty($userPrivileges)): 
+                                ?>
+                                    <div class="privileges-display" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                        <?php foreach (array_slice($userPrivileges, 0, 3) as $priv): ?>
+                                            <span class="privilege-tag" style="background: #e8f4f8; color: #1e6fa5; border: 1px solid #c7dff1; border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; font-weight: 600;">
+                                                <?= esc(str_replace('_', ' ', $priv)) ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                        <?php if (count($userPrivileges) > 3): ?>
+                                            <span class="privilege-tag" title="<?= esc(implode(', ', array_map(fn($p) => str_replace('_', ' ', $p), array_slice($userPrivileges, 3)))) ?>" style="background: #f0f3f6; color: #778899; border: 1px solid #dce5ee; border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;">
+                                                +<?= count($userPrivileges) - 3 ?> more
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span style="color: #97a7b6; font-size: 0.84rem;">No privileges</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="badge <?= $u->is_active ? 'badge-active' : 'badge-inactive' ?>" id="status-<?= $u->id ?>">
