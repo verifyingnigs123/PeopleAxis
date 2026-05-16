@@ -2,10 +2,6 @@
 
 namespace App\Controllers;
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
-
 class Auth extends BaseController
 {
     protected $userModel;
@@ -353,196 +349,31 @@ class Auth extends BaseController
         }
     }
 
-    // ---------------------------------------------------------------
-    // PHPMailer helper
-    // ---------------------------------------------------------------
-    private function getSmtpConfig()
-    {
-        // Try multiple ways to load the Email configuration
-        
-        // Method 1: Direct file include
-        $configFile = APPPATH . 'Config/Email.php';
-        if (file_exists($configFile)) {
-            // Extract configuration values using regex from the file content
-            $content = file_get_contents($configFile);
-            
-            // Extract SMTP values using regex
-            preg_match('/public\s+string\s+\$SMTPHost\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $host);
-            preg_match('/public\s+string\s+\$SMTPUser\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $user);
-            preg_match('/public\s+string\s+\$SMTPPass\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $pass);
-            preg_match('/public\s+string\s+\$fromEmail\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $from);
-            preg_match('/public\s+string\s+\$fromName\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $name);
-            preg_match('/public\s+int\s+\$SMTPPort\s*=\s*(\d+)/', $content, $port);
-            preg_match('/public\s+int\s+\$SMTPTimeout\s*=\s*(\d+)/', $content, $timeout);
-            preg_match('/public\s+string\s+\$SMTPCrypto\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $crypto);
-            
-            return [
-                'host'    => $host[1] ?? 'smtp.gmail.com',
-                'user'    => $user[1] ?? '',
-                'pass'    => $pass[1] ?? '',
-                'port'    => (int)($port[1] ?? 587),
-                'timeout' => (int)($timeout[1] ?? 30),
-                'crypto'  => $crypto[1] ?? 'tls',
-                'from'    => $from[1] ?? '',
-                'name'    => $name[1] ?? 'PeopleAxis HR System',
-            ];
-        }
-        
-        // Fallback: Try object instantiation
-        try {
-            $config = new \Config\Email();
-            return [
-                'host'    => $config->SMTPHost ?? 'smtp.gmail.com',
-                'user'    => $config->SMTPUser ?? '',
-                'pass'    => $config->SMTPPass ?? '',
-                'port'    => $config->SMTPPort ?? 587,
-                'timeout' => $config->SMTPTimeout ?? 30,
-                'crypto'  => $config->SMTPCrypto ?? 'tls',
-                'from'    => $config->fromEmail ?? '',
-                'name'    => $config->fromName ?? 'PeopleAxis HR System',
-            ];
-        } catch (\Exception $e) {
-            log_message('error', '[getSmtpConfig] Error: ' . $e->getMessage());
-        }
-        
-        return [
-            'host'    => 'smtp.gmail.com',
-            'user'    => '',
-            'pass'    => '',
-            'port'    => 587,
-            'timeout' => 30,
-            'crypto'  => 'tls',
-            'from'    => '',
-            'name'    => 'PeopleAxis HR System',
-        ];
-    }
+    // Email sending method removed - using CodeIgniter Email service instead
 
     private function sendOtpEmail(string $to, string $htmlBody)
     {
-        if (!class_exists(PHPMailer::class)) {
-            return $this->sendOtpEmailFallback($to, $htmlBody);
-        }
-
-        $cfg = $this->getSmtpConfig();
-        $smtpHost = (string) $cfg['host'];
-        $smtpUser = (string) $cfg['user'];
-        $smtpPass = (string) $cfg['pass'];
-        $smtpPort = (int) $cfg['port'];
-        $smtpTimeout = (int) $cfg['timeout'];
-        $smtpCrypto = strtolower(trim((string) $cfg['crypto']));
-        $fromEmail = (string) $cfg['from'];
-        $fromName = (string) $cfg['name'];
-
-        if ($smtpHost === '' || $smtpUser === '' || $smtpPass === '') {
-            return 'SMTP configuration is incomplete (host/user/password missing).';
-        }
-
-        $mail = new PHPMailer(true);
         try {
-            $mail->isSMTP();
-            $mail->Host       = $smtpHost;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $smtpUser;
-            $mail->Password   = $smtpPass;
-            $mail->Port       = $smtpPort;
-            $mail->Timeout    = $smtpTimeout;
-
-            if ($smtpCrypto === 'ssl') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            } elseif ($smtpCrypto === 'tls') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $emailConfig = new \Config\Email();
+            $emailService = \Config\Services::email();
+            
+            $emailService->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
+            $emailService->setTo($to);
+            $emailService->setSubject('Your Password Reset OTP - PeopleAxis');
+            $emailService->setMessage($htmlBody);
+            $emailService->setAltMessage(strip_tags($htmlBody));
+            
+            if ($emailService->send()) {
+                log_message('info', '[sendOtpEmail] Email sent successfully to ' . $to);
+                return true;
+            } else {
+                $error = $emailService->printDebugger();
+                log_message('error', '[sendOtpEmail] Failed to send OTP email to [' . $to . ']: ' . $error);
+                return 'Failed to send email. Please try again later.';
             }
-
-            $mail->SMTPAutoTLS = true;
-
-            // Fix SSL certificate verification issues common in XAMPP / local dev
-            $mail->SMTPOptions = [
-                'ssl' => [
-                    'verify_peer'       => false,
-                    'verify_peer_name'  => false,
-                    'allow_self_signed' => true,
-                ],
-            ];
-
-            $mail->setFrom($fromEmail, $fromName);
-            $mail->addAddress($to);
-
-            $mail->isHTML(true);
-            $mail->CharSet  = 'UTF-8';
-            $mail->Subject  = 'Your Password Reset OTP - PeopleAxis';
-            $mail->Body     = $htmlBody;
-            $mail->AltBody  = strip_tags($htmlBody);
-
-            $mail->send();
-            return true;
-        } catch (Exception $e) {
-            $details = $mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage();
-            log_message('error', '[sendOtpEmail] PHPMailer error to [' . $to . ']: ' . $details);
-            return $details;
-        }
-    }
-
-    private function sendOtpEmailFallback(string $to, string $htmlBody)
-    {
-        // Use PHPMailer as fallback instead of CodeIgniter Email service
-        $cfg = $this->getSmtpConfig();
-        $smtpHost = (string) $cfg['host'];
-        $smtpUser = (string) $cfg['user'];
-        $smtpPass = (string) $cfg['pass'];
-        $smtpPort = (int) $cfg['port'];
-        $smtpTimeout = (int) $cfg['timeout'];
-        $smtpCrypto = strtolower(trim((string) $cfg['crypto']));
-        $fromEmail = (string) $cfg['from'];
-        $fromName = (string) $cfg['name'];
-
-        log_message('debug', '[sendOtpEmailFallback] SMTP Config - host=' . $smtpHost . ', user=' . $smtpUser . ', haspass=' . (strlen($smtpPass) > 0 ? 'yes' : 'no'));
-
-        if ($smtpHost === '' || $smtpUser === '' || $smtpPass === '') {
-            log_message('error', '[sendOtpEmailFallback] SMTP configuration incomplete - host="' . $smtpHost . '" user="' . $smtpUser . '" pass_len=' . strlen($smtpPass));
-            return 'SMTP configuration is incomplete. Please contact your administrator.';
-        }
-
-        $mail = new PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host       = $smtpHost;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $smtpUser;
-            $mail->Password   = $smtpPass;
-            $mail->Port       = $smtpPort;
-            $mail->Timeout    = $smtpTimeout;
-
-            if ($smtpCrypto === 'ssl') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            } elseif ($smtpCrypto === 'tls') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            }
-
-            $mail->SMTPAutoTLS = true;
-            $mail->SMTPOptions = [
-                'ssl' => [
-                    'verify_peer'       => false,
-                    'verify_peer_name'  => false,
-                    'allow_self_signed' => true,
-                ],
-            ];
-
-            $mail->setFrom($fromEmail, $fromName);
-            $mail->addAddress($to);
-            $mail->isHTML(true);
-            $mail->CharSet  = 'UTF-8';
-            $mail->Subject  = 'Your Password Reset OTP - PeopleAxis';
-            $mail->Body     = $htmlBody;
-            $mail->AltBody  = strip_tags($htmlBody);
-
-            log_message('debug', '[sendOtpEmailFallback] Attempting to send email to ' . $to);
-            $mail->send();
-            log_message('info', '[sendOtpEmailFallback] Email sent successfully to ' . $to);
-            return true;
-        } catch (Exception $e) {
-            $details = $mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage();
-            log_message('error', '[sendOtpEmailFallback] PHPMailer error to [' . $to . ']: ' . $details);
-            return $details;
+        } catch (\Exception $e) {
+            log_message('error', '[sendOtpEmail] Exception: ' . $e->getMessage());
+            return $e->getMessage();
         }
     }
 
@@ -561,7 +392,7 @@ class Auth extends BaseController
     public function verifyOtpProcess()
     {
         $email = session()->get('reset_email');
-        $otp = $this->request->getPost('otp');
+        $otp = trim($this->request->getPost('otp'));
 
         // Validate inputs
         if (!$email) {
@@ -572,13 +403,18 @@ class Auth extends BaseController
             return redirect()->to('/verify-otp')->with('error', 'OTP is required');
         }
 
+        log_message('info', '[verifyOtpProcess] Verifying OTP for email: ' . $email . ', OTP: ' . $otp);
+
         // Verify OTP
         $otpModel = model('OtpModel');
         $otpRecord = $otpModel->verifyOtp($email, $otp);
 
         if (!$otpRecord) {
+            log_message('warning', '[verifyOtpProcess] Invalid or expired OTP for email: ' . $email);
             return redirect()->to('/verify-otp')->with('error', 'Invalid or expired OTP. Please try again or request a new OTP.');
         }
+
+        log_message('info', '[verifyOtpProcess] OTP verified successfully for email: ' . $email);
 
         // OTP is valid, store in session and redirect to reset password
         session()->set('otp_verified', true);
