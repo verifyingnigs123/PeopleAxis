@@ -69,11 +69,17 @@
 
 <!-- Stats -->
 <div class="al-stats">
-    <div class="al-stat c-g"><div class="al-stat-icon"><i class="fas fa-sign-in-alt"></i></div><div><div class="al-stat-val"><?= number_format($stats['total_logins']) ?></div><div class="al-stat-lbl">Total Logins</div></div></div>
-    <div class="al-stat c-b"><div class="al-stat-icon"><i class="fas fa-calendar-day"></i></div><div><div class="al-stat-val"><?= number_format($stats['today_logins']) ?></div><div class="al-stat-lbl">Logins Today</div></div></div>
-    <div class="al-stat c-r"><div class="al-stat-icon"><i class="fas fa-times-circle"></i></div><div><div class="al-stat-val"><?= number_format($stats['total_failed']) ?></div><div class="al-stat-lbl">Failed Attempts</div></div></div>
+    <div class="al-stat c-g"><div class="al-stat-icon"><i class="fas fa-sign-in-alt"></i></div><div><div class="al-stat-val"><?= !empty($hasLoginAttempts) ? number_format($stats['total_logins']) : 'N/A' ?></div><div class="al-stat-lbl">Total Logins</div></div></div>
+    <div class="al-stat c-b"><div class="al-stat-icon"><i class="fas fa-calendar-day"></i></div><div><div class="al-stat-val"><?= !empty($hasLoginAttempts) ? number_format($stats['today_logins']) : 'N/A' ?></div><div class="al-stat-lbl">Logins Today</div></div></div>
+    <div class="al-stat c-r"><div class="al-stat-icon"><i class="fas fa-times-circle"></i></div><div><div class="al-stat-val"><?= !empty($hasLoginAttempts) ? number_format($stats['total_failed']) : 'N/A' ?></div><div class="al-stat-lbl">Failed Attempts</div></div></div>
     <div class="al-stat c-a"><div class="al-stat-icon"><i class="fas fa-user-clock"></i></div><div><div class="al-stat-val"><?= number_format($stats['active_sessions']) ?></div><div class="al-stat-lbl">Active Sessions</div></div></div>
 </div>
+
+<?php if (empty($hasLoginAttempts)): ?>
+<div style="margin-bottom:16px;padding:10px 14px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:10px;font-size:.84rem;" role="status" aria-live="polite">
+    Login attempt metrics are unavailable because the <strong>login_attempts</strong> table is missing.
+</div>
+<?php endif; ?>
 
 <!-- Tabs -->
 <div class="al-tabs-nav" role="tablist">
@@ -84,8 +90,8 @@
     <button class="al-tab-btn" onclick="alTab('leaves')" id="altab-leaves"><i class="fas fa-calendar-check"></i> Leaves <span class="al-tab-count"><?= count($leaves) ?></span></button>
     <button class="al-tab-btn" onclick="alTab('salary')" id="altab-salary"><i class="fas fa-money-bill-wave"></i> Salary <span class="al-tab-count"><?= count($salary) ?></span></button>
     <button class="al-tab-btn" onclick="alTab('sessions')" id="altab-sessions"><i class="fas fa-desktop"></i> Sessions <span class="al-tab-count"><?= count($sessionsTable) ?></span></button>
-    <button class="al-tab-btn" onclick="alTab('attempts')" id="altab-attempts"><i class="fas fa-key"></i> Login Attempts <span class="al-tab-count"><?= count($loginAttempts) ?></span></button>
-    <button class="al-tab-btn" onclick="alTab('alerts')" id="altab-alerts"><i class="fas fa-exclamation-triangle"></i> Alerts <span class="al-tab-count"><?= count($intrusions) ?></span></button>
+    <button class="al-tab-btn" onclick="alTab('attempts')" id="altab-attempts"><i class="fas fa-key"></i> Login Attempts <span class="al-tab-count"><?= !empty($hasLoginAttempts) ? count($loginAttempts) : 'N/A' ?></span></button>
+    <button class="al-tab-btn" onclick="alTab('alerts')" id="altab-alerts"><i class="fas fa-exclamation-triangle"></i> Alerts <span class="al-tab-count"><?= !empty($hasLoginAttempts) ? count($intrusions) : 'N/A' ?></span></button>
 </div>
 
 <?php

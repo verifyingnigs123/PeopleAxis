@@ -20,6 +20,7 @@ class Audit extends BaseController
         }
 
         $db = \Config\Database::connect();
+        $hasLoginAttempts = $db->tableExists('login_attempts');
 
         // Base: audit_logs joined with user name + role
         $base = fn() => $db->table('audit_logs al')
@@ -106,12 +107,15 @@ class Audit extends BaseController
         }
 
         // ── 8. Login Attempts (from login_attempts table) ────────────
-        $loginAttempts = $db->table('login_attempts la')
-            ->select("la.*, u.name AS user_name, r.name AS role_name")
-            ->join('users u', 'u.id = la.user_id', 'left')
-            ->join('roles r', 'r.id = u.role_id',  'left')
-            ->orderBy('la.created_at','DESC')
-            ->limit(200)->get()->getResultObject();
+        $loginAttempts = [];
+        if ($hasLoginAttempts) {
+            $loginAttempts = $db->table('login_attempts la')
+                ->select("la.*, u.name AS user_name, r.name AS role_name")
+                ->join('users u', 'u.id = la.user_id', 'left')
+                ->join('roles r', 'r.id = u.role_id',  'left')
+                ->orderBy('la.created_at','DESC')
+                ->limit(200)->get()->getResultObject();
+        }
 
         // ── 9. Account Activity Events ───────────────────────────────
         $activityEvents = $base()
@@ -119,18 +123,26 @@ class Audit extends BaseController
             ->orderBy('al.timestamp','DESC')->limit(100)->get()->getResultObject();
 
         // ── 10. Intrusion Alerts ─────────────────────────────────────
-        $intrusions = $db->table('login_attempts')
-            ->select('email, ip_address, COUNT(*) as count, MAX(created_at) as triggered_at')
-            ->where('result','failed')
-            ->groupBy('email, ip_address')
-            ->having('count >=', 2)
-            ->orderBy('triggered_at','DESC')
-            ->limit(50)->get()->getResultObject();
+        $intrusions = [];
+        if ($hasLoginAttempts) {
+            $intrusions = $db->table('login_attempts')
+                ->select('email, ip_address, COUNT(*) as count, MAX(created_at) as triggered_at')
+                ->where('result','failed')
+                ->groupBy('email, ip_address')
+                ->having('count >=', 2)
+                ->orderBy('triggered_at','DESC')
+                ->limit(50)->get()->getResultObject();
+        }
 
         // ── Stats ────────────────────────────────────────────────────
-        $totalLogins  = $db->table('login_attempts')->where('result','success')->countAllResults();
-        $totalFailed  = $db->table('login_attempts')->where('result','failed')->countAllResults();
-        $todayLogins  = $db->table('login_attempts')->where('result','success')->where('DATE(created_at)', date('Y-m-d'))->countAllResults();
+        $totalLogins  = 0;
+        $totalFailed  = 0;
+        $todayLogins  = 0;
+        if ($hasLoginAttempts) {
+            $totalLogins = $db->table('login_attempts')->where('result','success')->countAllResults();
+            $totalFailed = $db->table('login_attempts')->where('result','failed')->countAllResults();
+            $todayLogins = $db->table('login_attempts')->where('result','success')->where('DATE(created_at)', date('Y-m-d'))->countAllResults();
+        }
         $activeSessions = count(array_filter($sessionsTable, fn($s) => $s->status === 'active'));
 
         return view('audit/logs', [
@@ -151,6 +163,7 @@ class Audit extends BaseController
                 'today_logins'    => $todayLogins,
                 'active_sessions' => $activeSessions,
             ],
+            'hasLoginAttempts' => $hasLoginAttempts,
         ]);
     }
 
@@ -161,7 +174,7 @@ class Audit extends BaseController
             'user_id'     => $userId,
             'action'      => $action,
             'description' => $details ?? $entityType,
-            'timestamp'   => date('Y-m-d H:i:s'),
+            'timestamp'   => date('Y-m-d h:i:s.u A'),
         ]);
     }
 }

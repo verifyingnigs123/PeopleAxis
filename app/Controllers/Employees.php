@@ -524,15 +524,39 @@ class Employees extends BaseController
                     ]);
                 }
 
+                // Send welcome email to employee
+                $email = \Config\Services::email();
+                $email->setFrom(getenv('EMAIL_FROM_ADDRESS') ?: 'noreply@peopleaxis.com', 'PeopleAxis HR');
+                $email->setTo(trim($this->request->getPost('email')));
+                $email->setSubject('Welcome to PeopleAxis - Employee Account');
+                
+                $emailBody = "
+                    <h2>Welcome to PeopleAxis</h2>
+                    <p>Dear " . esc($this->request->getPost('first_name')) . " " . esc($this->request->getPost('last_name')) . ",</p>
+                    <p>Your employee account has been created in our Human Resources System.</p>
+                    <p><strong>Your Employee Details:</strong></p>
+                    <ul>
+                        <li>Employee ID: " . esc($employeeId) . "</li>
+                        <li>Email: " . esc(trim($this->request->getPost('email'))) . "</li>
+                        <li>Date of Joining: " . esc($dateHired) . "</li>
+                    </ul>
+                    <p>Your account is currently pending approval from the Super Admin. Once approved, you will receive further instructions on how to access the system.</p>
+                    <p>If you have any questions, please contact the HR Department.</p>
+                    <p>Best regards,<br/>PeopleAxis HR System</p>
+                ";
+                
+                $email->setMessage($emailBody);
+                $email->send();
+
                 // Check if it's an AJAX request
                 if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
                     return $this->response->setJSON([
                         'success' => true,
-                        'message' => 'Employee created successfully. Super Admin notification sent.',
+                        'message' => 'Employee created successfully. Welcome email sent to employee.',
                         'employee_id' => $employeeId
                     ]);
                 }
-                return redirect()->to('/employee')->with('success', 'Employee created successfully. Super Admin will be notified to create an account.');
+                return redirect()->to('/employee')->with('success', 'Employee created successfully. Welcome email sent to ' . trim($this->request->getPost('email')) . '.');
             } else {
                 // Check if it's an AJAX request
                 if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
@@ -1452,6 +1476,11 @@ class Employees extends BaseController
                 'effective_from'          => $effectiveFrom,
             ]);
             $msg = 'Salary updated successfully.';
+            
+            // Log to audit
+            $employee = $this->employeeModel->find($employeeId);
+            $empName = $employee ? esc($employee->first_name . ' ' . ($employee->last_name ?? '')) : 'Unknown Employee';
+            Audit::log((int)session()->get('user_id'), 'UPDATE', 'Salary', 'Updated salary for ' . $empName . ' (ID: ' . $employeeId . '): base rate ₱' . number_format((float)$baseSalary, 2));
         } else {
             // Create new record
             $this->salaryModel->skipValidation(true)->insert([
@@ -1467,6 +1496,11 @@ class Employees extends BaseController
                 'effective_from'          => $effectiveFrom,
             ]);
             $msg = 'Salary rate set successfully.';
+            
+            // Log to audit
+            $employee = $this->employeeModel->find($employeeId);
+            $empName = $employee ? esc($employee->first_name . ' ' . ($employee->last_name ?? '')) : 'Unknown Employee';
+            Audit::log((int)session()->get('user_id'), 'CREATE', 'Salary', 'Set salary for ' . $empName . ' (ID: ' . $employeeId . '): base rate ₱' . number_format((float)$baseSalary, 2));
         }
 
         return $this->response->setJSON([

@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Controllers\Audit;
+
 class Auth extends BaseController
 {
     protected $userModel;
@@ -400,10 +402,9 @@ class Auth extends BaseController
 
         if ($this->userModel->save($data)) {
             // Log new user registration
-            helper('AuditHelper');
             $ipAddress = $this->request->getIPAddress();
             $userId = $this->userModel->getInsertID();
-            logActivity($userId, 'User Registration', "New user registered: {$name} ({$email}) from IP: {$ipAddress}");
+            Audit::log($userId, 'User Registration', 'User', "New user registered from IP: {$ipAddress}");
             
             return redirect()->to('/login')->with('success', 'Registration successful! Please log in');
         } else {
@@ -439,9 +440,8 @@ class Auth extends BaseController
         }
 
         // Log password reset request
-        helper('AuditHelper');
         $ipAddress = $this->request->getIPAddress();
-        logActivity($user->id, 'Password Reset Request', "User requested password reset for email: {$email} from IP: {$ipAddress}");
+        Audit::log($user->id, 'Password Reset Request', 'User', "Password reset requested from IP: {$ipAddress}");
 
         // Generate OTP
         $otpModel = model('OtpModel');
@@ -529,11 +529,10 @@ class Auth extends BaseController
             log_message('warning', '[verifyOtpProcess] Invalid or expired OTP for email: ' . $email);
             
             // Log failed OTP verification
-            helper('AuditHelper');
             $user = $this->userModel->getUserByEmail($email);
             $ipAddress = $this->request->getIPAddress();
             if ($user) {
-                logActivity($user->id, 'OTP Verification Failed', "Failed OTP verification for email: {$email} from IP: {$ipAddress}");
+                Audit::log($user->id, 'OTP Verification Failed', 'User', "Failed OTP verification from IP: {$ipAddress}");
             }
             
             return redirect()->to('/verify-otp')->with('error', 'Invalid or expired OTP. Please try again or request a new OTP.');
@@ -542,11 +541,10 @@ class Auth extends BaseController
         log_message('info', '[verifyOtpProcess] OTP verified successfully for email: ' . $email);
 
         // Log successful OTP verification
-        helper('AuditHelper');
         $user = $this->userModel->getUserByEmail($email);
         $ipAddress = $this->request->getIPAddress();
         if ($user) {
-            logActivity($user->id, 'OTP Verified', "OTP verified successfully for email: {$email} from IP: {$ipAddress}");
+            Audit::log($user->id, 'OTP Verified', 'User', "OTP verified successfully from IP: {$ipAddress}");
         }
 
         // OTP is valid, store in session and redirect to reset password
@@ -607,9 +605,8 @@ class Auth extends BaseController
         $this->userModel->update($user->id, ['password' => $password]);
 
         // Log password reset completion
-        helper('AuditHelper');
         $ipAddress = $this->request->getIPAddress();
-        logActivity($user->id, 'Password Reset', "Password reset successfully for email: {$email} from IP: {$ipAddress}");
+        Audit::log($user->id, 'Password Reset', 'User', "Password reset successfully from IP: {$ipAddress}");
 
         // Mark OTP as used
         if ($otpId) {
