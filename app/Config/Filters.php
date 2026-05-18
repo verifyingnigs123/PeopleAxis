@@ -85,6 +85,7 @@ class Filters extends BaseFilters
                     'api/auth/session-status',
                     'api/attendance/rfid-process',
                     'attendance/now',
+                    'logout',
                 ],
             ],
         ],

@@ -5,6 +5,7 @@ namespace App\Controllers;
 class Auth extends BaseController
 {
     protected $userModel;
+    protected $loginAttemptModel;
     private const LOGIN_MAX_ATTEMPTS = 3;
     private const LOGIN_LOCKOUT_MINUTES = 15;
     private const LOGIN_ATTEMPT_KEY_PREFIX = 'login_failed_attempts_';
@@ -12,7 +13,23 @@ class Auth extends BaseController
 
     public function __construct()
     {
-        $this->userModel = model('UserModel');
+        $this->userModel          = model('UserModel');
+        $this->loginAttemptModel  = new \App\Models\LoginAttemptModel();
+    }
+
+    /**
+     * Safely write a record to the audit_logs table.
+     * Uses AuditModel directly so it works regardless of helper loading order.
+     * Never throws — any failure is only logged to the CI4 error log.
+     */
+    private function writeAuditLog(?int $userId, string $action, string $description = ''): void
+    {
+        try {
+            $auditModel = new \App\Models\AuditModel();
+            $auditModel->log($userId, $action, $description);
+        } catch (\Throwable $e) {
+            log_message('error', '[Auth] Audit log failed (' . $action . '): ' . $e->getMessage());
+        }
     }
 
     public function login(): string
@@ -45,19 +62,19 @@ class Auth extends BaseController
             ->first();
         
         if (!$anyUser) {
-            return $this->handleFailedLogin($loginKey, 'Account not found. Please check your email/username.');
+            return $this->handleFailedLogin($loginKey, $login, 'Account not found. Please check your email/username.');
         }
 
         // Check if user is inactive
         if ($anyUser->is_active == 0) {
-            return $this->handleFailedLogin($loginKey, 'Your account is deactivated. Please contact an administrator.');
+            return $this->handleFailedLogin($loginKey, $login, 'Your account is deactivated. Please contact an administrator.');
         }
 
         // Get active user
         $user = $this->userModel->getUserByEmail($login);
 
         if (!$user) {
-            return $this->handleFailedLogin($loginKey, 'User account is not active.');
+            return $this->handleFailedLogin($loginKey, $login, 'User account is not active.');
         }
 
         // Check if password is properly hashed and verify
@@ -75,7 +92,7 @@ class Auth extends BaseController
         $verified = $this->userModel->verifyPassword($password, $user->password);
         
         if (!$verified) {
-            return $this->handleFailedLogin($loginKey, 'Invalid email or password');
+            return $this->handleFailedLogin($loginKey, $login, 'Invalid email or password');
         }
 
         $this->clearLoginAttempts($loginKey);
@@ -141,14 +158,58 @@ class Auth extends BaseController
             'logged_in' => true,
         ]);
 
+        // Record login in audit logs + login_attempts table
+        $ipAddress = $this->request->getIPAddress();
+        $userAgent = $this->request->getUserAgent() ? $this->request->getUserAgent()->getAgentString() : 'Unknown';
+        $loginDesc  = "User ({$roleName}) logged in from IP: {$ipAddress} | Browser: {$userAgent}";
+        $this->writeAuditLog((int) $user->id, 'Login', $loginDesc);
+
+        // Record successful attempt in login_attempts table
+        $this->loginAttemptModel->record(
+            'success',
+            (int) $user->id,
+            $user->email,
+            $roleName,
+            null,
+            $ipAddress,
+            $userAgent
+        );
+
         return redirect()->to('/dashboard')->with('success', 'Welcome back, ' . $user->name);
     }
 
     public function logout()
     {
-        $this->clearLoginAttempts();
-        session()->destroy();
-        return redirect()->to('/')->with('success', 'You have been logged out');
+        try {
+            $userId = session()->get('user_id');
+
+            // Record logout in audit logs BEFORE destroying the session
+            if ($userId) {
+                $userName = session()->get('name') ?? 'Unknown';
+                $roleName = session()->get('role_name') ?? session()->get('role') ?? 'Unknown';
+                $this->writeAuditLog((int) $userId, 'Logout', "User ({$roleName}) '{$userName}' logged out.");
+            }
+
+            // Clear all session data
+            session()->remove(['user_id', 'email', 'username', 'name', 'role_id', 'role_name', 'role', 'logged_in']);
+
+            // Clear login attempts
+            $this->clearLoginAttempts(null);
+
+            // Destroy session
+            session()->destroy();
+
+            return redirect()->to('/')->with('success', 'You have been logged out');
+        } catch (\Throwable $e) {
+            log_message('error', 'Logout error: ' . $e->getMessage());
+            // Even if there's an error, safely destroy session and redirect
+            try {
+                session()->destroy();
+            } catch (\Throwable $destroyError) {
+                log_message('error', 'Session destroy error: ' . $destroyError->getMessage());
+            }
+            return redirect()->to('/')->with('success', 'You have been logged out');
+        }
     }
 
     public function sessionStatus()
@@ -224,10 +285,49 @@ class Auth extends BaseController
         return 'Too many failed login attempts. Please try again in ' . $remainingMinutes . ' minute' . ($remainingMinutes === 1 ? '' : 's') . '.';
     }
 
-    private function handleFailedLogin(string $loginKey, string $message)
+    private function handleFailedLogin(string $loginKey, string $login, string $message)
     {
         $attempts = (int) session()->get($this->getLoginAttemptKey($loginKey));
         $attempts++;
+
+        // Log failed login attempt
+        $ipAddress = $this->request->getIPAddress();
+        $userAgent = $this->request->getUserAgent() ? $this->request->getUserAgent()->getAgentString() : 'Unknown';
+
+        // Try to get user ID for logging
+        $user = $this->userModel
+            ->groupStart()
+                ->where('email', $login)
+                ->orWhere('username', $login)
+            ->groupEnd()
+            ->first();
+
+        $userId    = $user ? (int) $user->id : null;
+        $userType  = $user ? ($this->userModel->getRoleName($userId) ?? 'Unknown') : null;
+
+        // Determine failure reason for the attempts log
+        $reason = 'invalid_password';
+        if (!$user) {
+            $reason = 'user_not_found';
+        } elseif ($user->is_active == 0) {
+            $reason = 'account_inactive';
+        }
+
+        // Record failed attempt in login_attempts table
+        $this->loginAttemptModel->record(
+            'failed',
+            $userId,
+            $login,
+            $userType,
+            $reason,
+            $ipAddress,
+            $userAgent
+        );
+
+        // Write to audit log
+        $this->writeAuditLog($userId, 'Failed Login',
+            "Failed login for '{$login}' from IP: {$ipAddress}. Attempt {$attempts}/" . self::LOGIN_MAX_ATTEMPTS . ". Reason: {$reason}"
+        );
 
         if ($attempts >= self::LOGIN_MAX_ATTEMPTS) {
             $this->clearLoginAttempts($loginKey);
@@ -235,6 +335,11 @@ class Auth extends BaseController
                 $this->getLoginLockoutKey($loginKey),
                 time() + (self::LOGIN_LOCKOUT_MINUTES * 60),
                 self::LOGIN_LOCKOUT_MINUTES * 60
+            );
+
+            // Record lockout in audit log
+            $this->writeAuditLog($userId, 'Account Locked',
+                "Account '{$login}' locked for " . self::LOGIN_LOCKOUT_MINUTES . " min after " . self::LOGIN_MAX_ATTEMPTS . " failed attempts from IP: {$ipAddress}"
             );
 
             return redirect()->to('/login')->with(
@@ -252,11 +357,11 @@ class Auth extends BaseController
     {
         if ($loginKey === null) {
             foreach (session()->get() as $key => $value) {
-                if (is_string($key) && str_starts_with($key, self::LOGIN_ATTEMPT_KEY_PREFIX)) {
+                if (is_string($key) && strncmp($key, self::LOGIN_ATTEMPT_KEY_PREFIX, strlen(self::LOGIN_ATTEMPT_KEY_PREFIX)) === 0) {
                     session()->remove($key);
                 }
 
-                if (is_string($key) && str_starts_with($key, self::LOGIN_LOCKOUT_KEY_PREFIX)) {
+                if (is_string($key) && strncmp($key, self::LOGIN_LOCKOUT_KEY_PREFIX, strlen(self::LOGIN_LOCKOUT_KEY_PREFIX)) === 0) {
                     session()->remove($key);
                 }
             }
@@ -294,6 +399,12 @@ class Auth extends BaseController
         ];
 
         if ($this->userModel->save($data)) {
+            // Log new user registration
+            helper('AuditHelper');
+            $ipAddress = $this->request->getIPAddress();
+            $userId = $this->userModel->getInsertID();
+            logActivity($userId, 'User Registration', "New user registered: {$name} ({$email}) from IP: {$ipAddress}");
+            
             return redirect()->to('/login')->with('success', 'Registration successful! Please log in');
         } else {
             return redirect()->back()->withInput()->with('errors', $this->userModel->errors());
@@ -326,6 +437,11 @@ class Auth extends BaseController
             // For security reasons, don't reveal if email exists or not
             return redirect()->to('/forgot-password')->with('success', 'If your email exists in our system, you will receive an OTP shortly.');
         }
+
+        // Log password reset request
+        helper('AuditHelper');
+        $ipAddress = $this->request->getIPAddress();
+        logActivity($user->id, 'Password Reset Request', "User requested password reset for email: {$email} from IP: {$ipAddress}");
 
         // Generate OTP
         $otpModel = model('OtpModel');
@@ -411,10 +527,27 @@ class Auth extends BaseController
 
         if (!$otpRecord) {
             log_message('warning', '[verifyOtpProcess] Invalid or expired OTP for email: ' . $email);
+            
+            // Log failed OTP verification
+            helper('AuditHelper');
+            $user = $this->userModel->getUserByEmail($email);
+            $ipAddress = $this->request->getIPAddress();
+            if ($user) {
+                logActivity($user->id, 'OTP Verification Failed', "Failed OTP verification for email: {$email} from IP: {$ipAddress}");
+            }
+            
             return redirect()->to('/verify-otp')->with('error', 'Invalid or expired OTP. Please try again or request a new OTP.');
         }
 
         log_message('info', '[verifyOtpProcess] OTP verified successfully for email: ' . $email);
+
+        // Log successful OTP verification
+        helper('AuditHelper');
+        $user = $this->userModel->getUserByEmail($email);
+        $ipAddress = $this->request->getIPAddress();
+        if ($user) {
+            logActivity($user->id, 'OTP Verified', "OTP verified successfully for email: {$email} from IP: {$ipAddress}");
+        }
 
         // OTP is valid, store in session and redirect to reset password
         session()->set('otp_verified', true);
@@ -472,6 +605,11 @@ class Auth extends BaseController
 
         // Update password
         $this->userModel->update($user->id, ['password' => $password]);
+
+        // Log password reset completion
+        helper('AuditHelper');
+        $ipAddress = $this->request->getIPAddress();
+        logActivity($user->id, 'Password Reset', "Password reset successfully for email: {$email} from IP: {$ipAddress}");
 
         // Mark OTP as used
         if ($otpId) {

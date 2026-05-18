@@ -834,6 +834,16 @@ if ($isManager) {
                     </a>
                 </div>
 
+                <!-- Activity Logs (Super Admin only) -->
+                <?php if ($isSuperAdmin): ?>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Logs</div>
+                    <a href="<?= base_url('activity-logs') ?>" class="sidebar-link">
+                        <i class="fas fa-history"></i> Activity Logs
+                    </a>
+                </div>
+                <?php endif; ?>
+
             </nav>
         </aside>
 
