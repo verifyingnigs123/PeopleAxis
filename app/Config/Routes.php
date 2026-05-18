@@ -100,6 +100,10 @@ $routes->post('/api/attendance/rfid-process', 'Attendance::rfidProcess');
 // Activity Logs / Audit routes
 $routes->get('/activity-logs', 'Audit::index');
 $routes->get('/audit', 'Audit::index');
+$routes->get('/api/audit/poll', 'Audit::poll');
+
+// Session / Login Activity page (Super Admin only)
+$routes->get('/session-logs', 'SessionLogs::index');
 
 // Reports routes
 $routes->get('/reports', 'Reports::index');
