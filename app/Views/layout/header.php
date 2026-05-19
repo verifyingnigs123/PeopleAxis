@@ -783,6 +783,9 @@ if ($isManager) {
                     <a href="<?= base_url('roles') ?>" class="sidebar-link">
                         <i class="fas fa-lock"></i> Manage Roles
                     </a>
+                    <a href="<?= base_url('admin/mfa-manage') ?>" class="sidebar-link">
+                        <i class="fas fa-shield-alt"></i> Manage MFA
+                    </a>
                 </div>
                 <?php endif; ?>
 

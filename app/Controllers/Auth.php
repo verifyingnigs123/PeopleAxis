@@ -12,6 +12,7 @@ class Auth extends BaseController
     private const LOGIN_LOCKOUT_MINUTES = 15;
     private const LOGIN_ATTEMPT_KEY_PREFIX = 'login_failed_attempts_';
     private const LOGIN_LOCKOUT_KEY_PREFIX = 'login_locked_until_';
+    private const TRUSTED_DEVICE_COOKIE = 'device_token';
 
     public function __construct()
     {
@@ -31,6 +32,27 @@ class Auth extends BaseController
             $auditModel->log($userId, $action, $description);
         } catch (\Throwable $e) {
             log_message('error', '[Auth] Audit log failed (' . $action . '): ' . $e->getMessage());
+        }
+    }
+
+    private function isTrustedDevice(int $userId): bool
+    {
+        $deviceToken = $this->request->getCookie(self::TRUSTED_DEVICE_COOKIE);
+
+        if (empty($deviceToken)) {
+            return false;
+        }
+
+        try {
+            $deviceTokenModel = model('DeviceTokenModel');
+            if (! $deviceTokenModel) {
+                return false;
+            }
+
+            return (bool) $deviceTokenModel->verifyDeviceToken($userId, (string) $deviceToken);
+        } catch (\Throwable $e) {
+            log_message('error', '[Auth] Trusted device check failed: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -98,6 +120,110 @@ class Auth extends BaseController
         }
 
         $this->clearLoginAttempts($loginKey);
+
+        // Check if user has MFA enabled
+        if ($user->mfa_enabled == 1) {
+            // Skip MFA for a trusted device with a valid, unexpired token
+            if ($this->isTrustedDevice((int) $user->id)) {
+                $roleName = $this->userModel->getRoleName($user->id) ?? '';
+                $storedRoleSlug = strtolower((string) ($user->role ?? ''));
+
+                $roleSlug = 'user';
+                switch ($storedRoleSlug) {
+                    case 'super_admin':
+                        $roleSlug = 'admin';
+                        if ($roleName === '') {
+                            $roleName = 'Super Admin';
+                        }
+                        break;
+                    case 'hr_admin':
+                        $roleSlug = 'hr';
+                        if ($roleName === '') {
+                            $roleName = 'HR Admin';
+                        }
+                        break;
+                    case 'manager':
+                        $roleSlug = 'manager';
+                        if ($roleName === '') {
+                            $roleName = 'Manager';
+                        }
+                        break;
+                    case 'employee':
+                        $roleSlug = 'user';
+                        if ($roleName === '') {
+                            $roleName = 'Employee';
+                        }
+                        break;
+                    default:
+                        switch ($roleName) {
+                            case 'Super Admin':
+                                $roleSlug = 'admin';
+                                break;
+                            case 'HR Admin':
+                                $roleSlug = 'hr';
+                                break;
+                            case 'Manager':
+                                $roleSlug = 'manager';
+                                break;
+                            default:
+                                $roleSlug = 'user';
+                                $roleName = $roleName !== '' ? $roleName : 'Employee';
+                        }
+                }
+
+                session()->set([
+                    'user_id'   => $user->id,
+                    'email'     => $user->email,
+                    'username'  => $user->username ?? null,
+                    'name'      => $user->name,
+                    'role_id'   => $user->role_id ?? null,
+                    'role_name' => $roleName,
+                    'role'      => $roleSlug,
+                    'logged_in' => true,
+                ]);
+
+                $ipAddress = $this->request->getIPAddress();
+                $userAgent = $this->request->getUserAgent() ? $this->request->getUserAgent()->getAgentString() : 'Unknown';
+                $loginDesc  = "User ({$roleName}) logged in with trusted device from IP: {$ipAddress} | Browser: {$userAgent}";
+                $this->writeAuditLog((int) $user->id, 'Login', $loginDesc);
+
+                $this->loginAttemptModel->record(
+                    'success',
+                    (int) $user->id,
+                    $user->email,
+                    $roleName,
+                    null,
+                    $ipAddress,
+                    $userAgent
+                );
+
+                return redirect()->to('/dashboard')->with('success', 'Welcome back, ' . $user->name);
+            }
+
+            // Store user info temporarily for MFA verification
+            session()->set([
+                'mfa_pending_user_id'   => $user->id,
+                'mfa_pending_email'     => $user->email,
+                'mfa_pending_name'      => $user->name,
+                'mfa_pending_role_id'   => $user->role_id ?? null,
+                'mfa_pending_role'      => $user->role ?? 'user',
+            ]);
+
+            // Generate and send MFA OTP
+            $otpModel = model('OtpModel');
+            $otp = $otpModel->generateOtp($user->email, 'login', $user->id);
+
+            // Send MFA OTP email (login verification)
+            $emailBody = view('auth/mfa_email_otp', [
+                'otp'      => $otp,
+                'userName' => $user->name,
+            ]);
+
+            $this->sendOtpEmail($user->email, $emailBody, 'Your Login Verification OTP - PeopleAxis');
+
+            log_message('info', '[loginProcess] MFA enabled for user: ' . $user->email . '. OTP sent.');
+            return redirect()->to('/verify-mfa-login')->with('success', 'OTP has been sent to your email. Please verify to complete login.');
+        }
 
         // Determine role name and slug (role slug is source-of-truth when present).
         $roleName = $this->userModel->getRoleName($user->id) ?? '';
@@ -454,7 +580,7 @@ class Auth extends BaseController
         ]);
 
         // Send via PHPMailer
-        $sent = $this->sendOtpEmail($email, $emailBody);
+        $sent = $this->sendOtpEmail($email, $emailBody, 'Your Password Reset OTP - PeopleAxis');
 
         if ($sent === true) {
             session()->set('reset_email', $email);
@@ -467,7 +593,7 @@ class Auth extends BaseController
 
     // Email sending method removed - using CodeIgniter Email service instead
 
-    private function sendOtpEmail(string $to, string $htmlBody)
+    private function sendOtpEmail(string $to, string $htmlBody, string $subject = null)
     {
         try {
             $emailConfig = new \Config\Email();
@@ -475,7 +601,9 @@ class Auth extends BaseController
             
             $emailService->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
             $emailService->setTo($to);
-            $emailService->setSubject('Your Password Reset OTP - PeopleAxis');
+            // Use provided subject when available, otherwise default to password reset
+            $subjectToUse = $subject ?? 'Your Password Reset OTP - PeopleAxis';
+            $emailService->setSubject($subjectToUse);
             $emailService->setMessage($htmlBody);
             $emailService->setAltMessage(strip_tags($htmlBody));
             
@@ -523,7 +651,7 @@ class Auth extends BaseController
 
         // Verify OTP
         $otpModel = model('OtpModel');
-        $otpRecord = $otpModel->verifyOtp($email, $otp);
+        $otpRecord = $otpModel->verifyOtp($email, $otp, 'password_reset');
 
         if (!$otpRecord) {
             log_message('warning', '[verifyOtpProcess] Invalid or expired OTP for email: ' . $email);
@@ -554,71 +682,271 @@ class Auth extends BaseController
         return redirect()->to('/reset-password');
     }
 
-    public function resetPassword()
+    /**
+     * Verify MFA Login - Shows form to enter OTP for login
+     */
+    public function verifyMfaLogin()
     {
-        // Check if OTP was verified
-        $otpVerified = session()->get('otp_verified');
-        $email = session()->get('reset_email');
+        // Check if MFA is pending
+        $userId = session()->get('mfa_pending_user_id');
         
-        if (!$otpVerified || !$email) {
-            return redirect()->to('/forgot-password')->with('error', 'Please complete the verification process first.');
+        if (!$userId) {
+            return redirect()->to('/login')->with('error', 'Please log in first.');
         }
 
-        return view('Forgotpassword/resetpassword', ['email' => $email]);
+        return view('auth/verify_mfa_login', ['user_id' => $userId]);
     }
 
-    public function resetPasswordProcess()
+    /**
+     * Verify MFA Login OTP Process
+     */
+    public function verifyLoginMfaProcess()
     {
-        // Check if OTP was verified
-        $otpVerified = session()->get('otp_verified');
-        $email = session()->get('reset_email');
-        $otpId = session()->get('otp_id');
-        
-        if (!$otpVerified || !$email) {
-            return redirect()->to('/forgot-password')->with('error', 'Please complete the verification process first.');
-        }
-
-        $password = $this->request->getPost('password');
-        $passwordConfirm = $this->request->getPost('password_confirm');
+        $userId = session()->get('mfa_pending_user_id');
+        $email = session()->get('mfa_pending_email');
+        $otp = trim($this->request->getPost('otp'));
+        $rememberDevice = $this->request->getPost('remember_device') ? true : false;
 
         // Validate inputs
-        if (empty($password) || empty($passwordConfirm)) {
-            return redirect()->to('/reset-password')->with('error', 'All fields are required');
+        if (!$userId || !$email) {
+            return redirect()->to('/login')->with('error', 'Session expired. Please log in again.');
         }
 
-        if (strlen($password) < 6) {
-            return redirect()->to('/reset-password')->with('error', 'Password must be at least 6 characters');
+        if (empty($otp)) {
+            return redirect()->to('/verify-mfa-login')->with('error', 'OTP is required');
         }
 
-        if ($password !== $passwordConfirm) {
-            return redirect()->to('/reset-password')->with('error', 'Passwords do not match');
+        log_message('info', '[verifyLoginMfaProcess] Verifying login MFA OTP for user: ' . $userId);
+
+        // Verify OTP
+        $otpModel = model('OtpModel');
+        $otpRecord = $otpModel->verifyOtp($email, $otp, 'login');
+
+        if (!$otpRecord) {
+            log_message('warning', '[verifyLoginMfaProcess] Invalid or expired MFA OTP for user: ' . $userId);
+            $this->writeAuditLog($userId, 'MFA Verification Failed', "Failed MFA OTP verification from IP: " . $this->request->getIPAddress());
+            
+            return redirect()->to('/verify-mfa-login')->with('error', 'Invalid or expired OTP. Please try again.');
         }
-
-        // Find user by email and update password
-        $user = $this->userModel->getUserByEmail($email);
-        
-        if (!$user) {
-            return redirect()->to('/login')->with('error', 'User not found');
-        }
-
-        // Update password
-        $this->userModel->update($user->id, ['password' => $password]);
-
-        // Log password reset completion
-        $ipAddress = $this->request->getIPAddress();
-        Audit::log($user->id, 'Password Reset', 'User', "Password reset successfully from IP: {$ipAddress}");
 
         // Mark OTP as used
-        if ($otpId) {
-            $otpModel = model('OtpModel');
-            $otpModel->markAsUsed($otpId);
+        $otpModel->markAsUsed($otpRecord->id);
+
+        log_message('info', '[verifyLoginMfaProcess] MFA OTP verified successfully for user: ' . $userId);
+
+        // Get full user data for session
+        $user = $this->userModel->find($userId);
+
+        // Determine role name and slug
+        $roleName = $this->userModel->getRoleName($user->id) ?? '';
+        $storedRoleSlug = strtolower((string) ($user->role ?? ''));
+
+        $roleSlug = 'user';
+        switch ($storedRoleSlug) {
+            case 'super_admin':
+                $roleSlug = 'admin';
+                if ($roleName === '') {
+                    $roleName = 'Super Admin';
+                }
+                break;
+            case 'hr_admin':
+                $roleSlug = 'hr';
+                if ($roleName === '') {
+                    $roleName = 'HR Admin';
+                }
+                break;
+            case 'manager':
+                $roleSlug = 'manager';
+                if ($roleName === '') {
+                    $roleName = 'Manager';
+                }
+                break;
+            case 'employee':
+                $roleSlug = 'user';
+                if ($roleName === '') {
+                    $roleName = 'Employee';
+                }
+                break;
+            default:
+                switch ($roleName) {
+                    case 'Super Admin':
+                        $roleSlug = 'admin';
+                        break;
+                    case 'HR Admin':
+                        $roleSlug = 'hr';
+                        break;
+                    case 'Manager':
+                        $roleSlug = 'manager';
+                        break;
+                    default:
+                        $roleSlug = 'user';
+                        $roleName = $roleName !== '' ? $roleName : 'Employee';
+                }
         }
 
-        // Clear session
-        session()->remove('reset_email');
-        session()->remove('otp_verified');
-        session()->remove('otp_id');
+        // Set full session
+        session()->set([
+            'user_id'   => $user->id,
+            'email'     => $user->email,
+            'username'  => $user->username ?? null,
+            'name'      => $user->name,
+            'role_id'   => $user->role_id ?? null,
+            'role_name' => $roleName,
+            'role'      => $roleSlug,
+            'logged_in' => true,
+        ]);
 
-        return redirect()->to('/login')->with('success', 'Password has been reset successfully. Please log in with your new password.');
+        // Clear MFA pending session data
+        session()->remove(['mfa_pending_user_id', 'mfa_pending_email', 'mfa_pending_name', 'mfa_pending_role_id', 'mfa_pending_role']);
+
+        // Handle device memory
+        if ($rememberDevice) {
+            $deviceTokenModel = model('DeviceTokenModel');
+            $ipAddress = $this->request->getIPAddress();
+            $userAgent = $this->request->getUserAgent() ? $this->request->getUserAgent()->getAgentString() : 'Unknown';
+            
+            // Generate a user-friendly device name
+            $deviceName = 'Device - ' . date('M d, Y H:i');
+            
+            $deviceToken = $deviceTokenModel->createDeviceToken($userId, $deviceName, $ipAddress, $userAgent);
+            
+            // Store token in a secure cookie
+            $cookieOptions = [
+                'expires'  => time() + (30 * 24 * 60 * 60), // 30 days
+                'httponly' => true,
+                'secure'   => $this->request->isSecure(),
+                'samesite' => 'Lax',
+                'path'     => '/',
+            ];
+
+            setcookie(self::TRUSTED_DEVICE_COOKIE, $deviceToken, $cookieOptions);
+            log_message('info', '[verifyLoginMfaProcess] Device token created for user: ' . $userId);
+        }
+
+        // Record successful login
+        $ipAddress = $this->request->getIPAddress();
+        $userAgent = $this->request->getUserAgent() ? $this->request->getUserAgent()->getAgentString() : 'Unknown';
+        $loginDesc = "User ({$roleName}) logged in with MFA from IP: {$ipAddress}";
+        $this->writeAuditLog($userId, 'Login', $loginDesc);
+
+        $this->loginAttemptModel->record(
+            'success',
+            $userId,
+            $email,
+            $roleName,
+            null,
+            $ipAddress,
+            $userAgent
+        );
+
+        return redirect()->to('/dashboard')->with('success', 'Welcome back, ' . $user->name);
+    }
+
+    /**
+     * Enable MFA for user
+     */
+    public function enableMfa()
+    {
+        $userId = session()->get('user_id');
+
+        if (!$userId) {
+            return redirect()->to('/login');
+        }
+
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            return redirect()->to('/login');
+        }
+
+        // Update user to enable MFA
+        $this->userModel->update($userId, [
+            'mfa_enabled' => 1,
+            'mfa_method'  => 'email',
+        ]);
+
+        $this->writeAuditLog($userId, 'MFA Enabled', 'User enabled MFA (email)');
+
+        return redirect()->back()->with('success', 'Two-factor authentication has been enabled.');
+    }
+
+    /**
+     * Disable MFA for user
+     */
+    public function disableMfa()
+    {
+        $userId = session()->get('user_id');
+
+        if (!$userId) {
+            return redirect()->to('/login');
+        }
+
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            return redirect()->to('/login');
+        }
+
+        // Update user to disable MFA
+        $this->userModel->update($userId, [
+            'mfa_enabled' => 0,
+        ]);
+
+        // Optionally revoke all remembered devices
+        $deviceTokenModel = model('DeviceTokenModel');
+        $deviceTokenModel->revokeAllDevices($userId);
+
+        $this->writeAuditLog($userId, 'MFA Disabled', 'User disabled MFA and revoked all trusted devices');
+
+        return redirect()->back()->with('success', 'Two-factor authentication has been disabled.');
+    }
+
+    /**
+     * Get user's remembered devices
+     */
+    public function getDevices()
+    {
+        $userId = session()->get('user_id');
+
+        if (!$userId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ])->setStatusCode(401);
+        }
+
+        $deviceTokenModel = model('DeviceTokenModel');
+        $devices = $deviceTokenModel->getUserDevices($userId);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'devices' => $devices,
+        ]);
+    }
+
+    /**
+     * Revoke a trusted device
+     */
+    public function revokeDevice()
+    {
+        $userId = session()->get('user_id');
+        $deviceId = $this->request->getPost('device_id');
+
+        if (!$userId || !$deviceId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request',
+            ])->setStatusCode(400);
+        }
+
+        $deviceTokenModel = model('DeviceTokenModel');
+        $deviceTokenModel->revokeDevice($userId, $deviceId);
+
+        $this->writeAuditLog($userId, 'Device Revoked', 'User revoked trusted device: ' . $deviceId);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Device has been revoked',
+        ]);
     }
 }

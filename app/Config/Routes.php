@@ -153,6 +153,11 @@ $routes->get('/admin/all-delete-requests', 'AdminController::allDeleteRequests')
 $routes->get('/admin/notifications', 'AdminController::getNotifications');
 $routes->post('/admin/mark-notification-read/(:num)', 'AdminController::markNotificationRead/$1');
 $routes->get('/admin/dashboard-stats', 'AdminController::getDashboardStats');
+// Admin MFA management
+$routes->get('/admin/mfa-status', 'AdminController::mfaStatus');
+$routes->post('/admin/mfa/(:num)/set', 'AdminController::setMfaStatus/$1');
+// Admin MFA management UI
+$routes->get('/admin/mfa-manage', 'AdminController::mfaManage');
 
 // Admin Profile Photos routes
 $routes->get('/admin/profile-photos', 'AdminController::profilePhotos');
@@ -166,3 +171,11 @@ $routes->get('/verify-otp', 'Auth::verifyOtp');
 $routes->post('/verify-otp', 'Auth::verifyOtpProcess');
 $routes->get('/reset-password', 'Auth::resetPassword');
 $routes->post('/reset-password', 'Auth::resetPasswordProcess');
+
+// MFA (Two-Factor Authentication) routes
+$routes->get('/verify-mfa-login', 'Auth::verifyMfaLogin');
+$routes->post('/mfa-login/verify', 'Auth::verifyLoginMfaProcess');
+$routes->post('/settings/mfa/enable', 'Auth::enableMfa');
+$routes->post('/settings/mfa/disable', 'Auth::disableMfa');
+$routes->get('/settings/devices', 'Auth::getDevices');
+$routes->post('/settings/devices/revoke', 'Auth::revokeDevice');

@@ -20,7 +20,7 @@ class UserModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Validation
-    protected $allowedFields    = ['username','email', 'password', 'name', 'role', 'role_id', 'is_active', 'deleted_at', 'profile_photo'];
+    protected $allowedFields    = ['username','email', 'password', 'name', 'role', 'role_id', 'is_active', 'deleted_at', 'profile_photo', 'mfa_enabled', 'mfa_method'];
 
     protected $validationRules      = [
         'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
@@ -193,5 +193,32 @@ class UserModel extends Model
     {
         $isActive = ($status === 'ACTIVE') ? 1 : 0;
         return $this->where('is_active', $isActive)->countAllResults();
+    }
+
+    /**
+     * Set MFA enabled/disabled for a specific user
+     */
+    public function setMfaEnabled(int $id, bool $enabled, string $method = 'email')
+    {
+        $data = ['mfa_enabled' => $enabled ? 1 : 0];
+
+        // Only set method when enabling, clear it when disabling
+        $data['mfa_method'] = $enabled ? $method : null;
+
+        return $this->update($id, $data);
+    }
+
+    /**
+     * Get MFA status summary for all users
+     */
+    public function getMfaStatuses()
+    {
+        $db = \Config\Database::connect();
+        return $db->table('users')
+                  ->select('users.id, users.name, users.email, users.mfa_enabled, users.mfa_method, users.is_active, roles.name as role_name')
+                  ->join('roles', 'roles.id = users.role_id', 'left')
+                  ->orderBy('users.name', 'ASC')
+                  ->get()
+                  ->getResult();
     }
 }

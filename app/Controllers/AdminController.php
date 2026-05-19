@@ -5,8 +5,8 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\DeleteRequest;
-use App\Models\Notification;
-use App\Models\User;
+use App\Models\NotificationModel;
+use App\Models\UserModel;
 use App\Models\ProfilePhotoModel;
 
 class AdminController extends BaseController
@@ -18,8 +18,31 @@ class AdminController extends BaseController
     public function __construct()
     {
         $this->deleteRequestModel = new DeleteRequest();
-        $this->notificationModel = new Notification();
-        $this->userModel = new User();
+        $this->notificationModel = new NotificationModel();
+        $this->userModel = new UserModel();
+    }
+
+    /**
+     * Check whether current session belongs to a Super Admin
+     */
+    private function isSuperAdmin(): bool
+    {
+        if (! session()->get('user_id')) {
+            return false;
+        }
+
+        $role = session()->get('role') ?? '';
+        $roleName = session()->get('role_name') ?? '';
+
+        if (in_array(strtolower($role), ['super_admin', 'admin'], true)) {
+            return true;
+        }
+
+        if (strtolower($roleName) === 'super admin') {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -27,8 +50,8 @@ class AdminController extends BaseController
      */
     public function index()
     {
-        // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
+        // Check Super Admin access
+        if (! $this->isSuperAdmin()) {
             return redirect()->to('/login')->with('error', 'Access denied. Super Admin access required.');
         }
 
@@ -45,8 +68,8 @@ class AdminController extends BaseController
      */
     public function deleteRequests()
     {
-        // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
+        // Check Super Admin access
+        if (! $this->isSuperAdmin()) {
             return redirect()->to('/login')->with('error', 'Access denied. Super Admin access required.');
         }
 
@@ -67,8 +90,8 @@ class AdminController extends BaseController
      */
     public function reviewDeleteRequest($id)
     {
-        // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
+        // Check Super Admin access
+        if (! $this->isSuperAdmin()) {
             return redirect()->to('/login')->with('error', 'Access denied. Super Admin access required.');
         }
 
@@ -110,8 +133,8 @@ class AdminController extends BaseController
      */
     public function approveDeleteRequest($id)
     {
-        // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
+        // Check Super Admin access
+        if (! $this->isSuperAdmin()) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Access denied. Super Admin access required.'
@@ -167,8 +190,8 @@ class AdminController extends BaseController
      */
     public function rejectDeleteRequest($id)
     {
-        // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
+        // Check Super Admin access
+        if (! $this->isSuperAdmin()) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Access denied. Super Admin access required.'
@@ -239,9 +262,10 @@ class AdminController extends BaseController
     public function allDeleteRequests()
     {
         // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
-            return redirect()->to('/login')->with('error', 'Access denied. Super Admin access required.');
-        }
+            // Check Super Admin access
+            if (! $this->isSuperAdmin()) {
+                return redirect()->to('/login')->with('error', 'Access denied. Super Admin access required.');
+            }
 
         $status = $this->request->getGet('status', 'all');
         $requests = $this->deleteRequestModel
@@ -398,6 +422,26 @@ class AdminController extends BaseController
     }
 
     /**
+     * Render MFA management UI for Super Admin
+     */
+    public function mfaManage()
+    {
+        if (! $this->isSuperAdmin()) {
+            return redirect()->to('/login')->with('error', 'Access denied. Super Admin access required.');
+        }
+
+        $users = $this->userModel->getMfaStatuses();
+
+        $data = [
+            'title' => 'MFA Management',
+            'users' => $users,
+            'user'  => session()->get()
+        ];
+
+        return view('admin/mfa_manage', $data);
+    }
+
+    /**
      * Delete a profile photo (for admins)
      */
     public function deleteProfilePhoto($photoId)
@@ -468,8 +512,8 @@ class AdminController extends BaseController
      */
     public function getDashboardStats()
     {
-        // Check if user is logged in and has Super Admin role
-        if (!session()->get('user_id') || session()->get('role') !== 'super_admin') {
+        // Check Super Admin access
+        if (! $this->isSuperAdmin()) {
             return $this->response->setJSON([]);
         }
 
@@ -487,5 +531,117 @@ class AdminController extends BaseController
         ];
 
         return $this->response->setJSON($stats);
+    }
+
+    /**
+     * Return MFA status for all users (Super Admin only)
+     */
+    public function mfaStatus()
+    {
+        if (! $this->isSuperAdmin()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Super Admin access required.'
+            ]);
+        }
+
+        $users = $this->userModel->getMfaStatuses();
+
+        $payload = array_map(function ($u) {
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'mfa_enabled' => (int) $u->mfa_enabled,
+                'mfa_status' => ((int) $u->mfa_enabled === 1) ? 'Enabled' : 'Disabled',
+                'mfa_method' => $u->mfa_method,
+                'is_active' => (int) $u->is_active,
+            ];
+        }, $users);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'users' => $payload,
+        ]);
+    }
+
+    /**
+     * Enable or disable MFA for a specific user (Super Admin only)
+     */
+    public function setMfaStatus($id)
+    {
+        if (! $this->isSuperAdmin()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Access denied. Super Admin access required.'
+            ]);
+        }
+
+        $action = $this->request->getPost('action'); // expected 'enable' or 'disable' or '1'/'0'
+
+        if (empty($action)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Missing action parameter'
+            ]);
+        }
+
+        $enable = false;
+        if (in_array(strtolower($action), ['enable', '1', 'true'], true)) {
+            $enable = true;
+        }
+
+        // Prevent modifying the Super Admin account
+        try {
+            $roleName = $this->userModel->getRoleName((int) $id);
+            if ($roleName && strtolower(trim($roleName)) === 'super admin') {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Cannot modify MFA for the Super Admin account.'
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // if role lookup fails, continue but be cautious
+        }
+
+        // Update user record
+        try {
+            $method = $this->request->getPost('method') ?? 'email';
+            $updated = $this->userModel->setMfaEnabled((int) $id, $enable, $method);
+
+            if ($updated === false) {
+                throw new \Exception('Failed to update user record');
+            }
+
+            // If disabling, revoke trusted devices
+            if (!$enable) {
+                $deviceTokenModel = model('DeviceTokenModel');
+                if ($deviceTokenModel) {
+                    $deviceTokenModel->revokeAllDevices((int) $id);
+                }
+            }
+
+            // Write audit log of admin action
+            try {
+                $auditModel = new \App\Models\AuditModel();
+                $adminId = session()->get('user_id');
+                $user = $this->userModel->find($id);
+                $desc = ($enable ? 'Enabled' : 'Disabled') . ' MFA for user: ' . ($user->email ?? $id);
+                $auditModel->log($adminId, 'Admin MFA Change', $desc);
+            } catch (\Throwable $e) {
+                log_message('error', 'Failed to write admin MFA audit log: ' . $e->getMessage());
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'MFA ' . ($enable ? 'enabled' : 'disabled') . ' for user.'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Admin setMfaStatus error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'An error occurred while updating MFA status.'
+            ]);
+        }
     }
 }

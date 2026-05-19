@@ -20,15 +20,16 @@ class OtpModel extends Model
     protected $updatedField  = '';  // No updated_at column in this table
 
     // Validation
-    protected $allowedFields = ['email', 'otp', 'expires_at', 'is_used', 'created_at'];
+    protected $allowedFields = ['email', 'otp', 'expires_at', 'is_used', 'created_at', 'mfa_context', 'user_id'];
 
     /**
      * Generate and save OTP for an email
      */
-    public function generateOtp($email)
+    public function generateOtp($email, $context = 'password_reset', $userId = null)
     {
-        // Delete any existing unused OTPs for this email
+        // Delete any existing unused OTPs for this email with same context
         $this->where('email', $email)
+             ->where('mfa_context', $context)
              ->where('is_used', 0)
              ->delete();
 
@@ -39,15 +40,17 @@ class OtpModel extends Model
         $now = time();
         $expiresAt = date('Y-m-d H:i:s', $now + (10 * 60));
 
-        log_message('debug', '[generateOtp] Creating OTP. Now: ' . date('Y-m-d H:i:s', $now) . ', ExpiresAt: ' . $expiresAt . ', AppTimezone: ' . app_timezone());
+        log_message('debug', '[generateOtp] Creating OTP. Now: ' . date('Y-m-d H:i:s', $now) . ', ExpiresAt: ' . $expiresAt . ', Context: ' . $context);
 
         // Save OTP
         $this->insert([
-            'email'      => $email,
-            'otp'        => $otp,
-            'expires_at' => $expiresAt,
-            'is_used'    => 0,
-            'created_at' => date('Y-m-d H:i:s'),
+            'email'        => $email,
+            'otp'          => $otp,
+            'expires_at'   => $expiresAt,
+            'is_used'      => 0,
+            'created_at'   => date('Y-m-d H:i:s'),
+            'mfa_context'  => $context,
+            'user_id'      => $userId,
         ]);
 
         return $otp;
@@ -56,15 +59,16 @@ class OtpModel extends Model
     /**
      * Verify OTP
      */
-    public function verifyOtp($email, $otp)
+    public function verifyOtp($email, $otp, $context = 'password_reset')
     {
         // Trim OTP in case of whitespace
         $otp = trim($otp);
         
-        log_message('debug', '[OtpModel.verifyOtp] Checking OTP for email: ' . $email . ', provided OTP: ' . $otp);
+        log_message('debug', '[OtpModel.verifyOtp] Checking OTP for email: ' . $email . ', provided OTP: ' . $otp . ', context: ' . $context);
 
         $record = $this->where('email', $email)
                        ->where('otp', $otp)
+                       ->where('mfa_context', $context)
                        ->where('is_used', 0)
                        ->first();
 
@@ -73,7 +77,7 @@ class OtpModel extends Model
             $allRecords = $this->where('email', $email)->orderBy('created_at', 'DESC')->findAll();
             log_message('debug', '[OtpModel.verifyOtp] No matching OTP found. Total OTP records for email: ' . count($allRecords));
             foreach ($allRecords as $rec) {
-                log_message('debug', '[OtpModel.verifyOtp] Existing OTP: ' . $rec->otp . ', is_used: ' . $rec->is_used . ', expires_at: ' . $rec->expires_at);
+                log_message('debug', '[OtpModel.verifyOtp] Existing OTP: ' . $rec->otp . ', is_used: ' . $rec->is_used . ', expires_at: ' . $rec->expires_at . ', context: ' . $rec->mfa_context);
             }
             return false;
         }
