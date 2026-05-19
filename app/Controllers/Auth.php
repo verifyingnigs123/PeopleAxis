@@ -212,6 +212,7 @@ class Auth extends BaseController
             // Generate and send MFA OTP
             $otpModel = model('OtpModel');
             $otp = $otpModel->generateOtp($user->email, 'login', $user->id);
+            $otpExpiresAt = time() + (10 * 60);
 
             // Send MFA OTP email (login verification)
             $emailBody = view('auth/mfa_email_otp', [
@@ -220,6 +221,8 @@ class Auth extends BaseController
             ]);
 
             $this->sendOtpEmail($user->email, $emailBody, 'Your Login Verification OTP - PeopleAxis');
+
+            session()->set('mfa_otp_expires_at', $otpExpiresAt);
 
             log_message('info', '[loginProcess] MFA enabled for user: ' . $user->email . '. OTP sent.');
             return redirect()->to('/verify-mfa-login')->with('success', 'OTP has been sent to your email. Please verify to complete login.');
@@ -694,7 +697,65 @@ class Auth extends BaseController
             return redirect()->to('/login')->with('error', 'Please log in first.');
         }
 
-        return view('auth/verify_mfa_login', ['user_id' => $userId]);
+        $cooldownUntil = (int) (session()->getTempdata('mfa_resend_cooldown_until') ?? 0);
+        $resendCooldown = max(0, $cooldownUntil - time());
+        $otpExpiresAt = (int) (session()->get('mfa_otp_expires_at') ?? 0);
+        $otpCountdown = max(0, $otpExpiresAt - time());
+
+        return view('auth/verify_mfa_login', [
+            'user_id' => $userId,
+            'resend_cooldown' => $resendCooldown,
+            'otp_countdown' => $otpCountdown,
+        ]);
+    }
+
+    /**
+     * Resend MFA Login OTP code
+     */
+    public function resendMfaCode()
+    {
+        $userId = (int) (session()->get('mfa_pending_user_id') ?? 0);
+        $email = (string) (session()->get('mfa_pending_email') ?? '');
+        $name = (string) (session()->get('mfa_pending_name') ?? 'User');
+
+        if ($userId <= 0 || $email === '') {
+            return redirect()->to('/login')->with('error', 'Session expired. Please log in again.');
+        }
+
+        // Prevent rapid resend spam
+        $nextAllowedAt = (int) (session()->getTempdata('mfa_resend_cooldown_until') ?? 0);
+        if ($nextAllowedAt > time()) {
+            $remaining = max(1, $nextAllowedAt - time());
+            return redirect()->to('/verify-mfa-login')->with('error', 'Please wait ' . $remaining . ' seconds before resending another code.');
+        }
+
+        try {
+            $otpModel = model('OtpModel');
+            $otp = $otpModel->generateOtp($email, 'login', $userId);
+            $otpExpiresAt = time() + (10 * 60);
+
+            $emailBody = view('auth/mfa_email_otp', [
+                'otp'      => $otp,
+                'userName' => $name,
+            ]);
+
+            $sent = $this->sendOtpEmail($email, $emailBody, 'Your Login Verification OTP - PeopleAxis');
+            if ($sent !== true) {
+                log_message('error', '[resendMfaCode] Failed to send MFA OTP: ' . $sent);
+                return redirect()->to('/verify-mfa-login')->with('error', 'Failed to resend code. Please try again.');
+            }
+
+            session()->set('mfa_otp_expires_at', $otpExpiresAt);
+
+            // 60-second cooldown between resend requests
+            $cooldown = 60;
+            session()->setTempdata('mfa_resend_cooldown_until', time() + $cooldown, $cooldown);
+
+            return redirect()->to('/verify-mfa-login')->with('success', 'A new verification code has been sent to your email.');
+        } catch (\Throwable $e) {
+            log_message('error', '[resendMfaCode] Exception: ' . $e->getMessage());
+            return redirect()->to('/verify-mfa-login')->with('error', 'Unable to resend code right now. Please try again.');
+        }
     }
 
     /**
@@ -797,7 +858,7 @@ class Auth extends BaseController
         ]);
 
         // Clear MFA pending session data
-        session()->remove(['mfa_pending_user_id', 'mfa_pending_email', 'mfa_pending_name', 'mfa_pending_role_id', 'mfa_pending_role']);
+        session()->remove(['mfa_pending_user_id', 'mfa_pending_email', 'mfa_pending_name', 'mfa_pending_role_id', 'mfa_pending_role', 'mfa_otp_expires_at']);
 
         // Handle device memory
         if ($rememberDevice) {

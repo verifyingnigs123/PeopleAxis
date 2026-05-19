@@ -110,7 +110,7 @@
                 <div class="otp-code"><?= $otp; ?></div>
             </div>
 
-            <p><strong>This code will expire in 10 minutes.</strong></p>
+            <p><strong>This verification code is usable for 10 minutes only.</strong></p>
 
             <div class="warning">
                 <strong>⚠️ Security Warning:</strong> If you didn't try to log in, your password may be compromised. Please change your password immediately or contact our support team.

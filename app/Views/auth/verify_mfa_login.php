@@ -8,6 +8,7 @@
                 <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
                 <h2 class="card-title">Two-Factor Authentication</h2>
                 <p class="text-muted">We sent you a sign-in verification code via email. Enter the digits shown below to verify your identity.</p>
+                <p class="text-muted small mb-0" id="otpCountdownText"></p>
             </div>
 
             <?php if (session()->getFlashdata('error')): ?>
@@ -67,9 +68,19 @@
             </form>
 
             <div class="text-center mt-3">
-                <p class="text-muted small mb-0">
-                    Didn't receive the code? <a href="<?= base_url('login'); ?>" class="text-decoration-none">Try logging in again</a>
-                </p>
+                <p class="text-muted small mb-0">Didn't receive the code?</p>
+                <form action="<?= base_url('mfa-login/resend'); ?>" method="POST" class="d-inline">
+                    <?= csrf_field(); ?>
+                    <button
+                        type="submit"
+                        id="resendCodeBtn"
+                        class="btn btn-link p-0 text-decoration-none"
+                        <?= ((int) ($resend_cooldown ?? 0) > 0) ? 'disabled' : '' ?>
+                    >
+                        Resend code
+                    </button>
+                </form>
+                <p id="resendCooldownText" class="text-muted small mb-0 mt-1"></p>
             </div>
         </div>
     </div>
@@ -93,5 +104,65 @@
     document.getElementById('otp').addEventListener('input', function(e) {
         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
     });
+
+    (function() {
+        var verifyButton = document.querySelector('form[action*="mfa-login/verify"] button[type="submit"]');
+        var otpCountdownText = document.getElementById('otpCountdownText');
+        var otpRemaining = <?= (int) ($otp_countdown ?? 0) ?>;
+
+        function formatTime(totalSeconds) {
+            var mins = Math.floor(totalSeconds / 60);
+            var secs = totalSeconds % 60;
+            return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }
+
+        function renderOtpCountdown() {
+            if (!otpCountdownText) {
+                return;
+            }
+
+            if (otpRemaining > 0) {
+                otpCountdownText.textContent = 'Code expires in ' + formatTime(otpRemaining) + ' (usable for 10 minutes only).';
+                if (verifyButton) {
+                    verifyButton.disabled = false;
+                }
+                otpRemaining -= 1;
+                return;
+            }
+
+            otpCountdownText.textContent = 'Code expired. Please request a new code.';
+            if (verifyButton) {
+                verifyButton.disabled = true;
+            }
+            clearInterval(otpTimer);
+        }
+
+        var otpTimer = setInterval(renderOtpCountdown, 1000);
+        renderOtpCountdown();
+
+        var resendBtn = document.getElementById('resendCodeBtn');
+        var cooldownText = document.getElementById('resendCooldownText');
+        var remaining = <?= (int) ($resend_cooldown ?? 0) ?>;
+
+        if (!resendBtn || !cooldownText) {
+            return;
+        }
+
+        function renderCountdown() {
+            if (remaining > 0) {
+                resendBtn.disabled = true;
+                cooldownText.textContent = 'Resend available in ' + remaining + 's';
+                remaining -= 1;
+                return;
+            }
+
+            resendBtn.disabled = false;
+            cooldownText.textContent = '';
+            clearInterval(timer);
+        }
+
+        var timer = setInterval(renderCountdown, 1000);
+        renderCountdown();
+    })();
 </script>
 <?= $this->endSection() ?>

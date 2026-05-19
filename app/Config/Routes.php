@@ -175,6 +175,7 @@ $routes->post('/reset-password', 'Auth::resetPasswordProcess');
 // MFA (Two-Factor Authentication) routes
 $routes->get('/verify-mfa-login', 'Auth::verifyMfaLogin');
 $routes->post('/mfa-login/verify', 'Auth::verifyLoginMfaProcess');
+$routes->post('/mfa-login/resend', 'Auth::resendMfaCode');
 $routes->post('/settings/mfa/enable', 'Auth::enableMfa');
 $routes->post('/settings/mfa/disable', 'Auth::disableMfa');
 $routes->get('/settings/devices', 'Auth::getDevices');
