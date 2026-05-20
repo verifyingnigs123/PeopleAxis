@@ -22,11 +22,18 @@ class Audit extends BaseController
         $db = \Config\Database::connect();
         $hasLoginAttempts = $db->tableExists('login_attempts');
 
+        // Optional user filter from GET
+        $filterUserId = $this->request->getGet('user_id') ? (int)$this->request->getGet('user_id') : null;
+
         // Base: audit_logs joined with user name + role
-        $base = fn() => $db->table('audit_logs al')
-            ->select("al.*, u.name AS admin_name, r.name AS role_name")
-            ->join('users u', 'u.id = al.user_id', 'left')
-            ->join('roles r', 'r.id = u.role_id',  'left');
+        $base = function() use ($db, $filterUserId) {
+            $b = $db->table('audit_logs al')
+                ->select("al.*, u.name AS admin_name, r.name AS role_name")
+                ->join('users u', 'u.id = al.user_id', 'left')
+                ->join('roles r', 'r.id = u.role_id',  'left');
+            if ($filterUserId) $b->where('al.user_id', $filterUserId);
+            return $b;
+        };
 
         // ── 1. All logs ─────────────────────────────────────────────
         $all = $base()->orderBy('al.timestamp','DESC')->limit(200)->get()->getResultObject();
@@ -70,13 +77,17 @@ class Audit extends BaseController
             ->join('roles r', 'r.id = u.role_id',  'left')
             ->where('al.action', 'Login')
             ->orderBy('al.timestamp', 'DESC')
-            ->limit(100)->get()->getResultObject();
+            ->limit(100);
+        if ($filterUserId) $loginEvents->where('al.user_id', $filterUserId);
+        $loginEvents = $loginEvents->get()->getResultObject();
 
         $logoutEvents = $db->table('audit_logs')
             ->select("user_id, timestamp")
             ->where('action','Logout')
             ->orderBy('timestamp','DESC')
-            ->limit(100)->get()->getResultObject();
+            ->limit(100);
+        if ($filterUserId) $logoutEvents->where('user_id', $filterUserId);
+        $logoutEvents = $logoutEvents->get()->getResultObject();
 
         $logoutMap = [];
         foreach ($logoutEvents as $lo) {
@@ -114,13 +125,18 @@ class Audit extends BaseController
                 ->join('users u', 'u.id = la.user_id', 'left')
                 ->join('roles r', 'r.id = u.role_id',  'left')
                 ->orderBy('la.created_at','DESC')
-                ->limit(200)->get()->getResultObject();
+                ->limit(200);
+            if ($filterUserId) $loginAttempts->where('la.user_id', $filterUserId);
+            $loginAttempts = $loginAttempts->get()->getResultObject();
         }
 
         // ── 9. Account Activity Events ───────────────────────────────
         $activityEvents = $base()
             ->whereIn('al.action', ['Login','Logout','Failed Login','Account Locked'])
             ->orderBy('al.timestamp','DESC')->limit(100)->get()->getResultObject();
+
+        // Users list for linking / quick filter
+        $usersList = $db->table('users')->select('id, name')->orderBy('name')->get()->getResultObject();
 
         // ── 10. Intrusion Alerts ─────────────────────────────────────
         $intrusions = [];
@@ -164,6 +180,8 @@ class Audit extends BaseController
                 'active_sessions' => $activeSessions,
             ],
             'hasLoginAttempts' => $hasLoginAttempts,
+            'usersList'       => $usersList,
+            'filterUserId'    => $filterUserId,
         ]);
     }
 

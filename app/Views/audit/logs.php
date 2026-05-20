@@ -67,6 +67,16 @@
     <div class="al-hero-total"><i class="fas fa-database"></i> <?= number_format($total) ?> Total Records</div>
 </div>
 
+<!-- Controls: print and filter info -->
+<div style="display:flex;align-items:center;gap:10px;margin:12px 0 18px;">
+    <button id="al-print" class="al-sel" onclick="printActivePanel()" style="cursor:pointer;">🖨️ Print</button>
+    <?php if (!empty($filterUserId) && !empty($usersList)): ?>
+        <?php $filteredUserName = null; foreach ($usersList as $u) { if ((int)$u->id === (int)$filterUserId) { $filteredUserName = $u->name; break; } } ?>
+        <div style="font-weight:600;color:#374151;">Showing logs for: <span style="font-weight:800;"><?= esc($filteredUserName ?? 'User') ?></span></div>
+        <a href="<?= base_url('audit') ?>" class="al-sel" style="text-decoration:none;padding:7px 11px;">Clear filter</a>
+    <?php endif; ?>
+</div>
+
 <!-- Stats -->
 <div class="al-stats">
     <div class="al-stat c-g"><div class="al-stat-icon"><i class="fas fa-sign-in-alt"></i></div><div><div class="al-stat-val"><?= !empty($hasLoginAttempts) ? number_format($stats['total_logins']) : 'N/A' ?></div><div class="al-stat-lbl">Total Logins</div></div></div>
@@ -109,7 +119,14 @@ function alTable(string $id, array $rows): void { ?>
 <tr>
     <td style="color:#9ca3af;font-size:.8rem;"><?= $i+1 ?></td>
     <td><span class="al-ts"><?= $log->timestamp ? date('M d, Y', strtotime($log->timestamp)) : '—' ?><br><span style="font-size:.72rem;"><?= $log->timestamp ? date('H:i:s', strtotime($log->timestamp)) : '' ?></span></span></td>
-    <td><div class="u-chip"><span class="u-name"><?= esc($log->admin_name ?? 'System') ?></span><span class="u-role"><?= esc($log->role_name ?? '') ?> (ID: <?= (int)($log->user_id??0) ?>)</span></div></td>
+    <td><div class="u-chip">
+        <?php if (!empty($log->user_id)): ?>
+            <a href="<?= base_url('audit') ?>?user_id=<?= (int)$log->user_id ?>" class="u-name" style="text-decoration:none;color:inherit;"><?= esc($log->admin_name ?? 'System') ?></a>
+        <?php else: ?>
+            <span class="u-name"><?= esc($log->admin_name ?? 'System') ?></span>
+        <?php endif; ?>
+        <span class="u-role"><?= esc($log->role_name ?? '') ?> (ID: <?= (int)($log->user_id??0) ?>)</span>
+    </div></td>
     <td><?= alBadge($log->action ?? '') ?></td>
     <td><span class="al-desc"><?= esc($log->description ?? '—') ?></span></td>
 </tr>
@@ -244,6 +261,34 @@ function alFilterCol(id, val, col) {
     const rows = document.querySelectorAll('#'+id+' tbody tr');
     const lv = val.toLowerCase();
     rows.forEach(r => { const c = r.cells[col]; r.style.display = (!lv || (c && c.textContent.toLowerCase().includes(lv))) ? '' : 'none'; });
+}
+function printActivePanel() {
+    // Find active panel content
+    const active = document.querySelector('.al-tab-panel.active');
+    if (!active) { alert('Nothing to print'); return; }
+    // Clone and open in new window for printing
+    const w = window.open('', '_blank');
+    const html = `
+        <html>
+        <head>
+            <title>Print - Activity Logs</title>
+            <style>
+                body{font-family: Arial, Helvetica, sans-serif; color:#111}
+                table{width:100%; border-collapse:collapse}
+                th,td{padding:8px;border:1px solid #ddd;text-align:left}
+                th{background:#f4faf6}
+            </style>
+        </head>
+        <body>
+            <h2>Activity Logs</h2>
+            ${active.innerHTML}
+        </body>
+        </html>`;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    // Wait for content to load then print
+    w.onload = function() { w.focus(); w.print(); w.close(); };
 }
 </script>
 <?= $this->endSection() ?>
