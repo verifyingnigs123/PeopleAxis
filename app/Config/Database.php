@@ -26,14 +26,14 @@ class Database extends Config
      */
     public array $default = [
         'DSN'          => '',
-        'hostname'     => 'localhost',
-        'username'     => 'root',
-        'password'     => '',
-        'database'     => 'peopleaxis',
+        'hostname'     => $_ENV['database.default.hostname'] ?? 'localhost',
+        'username'     => $_ENV['database.default.username'] ?? 'root',
+        'password'     => $_ENV['database.default.password'] ?? '',
+        'database'     => $_ENV['database.default.database'] ?? 'peopleaxis',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,
-        'DBDebug'      => true,
+        'DBDebug'      => (ENVIRONMENT !== 'production'),
         'charset'      => 'utf8mb4',
         'DBCollat'     => 'utf8mb4_general_ci',
         'swapPre'      => '',
@@ -41,7 +41,7 @@ class Database extends Config
         'compress'     => false,
         'strictOn'     => false,
         'failover'     => [],
-        'port'         => 3306,
+        'port'         => (int)($_ENV['database.default.port'] ?? 3306),
         'numberNative' => false,
         'foundRows'    => false,
         'dateFormat'   => [

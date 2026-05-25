@@ -1,7 +1,7 @@
 <?php
 
-// Force development environment
-define('CI_ENVIRONMENT', 'development');
+// Set environment from .env or default to production for safety
+define('CI_ENVIRONMENT', $_ENV['CI_ENVIRONMENT'] ?? 'production');
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
