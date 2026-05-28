@@ -1,0 +1,32 @@
+{
+  "name": "PeopleAxis - HR Management System",
+  "short_name": "PeopleAxis",
+  "description": "Professional HR Management System",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2d7659",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/favicon.svg",
+      "sizes": "540x720",
+      "type": "image/svg+xml"
+    }
+  ]
+}

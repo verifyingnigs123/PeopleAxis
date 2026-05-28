@@ -101,6 +101,28 @@ if ($isManager) {
         padding: 18px 0;
     }
 
+    .sidebar-logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 12px 0 16px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--pa-border-soft);
+    }
+
+    .sidebar-logo {
+        width: 100px;
+        height: 100px;
+        display: block;
+        cursor: pointer;
+        transition: transform 0.3s ease, filter 0.3s ease;
+    }
+
+    .sidebar-logo:hover {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+    }
+
     .content-utility-bar {
         display: flex;
         align-items: center;
@@ -647,6 +669,61 @@ if ($isManager) {
         <!-- ===== CUSTOM ROLE SIDEBAR (PRIVILEGE-BASED) ===== -->
         <aside class="sidebar">
             <nav>
+                <!-- Logo -->
+                <div class="sidebar-logo-container">
+                    <a href="<?= base_url('dashboard') ?>" title="PeopleAxis - Dashboard" class="sidebar-logo-link">
+                        <svg class="sidebar-logo" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bgGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#2d7659;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#1a4d3e;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="accentGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4ca87a;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#2d7659;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="120" cy="120" r="115" fill="url(#bgGradient1)" />
+                            <circle cx="120" cy="120" r="110" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.15" />
+                            <line x1="120" y1="50" x2="120" y2="190" stroke="url(#accentGradient1)" stroke-width="3" stroke-linecap="round" />
+                            <line x1="50" y1="120" x2="190" y2="120" stroke="url(#accentGradient1)" stroke-width="3" stroke-linecap="round" />
+                            <g>
+                                <circle cx="70" cy="85" r="14" fill="#ffffff" />
+                                <rect x="62" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="63" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="77" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="70" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="65" r="16" fill="#ffffff" />
+                                <rect x="110" y="88" width="20" height="28" rx="2" fill="#ffffff" />
+                                <circle cx="110" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="130" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="3" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="170" cy="85" r="14" fill="#ffffff" />
+                                <rect x="162" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="163" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="177" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="170" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="155" r="14" fill="#ffffff" />
+                                <rect x="112" y="175" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="113" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="127" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <circle cx="120" cy="120" r="115" fill="none" stroke="url(#accentGradient1)" stroke-width="1.5" opacity="0.6" />
+                            <circle cx="45" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="45" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                        </svg>
+                    </a>
+                </div>
+
                 <!-- Dashboard -->
                 <div class="sidebar-section">
                     <a href="<?= base_url('dashboard') ?>" class="sidebar-link">
@@ -734,6 +811,61 @@ if ($isManager) {
         <!-- ===== EMPLOYEE SIDEBAR ===== -->
         <aside class="sidebar">
             <nav>
+                <!-- Logo -->
+                <div class="sidebar-logo-container">
+                    <a href="<?= base_url('dashboard') ?>" title="PeopleAxis - Dashboard" class="sidebar-logo-link">
+                        <svg class="sidebar-logo" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bgGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#2d7659;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#1a4d3e;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="accentGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4ca87a;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#2d7659;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="120" cy="120" r="115" fill="url(#bgGradient3)" />
+                            <circle cx="120" cy="120" r="110" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.15" />
+                            <line x1="120" y1="50" x2="120" y2="190" stroke="url(#accentGradient3)" stroke-width="3" stroke-linecap="round" />
+                            <line x1="50" y1="120" x2="190" y2="120" stroke="url(#accentGradient3)" stroke-width="3" stroke-linecap="round" />
+                            <g>
+                                <circle cx="70" cy="85" r="14" fill="#ffffff" />
+                                <rect x="62" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="63" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="77" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="70" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="65" r="16" fill="#ffffff" />
+                                <rect x="110" y="88" width="20" height="28" rx="2" fill="#ffffff" />
+                                <circle cx="110" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="130" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="3" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="170" cy="85" r="14" fill="#ffffff" />
+                                <rect x="162" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="163" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="177" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="170" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="155" r="14" fill="#ffffff" />
+                                <rect x="112" y="175" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="113" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="127" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <circle cx="120" cy="120" r="115" fill="none" stroke="url(#accentGradient3)" stroke-width="1.5" opacity="0.6" />
+                            <circle cx="45" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="45" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                        </svg>
+                    </a>
+                </div>
+
                 <!-- Dashboard -->
                 <div class="sidebar-section">
                     <a href="<?= base_url('dashboard') ?>" class="sidebar-link">
@@ -767,6 +899,61 @@ if ($isManager) {
         <!-- ===== ADMIN SIDEBAR (SUPER ADMIN / HR ADMIN) ===== -->
         <aside class="sidebar">
             <nav>
+                <!-- Logo -->
+                <div class="sidebar-logo-container">
+                    <a href="<?= base_url('dashboard') ?>" title="PeopleAxis - Dashboard" class="sidebar-logo-link">
+                        <svg class="sidebar-logo" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bgGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#2d7659;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#1a4d3e;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="accentGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4ca87a;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#2d7659;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="120" cy="120" r="115" fill="url(#bgGradient2)" />
+                            <circle cx="120" cy="120" r="110" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.15" />
+                            <line x1="120" y1="50" x2="120" y2="190" stroke="url(#accentGradient2)" stroke-width="3" stroke-linecap="round" />
+                            <line x1="50" y1="120" x2="190" y2="120" stroke="url(#accentGradient2)" stroke-width="3" stroke-linecap="round" />
+                            <g>
+                                <circle cx="70" cy="85" r="14" fill="#ffffff" />
+                                <rect x="62" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="63" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="77" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="70" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="65" r="16" fill="#ffffff" />
+                                <rect x="110" y="88" width="20" height="28" rx="2" fill="#ffffff" />
+                                <circle cx="110" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="130" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="3" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="170" cy="85" r="14" fill="#ffffff" />
+                                <rect x="162" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="163" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="177" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="170" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="155" r="14" fill="#ffffff" />
+                                <rect x="112" y="175" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="113" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="127" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <circle cx="120" cy="120" r="115" fill="none" stroke="url(#accentGradient2)" stroke-width="1.5" opacity="0.6" />
+                            <circle cx="45" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="45" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                        </svg>
+                    </a>
+                </div>
+
                 <!-- Dashboard -->
                 <div class="sidebar-section">
                     <a href="<?= base_url('dashboard') ?>" class="sidebar-link">
@@ -854,6 +1041,61 @@ if ($isManager) {
         <!-- ===== MANAGER SIDEBAR ===== -->
         <aside class="sidebar">
             <nav>
+                <!-- Logo -->
+                <div class="sidebar-logo-container">
+                    <a href="<?= base_url('dashboard') ?>" title="PeopleAxis - Dashboard" class="sidebar-logo-link">
+                        <svg class="sidebar-logo" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bgGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#2d7659;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#1a4d3e;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="accentGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4ca87a;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#2d7659;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="120" cy="120" r="115" fill="url(#bgGradient4)" />
+                            <circle cx="120" cy="120" r="110" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.15" />
+                            <line x1="120" y1="50" x2="120" y2="190" stroke="url(#accentGradient4)" stroke-width="3" stroke-linecap="round" />
+                            <line x1="50" y1="120" x2="190" y2="120" stroke="url(#accentGradient4)" stroke-width="3" stroke-linecap="round" />
+                            <g>
+                                <circle cx="70" cy="85" r="14" fill="#ffffff" />
+                                <rect x="62" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="63" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="77" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="70" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="65" r="16" fill="#ffffff" />
+                                <rect x="110" y="88" width="20" height="28" rx="2" fill="#ffffff" />
+                                <circle cx="110" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="130" cy="125" r="6" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="3" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="170" cy="85" r="14" fill="#ffffff" />
+                                <rect x="162" y="105" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="163" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="177" cy="138" r="5" fill="#ffffff" />
+                                <circle cx="170" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <g>
+                                <circle cx="120" cy="155" r="14" fill="#ffffff" />
+                                <rect x="112" y="175" width="16" height="25" rx="2" fill="#ffffff" />
+                                <circle cx="113" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="127" cy="208" r="5" fill="#ffffff" />
+                                <circle cx="120" cy="120" r="2.5" fill="#4ca87a" />
+                            </g>
+                            <circle cx="120" cy="120" r="115" fill="none" stroke="url(#accentGradient4)" stroke-width="1.5" opacity="0.6" />
+                            <circle cx="45" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="45" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="45" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                            <circle cx="195" cy="195" r="3" fill="#4ca87a" opacity="0.7" />
+                        </svg>
+                    </a>
+                </div>
+
                 <!-- Dashboard -->
                 <div class="sidebar-section">
                     <a href="<?= base_url('dashboard') ?>" class="sidebar-link">

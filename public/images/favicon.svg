@@ -1,0 +1,40 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+  <defs>
+    <linearGradient id="faviconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d7659;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a4d3e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="faviconAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5dd89b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4ca87a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with solid color for best rendering -->
+  <rect width="120" height="120" fill="#2d7659" />
+  <rect width="120" height="120" rx="24" fill="url(#faviconBg)" />
+  
+  <!-- Axis Lines - thicker for visibility at small sizes -->
+  <line x1="60" y1="20" x2="60" y2="100" stroke="url(#faviconAccent)" stroke-width="3" stroke-linecap="round" />
+  <line x1="20" y1="60" x2="100" y2="60" stroke="url(#faviconAccent)" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- Central Hub (people icons) - simplified for small sizes -->
+  <!-- Left Person -->
+  <circle cx="40" cy="42" r="6.5" fill="#ffffff" />
+  <ellipse cx="40" cy="56" rx="5" ry="7" fill="#ffffff" />
+  
+  <!-- Top Person - central/leader -->
+  <circle cx="60" cy="32" r="7.5" fill="#ffffff" />
+  <ellipse cx="60" cy="48" rx="5.5" ry="8" fill="#ffffff" />
+  
+  <!-- Right Person -->
+  <circle cx="80" cy="42" r="6.5" fill="#ffffff" />
+  <ellipse cx="80" cy="56" rx="5" ry="7" fill="#ffffff" />
+  
+  <!-- Bottom Person -->
+  <circle cx="60" cy="78" r="6" fill="#ffffff" />
+  <ellipse cx="60" cy="90" rx="4.5" ry="6" fill="#ffffff" />
+  
+  <!-- Central connection hub -->
+  <circle cx="60" cy="60" r="3" fill="#5dd89b" opacity="0.9" />
+</svg>
