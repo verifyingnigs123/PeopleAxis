@@ -7,8 +7,6 @@ use App\Models\DepartmentModel;
 use App\Models\NotificationModel;
 use App\Models\UserModel;
 use App\Controllers\Audit;
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
 class Users extends BaseController
 {
@@ -119,11 +117,11 @@ class Users extends BaseController
         while ($attemptCount < 1000) {
             $newId = 'PPA-' . str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
             $exists = $db->table('employees')->where('employee_id', $newId)->countAllResults() > 0;
-            
+
             if (!$exists) {
                 return $newId;
             }
-            
+
             $nextNumber++;
             $attemptCount++;
         }
@@ -132,150 +130,63 @@ class Users extends BaseController
         return 'PPA-' . str_pad((string) (time() % 100000), 5, '0', STR_PAD_LEFT);
     }
 
-    private function getSmtpConfig()
-    {
-        // Try multiple ways to load the Email configuration
-        
-        // Method 1: Direct file include
-        $configFile = APPPATH . 'Config/Email.php';
-        if (file_exists($configFile)) {
-            // Extract configuration values using regex from the file content
-            $content = file_get_contents($configFile);
-            
-            // Extract SMTP values using regex
-            preg_match('/public\s+string\s+\$SMTPHost\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $host);
-            preg_match('/public\s+string\s+\$SMTPUser\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $user);
-            preg_match('/public\s+string\s+\$SMTPPass\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $pass);
-            preg_match('/public\s+string\s+\$fromEmail\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $from);
-            preg_match('/public\s+string\s+\$fromName\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $name);
-            preg_match('/public\s+int\s+\$SMTPPort\s*=\s*(\d+)/', $content, $port);
-            preg_match('/public\s+int\s+\$SMTPTimeout\s*=\s*(\d+)/', $content, $timeout);
-            preg_match('/public\s+string\s+\$SMTPCrypto\s*=\s*[\'"]([^\'"]*)[\'"]/', $content, $crypto);
-            
-            return [
-                'host'    => $host[1] ?? 'smtp.gmail.com',
-                'user'    => $user[1] ?? '',
-                'pass'    => $pass[1] ?? '',
-                'port'    => (int)($port[1] ?? 587),
-                'timeout' => (int)($timeout[1] ?? 30),
-                'crypto'  => $crypto[1] ?? 'tls',
-                'from'    => $from[1] ?? '',
-                'name'    => $name[1] ?? 'PeopleAxis HR System',
-            ];
-        }
-        
-        // Fallback: Try object instantiation
-        try {
-            $config = new \Config\Email();
-            return [
-                'host'    => $config->SMTPHost ?? 'smtp.gmail.com',
-                'user'    => $config->SMTPUser ?? '',
-                'pass'    => $config->SMTPPass ?? '',
-                'port'    => $config->SMTPPort ?? 587,
-                'timeout' => $config->SMTPTimeout ?? 30,
-                'crypto'  => $config->SMTPCrypto ?? 'tls',
-                'from'    => $config->fromEmail ?? '',
-                'name'    => $config->fromName ?? 'PeopleAxis HR System',
-            ];
-        } catch (\Exception $e) {
-            log_message('error', '[getSmtpConfig] Error: ' . $e->getMessage());
-        }
-        
-        return [
-            'host'    => 'smtp.gmail.com',
-            'user'    => '',
-            'pass'    => '',
-            'port'    => 587,
-            'timeout' => 30,
-            'crypto'  => 'tls',
-            'from'    => '',
-            'name'    => 'PeopleAxis HR System',
-        ];
-    }
-
     private function sendWelcomeEmail(string $to, string $userName, string $tempPassword): bool
     {
-        if (!class_exists(PHPMailer::class)) {
-            log_message('warning', '[sendWelcomeEmail] PHPMailer class not found');
-            return false;
-        }
-
-        $cfg = $this->getSmtpConfig();
-        $smtpHost = (string) $cfg['host'];
-        $smtpUser = (string) $cfg['user'];
-        $smtpPass = (string) $cfg['pass'];
-        $smtpPort = (int) $cfg['port'];
-        $smtpTimeout = (int) $cfg['timeout'];
-        $smtpCrypto = strtolower(trim((string) $cfg['crypto']));
-        $fromEmail = (string) $cfg['from'];
-        $fromName = (string) $cfg['name'];
-
-        if ($smtpHost === '' || $smtpUser === '' || $smtpPass === '') {
-            log_message('warning', '[sendWelcomeEmail] SMTP configuration incomplete');
-            return false;
-        }
-
-        $mail = new PHPMailer(true);
         try {
-            $mail->isSMTP();
-            $mail->Host       = $smtpHost;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $smtpUser;
-            $mail->Password   = $smtpPass;
-            $mail->Port       = $smtpPort;
-            $mail->Timeout    = $smtpTimeout;
+            $emailConfig = new \Config\Email();
+            $emailService = \Config\Services::email();
+            $emailService->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
+            $emailService->setTo($to);
+            $emailService->setSubject('Welcome to PeopleAxis HR System - Your Account Credentials');
 
-            if ($smtpCrypto === 'ssl') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            } elseif ($smtpCrypto === 'tls') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $htmlBody = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+                        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+                        .content { padding: 20px; }
+                        .credentials { background: #f8f9fa; padding: 15px; border-left: 4px solid #2a5298; margin: 20px 0; }
+                        .credentials p { margin: 10px 0; }
+                        .label { font-weight: bold; color: #2a5298; }
+                        .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2>Welcome to PeopleAxis HR System</h2>
+                        </div>
+                        <div class='content'>
+                            <p>Dear {$userName},</p>
+                            <p>Your account has been successfully created in the PeopleAxis HR System. Please use the credentials below to log in:</p>
+                            <div class='credentials'>
+                                <p><span class='label'>Email:</span> {$to}</p>
+                                <p><span class='label'>Password:</span> {$tempPassword}</p>
+                            </div>
+                            <p><strong>Important:</strong> Please change your password upon first login for security purposes.</p>
+                            <p>If you have any questions or issues, please contact the HR department.</p>
+                            <p>Best regards,<br>PeopleAxis HR System</p>
+                        </div>
+                        <div class='footer'>
+                            <p>This is an automated email. Please do not reply to this message.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+
+            $emailService->setMessage($htmlBody);
+
+            if (!$emailService->send()) {
+                log_message('error', '[sendWelcomeEmail] Failed to send credentials email to [' . $to . ']');
+                return false;
             }
 
-            $mail->SMTPAutoTLS = true;
-            $mail->SMTPOptions = [
-                'ssl' => [
-                    'verify_peer'       => false,
-                    'verify_peer_name'  => false,
-                    'allow_self_signed' => true,
-                ],
-            ];
-
-            $mail->setFrom($fromEmail, $fromName);
-            $mail->addAddress($to);
-            $mail->isHTML(true);
-            $mail->CharSet  = 'UTF-8';
-            $mail->Subject  = 'Welcome to PeopleAxis - Your Account Has Been Created';
-            
-            $htmlBody = '
-            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="background: linear-gradient(135deg,#2f5f45 0%,#6ea988 100%); color: white; padding: 20px; border-radius: 5px 5px 0 0;">
-                    <h2>Welcome to PeopleAxis</h2>
-                </div>
-                <div style="padding: 20px; background: #f9f9f9;">
-                    <p>Dear ' . esc($userName) . ',</p>
-                    <p>Your account has been successfully created in the PeopleAxis HR System.</p>
-                    <div style="background: white; padding: 15px; border-left: 4px solid #2f5f45; margin: 15px 0;">
-                        <p><strong>Login Credentials:</strong></p>
-                        <p><strong>Email:</strong> ' . esc($to) . '</p>
-                        <p><strong>Temporary Password:</strong> <code style="background: #f0f0f0; padding: 5px 10px; border-radius: 3px;">' . esc($tempPassword) . '</code></p>
-                    </div>
-                    <p><strong>Important:</strong> Please change your password immediately upon first login for security purposes.</p>
-                    <p>If you did not request this account or have any questions, please contact your administrator.</p>
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #666;">
-                        This is an automated email. Please do not reply directly to this message.
-                    </p>
-                </div>
-            </div>
-            ';
-            
-            $mail->Body     = $htmlBody;
-            $mail->AltBody  = strip_tags($htmlBody);
-            $mail->send();
             return true;
-        } catch (\Exception $e) {
-            $details = $mail->ErrorInfo !== '' ? $mail->ErrorInfo : $e->getMessage();
-            log_message('error', '[sendWelcomeEmail] PHPMailer error to [' . $to . ']: ' . $details);
+        } catch (\Throwable $e) {
+            log_message('error', '[sendWelcomeEmail] Failed to send credentials email to [' . $to . ']: ' . $e->getMessage());
             return false;
         }
     }

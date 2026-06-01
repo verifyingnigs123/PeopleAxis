@@ -685,6 +685,54 @@ class Auth extends BaseController
         return redirect()->to('/reset-password');
     }
 
+    public function resetPassword()
+    {
+        $email = session()->get('reset_email');
+        $otpVerified = (bool) session()->get('otp_verified');
+
+        if (!$email || !$otpVerified) {
+            return redirect()->to('/forgot-password')->with('error', 'Please verify your OTP before resetting your password.');
+        }
+
+        return view('Forgotpassword/resetpassword', ['email' => $email]);
+    }
+
+    public function resetPasswordProcess()
+    {
+        $email = session()->get('reset_email');
+        $otpVerified = (bool) session()->get('otp_verified');
+        $password = (string) $this->request->getPost('password');
+        $passwordConfirm = (string) $this->request->getPost('password_confirm');
+
+        if (!$email || !$otpVerified) {
+            return redirect()->to('/forgot-password')->with('error', 'Please verify your OTP before resetting your password.');
+        }
+
+        if ($password === '' || $passwordConfirm === '') {
+            return redirect()->to('/reset-password')->with('error', 'Both password fields are required.');
+        }
+
+        if (strlen($password) < 6) {
+            return redirect()->to('/reset-password')->with('error', 'Password must be at least 6 characters long.');
+        }
+
+        if ($password !== $passwordConfirm) {
+            return redirect()->to('/reset-password')->with('error', 'Passwords do not match.');
+        }
+
+        $user = $this->userModel->getUserByEmail($email);
+
+        if (!$user) {
+            return redirect()->to('/forgot-password')->with('error', 'Account not found. Please start the reset process again.');
+        }
+
+        $this->userModel->update($user->id, ['password' => $password]);
+
+        session()->remove(['reset_email', 'otp_verified', 'otp_id']);
+
+        return redirect()->to('/login')->with('success', 'Your password has been updated successfully. Please log in with your new password.');
+    }
+
     /**
      * Verify MFA Login - Shows form to enter OTP for login
      */

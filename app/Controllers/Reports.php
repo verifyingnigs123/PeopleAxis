@@ -2,8 +2,47 @@
 
 namespace App\Controllers;
 
+use App\Libraries\TeamPerformanceAnalytics;
+
 class Reports extends BaseController
 {
+    /**
+     * Team performance analytics dashboard (Manager only)
+     */
+    public function team()
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
+
+        if (! $this->isManagerUser()) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Manager only.');
+        }
+
+        try {
+            $teamContext = $this->getManagedTeamContext();
+            $filters = [
+                'month' => (string) $this->request->getGet('month'),
+                'start_date' => (string) $this->request->getGet('start_date'),
+                'end_date' => (string) $this->request->getGet('end_date'),
+                'employee_name' => trim((string) $this->request->getGet('employee_name')),
+                'department_id' => (string) $this->request->getGet('department_id'),
+                'team' => trim((string) $this->request->getGet('team')),
+                'attendance_status' => trim((string) $this->request->getGet('attendance_status')),
+                'performance_category' => trim((string) $this->request->getGet('performance_category')),
+            ];
+
+            $analytics = new TeamPerformanceAnalytics();
+            $data = $analytics->build($teamContext, $filters);
+            $data['title'] = 'Team Performance Analytics Dashboard';
+
+            return view('reports/team', $data);
+        } catch (\Throwable $e) {
+            log_message('error', 'Team performance report error: ' . $e->getMessage());
+            return redirect()->to('/dashboard')->with('error', 'Unable to load team performance dashboard.');
+        }
+    }
+
     /**
      * Generate attendance report (HR Admin only)
      */
